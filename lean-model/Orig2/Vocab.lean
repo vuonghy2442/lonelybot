@@ -710,6 +710,21 @@ abbrev VacantSpot (st : State) (j : Anchor) : Prop := (st.piles j).isEmpty = tru
 fuel). -/
 def HasVacancy (st : State) : Prop := ∃ j, (st.piles j).isEmpty = true
 
+/-- **NoVacancy st** — every pile of `st` is nonempty. -/
+abbrev NoVacancy (st : State) : Prop := ∀ a, ¬ (st.piles a).isEmpty = true
+
+/-- **SameOrbitVacant st** — the `sameOrbitSetoid` class of `st` contains at
+least one state with a vacant spot.  This is the class-level vacancy read:
+the hypothesis "the class has a vacancy" is `SameOrbitVacant st`, independent
+of which class member is chosen. -/
+def SameOrbitVacant (st : State) : Prop :=
+  ∃ u, sameOrbitSetoid.r st u ∧ HasVacancy u
+
+/-- **AllVacant st** — every state in the class of `st` carries a vacant
+spot (the permanent-vacancy regime). -/
+def AllVacant (st : State) : Prop :=
+  ∀ w, sameOrbitSetoid.r st w → HasVacancy w
+
 /-- **KingBottom st j** — a bare bottomed king: the pile has no hidden cards
 and a king bottoms its face-up run (so the king can be shuffled out of it). -/
 def KingBottom (st : State) (j : Anchor) : Prop :=
@@ -727,13 +742,56 @@ set of the state. -/
 def KingBottomCard (w : State) (c : Card) : Prop :=
   ∃ a, KingBottom w a ∧ seatOf w c = some (Sum.inl a)
 
-/-- **KingInjection st w τ** — THE CLEAN INTERFACE for "an injective map from
-the bottomed kings of `w` to the fuel set of `st`": `τ` lands every bottomed
-king of `w` on a node of `VKSet st`, and is injective on those cards.  This is
-the hypothesis package the assignment rows consume, stated once. -/
-def KingInjection (st w : State) (τ : Card → Anchor) : Prop :=
-  (∀ c, KingBottomCard w c → VKSet st (τ c)) ∧
+/-- **KingInjection w τ** — THE CLEAN INTERFACE for "an injective map from
+the bottomed kings of `w` to `w`'s own fuel set": `τ` lands every bottomed
+king of `w` on a node of `VKSet w`, and is injective on those cards.  The
+fuel set is class-invariant, so the single-state form is the primitive one;
+no second reference state is needed. -/
+def KingInjection (w : State) (τ : Card → Anchor) : Prop :=
+  (∀ c, KingBottomCard w c → VKSet w (τ c)) ∧
     (∀ c c', KingBottomCard w c → KingBottomCard w c' → τ c = τ c' → c = c')
+
+/-- **KingFounded w c** — the king card `c` already sits in its suit's
+foundation at `w`.  This is the post-state of a bare-king raise. -/
+def KingFounded (w : State) (c : Card) : Prop :=
+  c.rank = Rank.king ∧ c ∈ w.found c.suit
+
+/-- **SomeKingFounded st** — some class member has a king already in the
+foundation.  This is the accessible-king regime of the vacancy dichotomy. -/
+def SomeKingFounded (st : State) : Prop :=
+  ∃ w, sameOrbitSetoid.r st w ∧ ∃ c, KingFounded w c
+
+/-- **KingAssignmentAt w** — the assignment property at one state, read
+intrinsically: every injective map from `w`'s bottomed kings into `w`'s own
+fuel set is realized by some `sameOrbitSetoid` class-mate of `w`.  `VKSet` is
+class-invariant, so this single-state form is the primitive one. -/
+def KingAssignmentAt (w : State) : Prop :=
+  ∀ τ : Card → Anchor, KingInjection w τ →
+    ∃ w', sameOrbitSetoid.r w w' ∧
+      ∀ c, KingBottomCard w c → seatOf w' c = some (Sum.inl (τ c))
+
+/-- **KingAssignmentComplete st** — the clean king orbit for the whole
+`sameOrbitSetoid` class of `st`: every class member has the assignment
+property. -/
+def KingAssignmentComplete (st : State) : Prop :=
+  ∀ w, sameOrbitSetoid.r st w → KingAssignmentAt w
+
+/-- **KingAssignmentFixed st** — in a vacancy-free class, every realized
+assignment preserves the current seat of every bottomed king.  This is the
+no-vacancy half of the king-orbit dichotomy. -/
+def KingAssignmentFixed (st : State) : Prop :=
+  ∀ w, sameOrbitSetoid.r st w →
+  ∀ w', sameOrbitSetoid.r st w' →
+  ∀ τ : Card → Anchor, KingInjection w τ →
+    (∀ c, KingBottomCard w c → seatOf w' c = some (Sum.inl (τ c))) →
+    ∀ c, KingBottomCard w c → seatOf w' c = seatOf w c
+
+/-- **KingOrbitDichotomy st** — the two king-orbit regimes:
+a vacant class has the complete assignment property, while a vacancy-free
+class has the fixed assignment property. -/
+def KingOrbitDichotomy (st : State) : Prop :=
+  (SameOrbitVacant st → KingAssignmentComplete st) ∧
+    (¬ SameOrbitVacant st → KingAssignmentFixed st)
 
 
 
@@ -963,3 +1021,8 @@ Definitions only, modulo the flagged setoid support kit (audited:
 the four rows are the verbatim carrier kit); zero sorry; zero
 `Classical.choice`; the seam import is `Orig2.Model`.
 -/
+/-- **VacancyDichotomy st** — the class-level vacancy read splits into two
+regimes: either every class member keeps a vacancy, or some class member has
+a king already in the foundation (the accessible-king regime). -/
+def VacancyDichotomy (st : State) : Prop :=
+  SameOrbitVacant st ↔ AllVacant st ∨ SomeKingFounded st

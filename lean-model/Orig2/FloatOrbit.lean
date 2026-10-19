@@ -1,6 +1,7 @@
 import Orig2.Chart
 import Orig2.FloatFiber
 import Orig2.CargoKit
+import Orig2.RevSteps
 
 /-!
 # Orig2.FloatOrbit — THE ORBIT-INVARIANCE CARD (the floater set is
@@ -743,17 +744,18 @@ theorem bareCargo_to_chartDiff {st w : State} (hwf : st.WF)
 
 /-- **floater_orbit_wf_prsv** — the WF fence rides the whole cargo
 orbit: every bare-cargo class-mate of a WF state is WF (per-leg
-fence by the tabToTab conservation row, closed by chain induction
+fence by the tabToTab conservation row, closed by span induction
 — the ← direction's readout-and-fence clause, one cargo
-direction suffices as ever). -/
+direction suffices as ever).  RE-EVIDENCED 2026-10-19 at the
+rev-steps card's generic `steps_preserved` (the per-leg row is
+self-contained, so the lift is one instance); statement
+byte-frozen. -/
 theorem floater_orbit_wf_prsv {x0 y : State} (hpath : Steps CargoLeg x0 y)
     (hwf : x0.WF) : y.WF :=
-  tfa_chain_lift (R := fun u v => u.WF → v.WF)
-    (fun _ h => h)
-    (fun hleg hwf0 _ => by
-      obtain ⟨m, b, hstep, hrev⟩ := hleg
-      exact tfc_tabToTab_wf hwf0 hstep)
-    (fun h1 h2 h => h2 (h1 h)) hpath hwf hwf
+  steps_preserved CargoLeg (fun s => s.WF)
+    (fun hl hwf0 => by
+      obtain ⟨m, b, hstep, hrev⟩ := hl
+      exact tfc_tabToTab_wf hwf0 hstep) hpath hwf
 
 /-! ### §M. THE MIRROR PROGRAM — foundations: the seating uniqueness
 calculus (extracted standalone from the invariance card's internal
@@ -2010,7 +2012,7 @@ Prop-inversion rows above are repackaged at it, so no Prop witness
 is ever extracted into this data construction; the cell `Or` is
 likewise consumed by a Prop-typed repackaging, never by a data
 elimination.) -/
-private def orbit_empty_celldata {u u' : State} {c : Card} {b : Base}
+def orbit_empty_celldata {u u' : State} {c : Card} {b : Base}
     (hwfu : u.WF)
     (hstep : State.step u (Move.tabToTab c b) = some u')
     (hrev : reversibleAtW u (Move.tabToTab c b)) :
@@ -2168,10 +2170,6 @@ theorem bareCargo_orbit_spare_empty {st w : State} (hwfst : st.WF)
     (hemp : ∃ j, (st.piles j).isEmpty = true) :
     ∃ j, (w.piles j).isEmpty = true :=
   orbit_empty_exists_chain hpair.1 hwfst hemp
-
-/-- **HasVacancy st** — the state carries a vacant spot (the king orbit's
-fuel).  The predicate the king-orbit dichotomy is stated in. -/
-def HasVacancy (st : State) : Prop := ∃ j, (st.piles j).isEmpty = true
 
 /-- **vacuity_orbit_iff** — VACANCY IS AN ORBIT CONSTANT: the two ends of a
 bare-cargo class agree on whether they carry a vacant spot.  This is the
@@ -2344,21 +2342,9 @@ kings move: a node that stops being vacant is a king-bottom, and one that
 stops being a king-bottom is vacant.  With it the cardinality trichotomy of
 the king card is three rows — the set is constant, no vacancy stops the
 shuffle, a vacancy enables it — and the Z/2Z company hop touches no node of
-the set at all. -/
-
-/-- **VacantSpot st j** — the pile at `j` is empty (a vacant spot). -/
-abbrev VacantSpot (st : State) (j : Anchor) : Prop := (st.piles j).isEmpty = true
-
-/-- **KingBottom st j** — a bare bottomed king: the pile has no hidden cards
-and a king bottoms its face-up run (so the king can be shuffled out of it). -/
-def KingBottom (st : State) (j : Anchor) : Prop :=
-  ∃ c, seatOf st c = some (Sum.inl j) ∧ c.rank = Rank.king ∧
-    (st.piles j).hidden = []
-
-/-- **VKSet st j** — the king orbit's fuel set: vacant, or filled by a
-bottomed king. -/
-abbrev VKSet (st : State) (j : Anchor) : Prop :=
-  VacantSpot st j ∨ KingBottom st j
+the set at all.  The registry vocabulary (`VacantSpot`, `HasVacancy`,
+`KingBottom`, `VKSet`, `KingBottomCard`, `KingInjection`) lives at
+`Orig2/Vocab.lean` §9.2; this section consumes it through the import. -/
 
 /-- The `putRun` literal's emptiness: appending a nonempty run never leaves a
 pile empty.  (The `have`-shaped statement is what `putRun_inr_eq` produces;
@@ -2381,7 +2367,7 @@ ride `boardFixed`, and no `inl` seat is created or destroyed — the mover
 stays `inr`).  Bare-king hop: the donor and the consumed target swap roles —
 the donor becomes vacant, the target gains the bare king — and every other
 pile is carried verbatim. -/
-private theorem orbit_vk_step {u u' : State} {c : Card} {b : Base}
+theorem orbit_vk_step {u u' : State} {c : Card} {b : Base}
     (hwf : u.WF)
     (hstep : State.step u (Move.tabToTab c b) = some u')
     (hrev : reversibleAtW u (Move.tabToTab c b)) :
@@ -2732,8 +2718,7 @@ private theorem king_hop_step {u : State} (hwf : u.WF) {c : Card} {a e : Anchor}
       (∀ x, x ≠ c → seatOf v x = seatOf u x) ∧
       (∀ j, j ≠ a → j ≠ e → v.piles j = u.piles j) ∧ v.WF ∧
       (∀ j, VKSet u j ↔ VKSet v j) ∧
-      (∀ x, x ≠ c → (∃ a', KingBottom u a' ∧ seatOf u x = some (Sum.inl a')) →
-        ∃ a', KingBottom v a' ∧ seatOf v x = some (Sum.inl a')) ∧
+      (∀ x, x ≠ c → KingBottomCard u x → KingBottomCard v x) ∧
       State.step u (Move.tabToTab c (Sum.inl e)) = some v ∧
       CargoLeg u v ∧
       (∀ j, (u.piles j).hidden = (v.piles j).hidden) := by
@@ -2771,9 +2756,7 @@ private theorem king_hop_step {u : State} (hwf : u.WF) {c : Card} {a e : Anchor}
     intro j hja hje
     rw [hs1shape, putRun_eq_inl, setPile_piles_ne hje, setPile_piles_ne hja]
   have hvk : ∀ j, VKSet u j ↔ VKSet v j := orbit_vk_step hwf hstep hrev
-  have hkeeps : ∀ x, x ≠ c →
-      (∃ a', KingBottom u a' ∧ seatOf u x = some (Sum.inl a')) →
-      ∃ a', KingBottom v a' ∧ seatOf v x = some (Sum.inl a') := by
+  have hkeeps : ∀ x, x ≠ c → KingBottomCard u x → KingBottomCard v x := by
     intro x hx hkbx
     obtain ⟨ax, hkbx', hse_x⟩ := hkbx
     obtain ⟨xk, hse_xk, hkng_x, hhid_x⟩ := hkbx'
@@ -2819,7 +2802,7 @@ abbrev PlacedBy (τ : Card → Anchor) (done : List Card) (w : State) : Prop :=
 
 private theorem king_solve : ∀ (cs ds : List Card) (u : State),
     u.WF → HasVacancy u →
-    (∀ c ∈ cs, ∃ a, KingBottom u a ∧ seatOf u c = some (Sum.inl a)) →
+    (∀ c ∈ cs, KingBottomCard u c) →
     (∀ c ∈ cs, VKSet u (τ c)) →
     PlacedBy τ ds u →
     cs.Nodup → ds.Nodup → (∀ c ∈ cs, c ∉ ds) →
@@ -2850,7 +2833,7 @@ private theorem king_solve : ∀ (cs ds : List Card) (u : State),
           · rw [hyc] at hxy ⊢
             exact hinj x hx' c (by simp) hxy
           · exact hinj x hx' y (List.mem_append_right _ hyds) hxy
-      have hk' : ∀ x ∈ rest, ∃ a, KingBottom u a ∧ seatOf u x = some (Sum.inl a) :=
+      have hk' : ∀ x ∈ rest, KingBottomCard u x :=
         fun x hx => hk x (List.mem_cons_of_mem c hx)
       have ht' : ∀ x ∈ rest, VKSet u (τ x) :=
         fun x hx => ht x (List.mem_cons_of_mem c hx)
@@ -2883,7 +2866,7 @@ private theorem king_solve : ∀ (cs ds : List Card) (u : State),
             · rw [hxc]; exact hse_c1
             · have hxc : x ≠ c := fun h => hfilled (h ▸ hx)
               rw [hseat_other x hxc]; exact hp x hx
-          have hk1 : ∀ x ∈ rest, ∃ a', KingBottom w1 a' ∧ seatOf w1 x = some (Sum.inl a') := by
+          have hk1 : ∀ x ∈ rest, KingBottomCard w1 x := by
             intro x hx
             exact hkeeps1 x (fun h => hc_rest (h ▸ hx)) (hk' x hx)
           have ht1 : ∀ x ∈ rest, VKSet w1 (τ x) := by
@@ -2943,12 +2926,12 @@ private theorem king_solve : ∀ (cs ds : List Card) (u : State),
               have hxd : x ≠ d := fun h => hd_ds (h ▸ hx)
               rw [hseat_c_other x hxc, hseat_d_other x hxd]
               exact hp x hx
-          have hk1 : ∀ x ∈ rest, ∃ a', KingBottom w1 a' ∧ seatOf w1 x = some (Sum.inl a') := by
+          have hk1 : ∀ x ∈ rest, KingBottomCard w1 x := by
             intro x hx
             by_cases hxd : x = d
             · rw [hxd]; exact ⟨v0, hkb_d1, hse_d1⟩
             · exact hkeeps1 x hxd (hk' x hx)
-          have hk2 : ∀ x ∈ rest, ∃ a', KingBottom w2 a' ∧ seatOf w2 x = some (Sum.inl a') := by
+          have hk2 : ∀ x ∈ rest, KingBottomCard w2 x := by
             intro x hx
             exact hkeeps2 x (fun h => hc_rest (h ▸ hx)) (hk1 x hx)
           have ht2 : ∀ x ∈ rest, VKSet w2 (τ x) := by
@@ -2971,7 +2954,7 @@ node, and (since the king count and `VKSet` are orbit invariants) the leftover
 nodes are exactly the vacancies. -/
 theorem king_assignment_reachable {u : State} (hwf : u.WF) (hvac : HasVacancy u)
     (τ : Card → Anchor) (cs : List Card)
-    (hk : ∀ c ∈ cs, ∃ a, KingBottom u a ∧ seatOf u c = some (Sum.inl a))
+    (hk : ∀ c ∈ cs, KingBottomCard u c)
     (ht : ∀ c ∈ cs, VKSet u (τ c))
     (hnd : cs.Nodup)
     (hinj : ∀ c ∈ cs, ∀ c' ∈ cs, τ c = τ c' → c = c') :
@@ -2981,6 +2964,64 @@ theorem king_assignment_reachable {u : State} (hwf : u.WF) (hvac : HasVacancy u)
       (by simp) (fun c hc => by simp)
       (fun c hc c' hc' h => hinj c hc c' (by simpa using hc') h)
   exact ⟨w, hks, hcs⟩
+
+/-- A cargo path is a witness shuffle: every cargo letter carries its
+`reversibleAtW` witness, so the span realizes as a `ShufflePlayW`. -/
+theorem cargoPath_shuffle {a b : State} (h : CargoPath a b) :
+    ∃ play, ShufflePlayW a play b := by
+  induction h with
+  | refl s => exact ⟨[], Walk.nil s⟩
+  | cons hleg t ih =>
+      obtain ⟨c, b', hstep, hrev⟩ := hleg
+      obtain ⟨play, hplay⟩ := ih
+      exact ⟨Move.tabToTab c b' :: play, Walk.cons hrev hstep hplay⟩
+
+/-- **`bareCargo_revEqW`** — the bare-cargo relation is a witness reversible
+pair: both cargo paths realize as witness shuffles, one per direction. -/
+theorem bareCargo_revEqW {a b : State} (h : BareCargoEquiv a b) : RevEqW a b := by
+  obtain ⟨h1, h2⟩ := h
+  obtain ⟨σ, hσ⟩ := cargoPath_shuffle h1
+  obtain ⟨τ, hτ⟩ := cargoPath_shuffle h2
+  exact ⟨σ, hσ, τ, hτ⟩
+
+/-- **`bareCargo_sameOrbit`** — every bare-cargo class pair lies in one
+`sameOrbitSetoid` class: the cargo paths are witness shuffles, so the pair is
+`RevEqW` in both directions. -/
+theorem bareCargo_sameOrbit {a b : State} (h : BareCargoEquiv a b) :
+    sameOrbitSetoid.r a b := by
+  show RevEqW b a
+  exact RevEqW_symm (bareCargo_revEqW h)
+
+/-- **`king_assignment_class`** — THE CLASS-LEVEL ASSIGNMENT COMPLETENESS:
+if `st` and `w` are bare-cargo class-mates and `st` carries a vacant spot,
+then every injective assignment `τ` of the bottomed kings `cs` of `w` to
+nodes of `st`'s fuel set is realized INSIDE THE SAME REVERSIBLE CLASS: some
+`sameOrbitSetoid` class-mate of `st` places every listed king at its assigned
+node.  (`VKSet` is carried from `st` to `w` by `bareCargo_orbit_vk`, the
+vacancy by `vacuity_orbit_iff`, the schedule is `king_assignment_reachable`,
+and the far end enters the macro class by `king_shuffle_closure` composed
+with the given class pair.) -/
+theorem king_assignment_class {st w : State} (hwfst : st.WF)
+    (hpair : BareCargoEquiv st w) (hvac : HasVacancy st)
+    (τ : Card → Anchor) (cs : List Card)
+    (hk : ∀ c ∈ cs, KingBottomCard w c)
+    (ht : ∀ c ∈ cs, VKSet st (τ c))
+    (hnd : cs.Nodup)
+    (hinj : ∀ c ∈ cs, ∀ c' ∈ cs, τ c = τ c' → c = c') :
+    ∃ w', sameOrbitSetoid.r st w' ∧
+      ∀ c ∈ cs, seatOf w' c = some (Sum.inl (τ c)) := by
+  have hwfw : w.WF := floater_orbit_wf_prsv hpair.1 hwfst
+  have hvacw : HasVacancy w := (vacuity_orbit_iff hwfst hpair).mp hvac
+  have htw : ∀ c ∈ cs, VKSet w (τ c) :=
+    fun c hc => (bareCargo_orbit_vk hwfst hpair (τ c)).mp (ht c hc)
+  obtain ⟨w', hks, hseat⟩ :=
+    king_assignment_reachable hwfw hvacw τ cs hk htw hnd hinj
+  have hcls : BareCargoEquiv w w' := king_shuffle_closure hwfw hks
+  refine ⟨w', ?_, hseat⟩
+  show RevEqW w' st
+  exact RevEqW_trans (RevEqW_symm (bareCargo_revEqW hcls))
+    (RevEqW_symm (bareCargo_revEqW hpair))
+
 /-! #### §M11c. THE STRONG KING HALF AND THE PRODUCT SOUNDNESS — a king is
 never seated on a card at WF; the strong king half (targets FULLY empty at the
 origin) is a reachable assignment; and a KingShuffle composed with any
@@ -3063,12 +3104,12 @@ private def kingCardB (st : State) (c : Card) : Bool :=
      | _ => false)
 
 /-- The bottomed kings of `st`, as a computable list. -/
-private def kingsOf (st : State) : List Card :=
+def kingsOf (st : State) : List Card :=
   Card.universe.filter (kingCardB st)
 
 /-- The enumeration is exact. -/
-private theorem mem_kingsOf {st : State} (_hwf : st.WF) {c : Card} :
-    c ∈ kingsOf st ↔ ∃ a, KingBottom st a ∧ seatOf st c = some (Sum.inl a) := by
+theorem mem_kingsOf {st : State} (_hwf : st.WF) {c : Card} :
+    c ∈ kingsOf st ↔ KingBottomCard st c := by
   unfold kingsOf
   rw [List.mem_filter]
   constructor
@@ -3084,7 +3125,7 @@ private theorem mem_kingsOf {st : State} (_hwf : st.WF) {c : Card} :
         | inr z => rw [hse] at hs; exact absurd hs (by simp)
         | inl a =>
             rw [hse] at hs
-            exact ⟨a, ⟨⟨c, hse, hr', of_decide_eq_true hs⟩, rfl⟩⟩
+            exact ⟨a, ⟨⟨c, hse, hr', of_decide_eq_true hs⟩, hse⟩⟩
   · rintro ⟨a, hkb, hse⟩
     refine ⟨Card.mem_universe c, ?_⟩
     obtain ⟨c0, hse0, hk0, hhid0⟩ := hkb
@@ -3097,8 +3138,34 @@ private theorem mem_kingsOf {st : State} (_hwf : st.WF) {c : Card} :
 
 private theorem universe_nodup : Card.universe.Nodup := by decide
 
-private theorem kingsOf_nodup (st : State) : (kingsOf st).Nodup :=
+theorem kingsOf_nodup (st : State) : (kingsOf st).Nodup :=
   universe_nodup.filter (kingCardB st)
+
+/-- **`king_assignment_class_all`** — the clean-map form of
+`king_assignment_class`: an injective map `KingInjection w τ` on ALL
+bottomed kings of `w` is realized on a `sameOrbitSetoid` class-mate of `st` —
+every bottomed king of `w` lands on its assigned `VKSet w` node.  (The
+enumeration `kingsOf w` converts the all-kings interface to the list form.) -/
+theorem king_assignment_class_all {st w : State} (hwfst : st.WF)
+    (hpair : BareCargoEquiv st w) (hvac : HasVacancy st)
+    {τ : Card → Anchor} (hτ : KingInjection w τ) :
+    ∃ w', sameOrbitSetoid.r st w' ∧
+      ∀ c, KingBottomCard w c → seatOf w' c = some (Sum.inl (τ c)) := by
+  have hwfw : w.WF := floater_orbit_wf_prsv hpair.1 hwfst
+  have hk : ∀ c ∈ kingsOf w, KingBottomCard w c :=
+    fun c hc => (mem_kingsOf hwfw).mp hc
+  have ht : ∀ c ∈ kingsOf w, VKSet st (τ c) :=
+    fun c hc =>
+      (bareCargo_orbit_vk hwfst hpair (τ c)).mpr
+        (hτ.1 c ((mem_kingsOf hwfw).mp hc))
+  have hinj : ∀ c ∈ kingsOf w, ∀ c' ∈ kingsOf w, τ c = τ c' → c = c' :=
+    fun c hc c' hc' heq =>
+      hτ.2 c c' ((mem_kingsOf hwfw).mp hc) ((mem_kingsOf hwfw).mp hc') heq
+  obtain ⟨w', hcls, hseat⟩ :=
+    king_assignment_class hwfst hpair hvac τ (kingsOf w) hk ht
+      (kingsOf_nodup w) hinj
+  exact ⟨w', hcls, fun c hc => hseat c ((mem_kingsOf hwfw).mpr hc)⟩
+
 /-! #### §M11f. THE UN-MEDIATED IFF — the `←` assembly.  With a vacancy the
 schedule exists (§M11b); the shuffle fixes every non-bottomed card's seat, the
 fuel set, the readouts and the licensing; the residual chart (identity on the
@@ -3116,8 +3183,7 @@ private theorem king_hop_kingcards {u v : State} (hwf : u.WF) {c : Card} {a e : 
     (hseat : seatOf u c = some (Sum.inl a)) (hkb : KingBottom u a)
     (hvac : VacantSpot u e)
     (hstep : State.step u (Move.tabToTab c (Sum.inl e)) = some v) :
-    ∀ x, (∃ a', KingBottom u a' ∧ seatOf u x = some (Sum.inl a')) ↔
-         (∃ a', KingBottom v a' ∧ seatOf v x = some (Sum.inl a')) := by
+    ∀ x, KingBottomCard u x ↔ KingBottomCard v x := by
   obtain ⟨v', hks, hse_v, hkb_v, hva, hseat_other, hpile_other, hwv, hvk, hkeeps,
     hstep', -, hhidden⟩ := king_hop_step hwf hseat hkb hvac
   have hvv : v' = v := Option.some.inj (hstep'.symm.trans hstep)
@@ -3143,8 +3209,7 @@ private theorem king_hop_kingcards {u v : State} (hwf : u.WF) {c : Card} {a e : 
 /-- Cards that do not bottom a king at the source keep their seat. -/
 private theorem king_shuffle_seat_of_not_bottomed : ∀ {u v : State},
     KingShuffle u v → u.WF →
-    ∀ x, (¬ ∃ a', KingBottom u a' ∧ seatOf u x = some (Sum.inl a')) →
-      seatOf v x = seatOf u x := by
+    ∀ x, ¬ KingBottomCard u x → seatOf v x = seatOf u x := by
   intro u v h
   induction h with
   | refl s => intro _ x _; rfl
@@ -3158,7 +3223,7 @@ private theorem king_shuffle_seat_of_not_bottomed : ∀ {u v : State},
         intro hxc
         exact hx ⟨a, ⟨c, hseat, hking, hhid⟩, by rw [hxc]; exact hseat⟩
       have hs2 : seatOf u2 x = seatOf u1 x := hseat_other x hxc
-      have hx2 : ¬ ∃ a', KingBottom u2 a' ∧ seatOf u2 x = some (Sum.inl a') := by
+      have hx2 : ¬ KingBottomCard u2 x := by
         intro h
         exact hx ((king_hop_kingcards hwf1 hseat ⟨c, hseat, hking, hhid⟩ hvac hfired x).mpr h)
       rw [ih (tfc_tabToTab_wf hwf1 hfired) x hx2]
@@ -3352,7 +3417,7 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
         · left
           by_cases hmem : x ∈ kingsOf st
           · rw [hkings x hmem, hagree x hmem]
-          · have hnot : ¬ ∃ a', KingBottom st a' ∧ seatOf st x = some (Sum.inl a') :=
+          · have hnot : ¬ KingBottomCard st x :=
               fun h => hmem ((mem_kingsOf hwfst).mpr h)
             have hsu : seatOf u x = seatOf st x :=
               king_shuffle_seat_of_not_bottomed hks hwfst x hnot
@@ -3377,14 +3442,14 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
             rw [hsu, hsw]
         · rcases hrel x with h1 | h2 | h3
           · left
-            have hnot : ¬ ∃ a', KingBottom st a' ∧ seatOf st x = some (Sum.inl a') := by
+            have hnot : ¬ KingBottomCard st x := by
               rintro ⟨a', ⟨c9, hse9, hk9, -⟩, hse9'⟩
               have hcc : c9 = x := king_seat_injective hse9 hse9'
               exact hk (by rw [← hcc]; exact hk9)
             rw [h1, king_shuffle_seat_of_not_bottomed hks hwfst x hnot]
           · right; left
             obtain ⟨z', hz, hzw⟩ := h2
-            have hnot : ¬ ∃ a', KingBottom st a' ∧ seatOf st x = some (Sum.inl a') := by
+            have hnot : ¬ KingBottomCard st x := by
               rintro ⟨a', ⟨c9, hse9, hk9, -⟩, hse9'⟩
               have hcc : c9 = x := king_seat_injective hse9 hse9'
               exact hk (by rw [← hcc]; exact hk9)
@@ -3397,7 +3462,7 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
           by_cases hmem : x ∈ kingsOf st
           · rw [hkings x hmem, hagree x hmem] at hchg
             exact hchg rfl
-          · have hnot : ¬ ∃ a', KingBottom st a' ∧ seatOf st x = some (Sum.inl a') :=
+          · have hnot : ¬ KingBottomCard st x :=
               fun h => hmem ((mem_kingsOf hwfst).mpr h)
             have hsu : seatOf u x = seatOf st x :=
               king_shuffle_seat_of_not_bottomed hks hwfst x hnot
@@ -3419,7 +3484,7 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
                   exact absurd hse_inr (by simp)
                 · exact hmem ((mem_kingsOf hwfst).mpr
                     ⟨a0, ⟨x, hse_inl0, hkr, hhid0⟩, hse_inl0⟩)
-        · have hnot : ¬ ∃ a', KingBottom st a' ∧ seatOf st x = some (Sum.inl a') := by
+        · have hnot : ¬ KingBottomCard st x := by
             rintro ⟨a', ⟨c9, hse9, hk9, -⟩, hse9'⟩
             have hcc : c9 = x := king_seat_injective hse9 hse9'
             exact hk (by rw [← hcc]; exact hk9)
@@ -3617,9 +3682,15 @@ theorem bareCargo_iff_split {st w : State}
 #print axioms vacuity_orbit_iff
 #print axioms orbit_empty_equiv_step
 #print axioms bareCargo_orbit_empty_iso
+#print axioms orbit_vk_step
 #print axioms bareCargo_orbit_vk
 #print axioms bareCargo_orbit_vk_transfer
 #print axioms king_assignment_reachable
+#print axioms cargoPath_shuffle
+#print axioms bareCargo_revEqW
+#print axioms bareCargo_sameOrbit
+#print axioms king_assignment_class
+#print axioms king_assignment_class_all
 #print axioms king_twin_split
 #print axioms bareCargo_iff_split
 #print axioms king_seat_injective
@@ -3635,4 +3706,3 @@ theorem bareCargo_iff_split {st w : State}
 #print axioms bareCargo_to_chartDiff
 #print axioms bareCargo_of_seatchart
 #print axioms orbit_king_hidden_vacate
-

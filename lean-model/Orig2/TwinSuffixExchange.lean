@@ -1,5 +1,7 @@
 import Orig2.TwinSplice
+import Orig2.TwinSpliceWF
 import Orig2.TwinRelabel
+import Orig2.TwinEquivariance
 import Orig2.Integrity
 
 set_option linter.unusedSectionVars false
@@ -575,9 +577,42 @@ theorem splice_eq_relabel_exchange {st : State} {x : Card} (hwf : st.WF)
 
 /-! ## §6. Audit battery -/
 
+/-- The suffix exchange preserves WF.  This follows from the decomposition
+`ρ_x(E_x) = P_x`, the WF of the run splice, and the WF of the relabel:
+`E_x = ρ_x(P_x)`. -/
+theorem wf_exchangeSuffix {st : State} {x : Card} (hwf : st.WF)
+    (hx : ∃ z, seatOf st x = some (Sum.inr z))
+    (hxt : ∃ z : Card, seatOf st x.twin = some (Sum.inr z.twin)) :
+    (st.exchangeSuffix x).WF := by
+  obtain ⟨zx, hzx⟩ := hx
+  obtain ⟨zt, hzt⟩ := hxt
+  obtain ⟨a, ha, -, -⟩ := tfc_seatOf_of_inr hzx
+  obtain ⟨b, hb, -, -⟩ := tfc_seatOf_of_inr hzt
+  have hab : a ≠ b := by
+    intro hab
+    subst hab
+    have htmem : x.twin ∈ (st.piles a).faceUp := pileHolding_mem hb
+    have heq : x = x.twin :=
+      runOK_rank_distinct (hwf.runOK_of a) (pileHolding_mem ha) htmem rfl
+    exact card_twin_ne x heq.symm
+  have hPwf : (st.spliceTwinRuns x).WF := wf_spliceTwinRuns hwf ⟨zx, hzx⟩ ⟨zt, hzt⟩
+  have hrel : State.relabelTwin x (st.exchangeSuffix x) = st.spliceTwinRuns x :=
+    relabelTwin_exchangeSuffix hwf ⟨zx, hzx⟩ ⟨zt, hzt⟩
+  have hEeq : st.exchangeSuffix x = State.relabelTwin x (st.spliceTwinRuns x) := by
+    have h := congrArg (State.relabelTwin x) hrel
+    rw [state_relabelTwin_involutive] at h
+    exact h
+  rw [hEeq]
+  refine wf_relabelTwin hPwf ⟨Sum.inr zt.twin, ?_⟩ ⟨Sum.inr zx, ?_⟩
+  · rw [seatOf_splice_self hwf ha hb hab]
+    exact hzt
+  · rw [seatOf_splice_twin hwf ha hb hab]
+    exact hzx
+
 #print axioms seatOf_exchangeSuffix_self
 #print axioms seatOf_exchangeSuffix_twin
 #print axioms seatOf_exchangeSuffix_rider_A
 #print axioms seatOf_exchangeSuffix_rider_B
 #print axioms relabelTwin_exchangeSuffix
 #print axioms splice_eq_relabel_exchange
+#print axioms wf_exchangeSuffix
