@@ -43,6 +43,7 @@ import Orig2.TwinSpliceComm
 import Orig2.TwinSplicePlay
 import Orig2.TwinPointOrbit
 import Orig2.TwinPointNormalize
+import Orig2.TwinNormalizeSplit
 import Orig2.FiberTransferCapstone
 import Orig2.FlagShip
 
