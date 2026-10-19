@@ -659,6 +659,85 @@ def chartAgree (st w : State) : Prop :=
     foundsFixed st w ∧ drawPool st = drawPool w ∧ cutOf st = cutOf w
 
 /-!
+### §9.1. The seat-mate stack interface  (live, 2026-10-19)
+
+The statement-level vocabulary of the seat-mate stack card: the origin
+configuration (`TargetInFoundation`), the end condition (`EndsOnTableau`),
+and the two play conclusions (`HasSeatMateStack`, `HasTargetPull`).  The
+`PullConfiguration` bundle is exactly the hypothesis of the foundation-pull
+arm of the binary split.
+-/
+
+/-- **TargetInFoundation st c** — the origin parent's twin sits in the
+foundation.  This is the configuration in which a foundation pull can create
+the live target `z.twin` for a card `c` seated on `z`. -/
+def TargetInFoundation (st : State) (c : Card) : Prop :=
+  ∃ z : Card, seatOf st c = some (Sum.inr z) ∧ z.twin ∈ st.found z.twin.suit
+
+/-- **EndsOnTableau st c** — the card is still face-up on the tableau. -/
+def EndsOnTableau (st : State) (c : Card) : Prop :=
+  ∃ b : Base, seatOf st c = some b
+
+/-- **PullConfiguration st w c** — the origin target is in the foundation and
+the card ends on the tableau: the exact hypothesis of the pull arm. -/
+def PullConfiguration (st w : State) (c : Card) : Prop :=
+  TargetInFoundation st c ∧ EndsOnTableau w c
+
+/-- **HasSeatMateStack c play** — the play raises a seat-mate of `c`. -/
+def HasSeatMateStack (c : Card) (play : List Move) : Prop :=
+  ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play
+
+/-- **HasTargetPull st c play** — the play pulls the origin parent's twin
+(`z.twin`, for the `z` named by `seatOf st c`) out of the foundation. -/
+def HasTargetPull (st : State) (c : Card) (play : List Move) : Prop :=
+  ∃ z : Card, ∃ b : Base,
+    seatOf st c = some (Sum.inr z) ∧ Move.foundToTab z.twin b ∈ play
+
+/-!
+### §9.2. The king-orbit assignment interface  (live, 2026-10-19)
+
+The statement-level vocabulary of the king orbit: the vacancy and fuel-set
+reads, the bottomed-king carrier, and the clean "king injective map to VK"
+interface.  PROMOTED here from `Orig2/FloatOrbit.lean` §§M9/M11 at owner
+request; the proving card consumes the registry constants through its
+`Orig2.Vocab` import.
+-/
+
+/-- **VacantSpot st j** — the pile at `j` is empty (a vacant spot). -/
+abbrev VacantSpot (st : State) (j : Anchor) : Prop := (st.piles j).isEmpty = true
+
+/-- **HasVacancy st** — the state carries a vacant spot (the king orbit's
+fuel). -/
+def HasVacancy (st : State) : Prop := ∃ j, (st.piles j).isEmpty = true
+
+/-- **KingBottom st j** — a bare bottomed king: the pile has no hidden cards
+and a king bottoms its face-up run (so the king can be shuffled out of it). -/
+def KingBottom (st : State) (j : Anchor) : Prop :=
+  ∃ c, seatOf st c = some (Sum.inl j) ∧ c.rank = Rank.king ∧
+    (st.piles j).hidden = []
+
+/-- **VKSet st j** — the king orbit's fuel set: vacant, or filled by a
+bottomed king. -/
+abbrev VKSet (st : State) (j : Anchor) : Prop :=
+  VacantSpot st j ∨ KingBottom st j
+
+/-- **KingBottomCard w c** — the card `c` bottoms a bare king at `w`.  This is
+the domain of a king injection: the subtype it carves out is the bottomed-king
+set of the state. -/
+def KingBottomCard (w : State) (c : Card) : Prop :=
+  ∃ a, KingBottom w a ∧ seatOf w c = some (Sum.inl a)
+
+/-- **KingInjection st w τ** — THE CLEAN INTERFACE for "an injective map from
+the bottomed kings of `w` to the fuel set of `st`": `τ` lands every bottomed
+king of `w` on a node of `VKSet st`, and is injective on those cards.  This is
+the hypothesis package the assignment rows consume, stated once. -/
+def KingInjection (st w : State) (τ : Card → Anchor) : Prop :=
+  (∀ c, KingBottomCard w c → VKSet st (τ c)) ∧
+    (∀ c c', KingBottomCard w c → KingBottomCard w c' → τ c = τ c' → c = c')
+
+
+
+/-!
 ## §10. THE FLOATER  (live, owner-defined 2026-10-17 — the
 behavioral form, option (1) of the day's adjudication)
 -/

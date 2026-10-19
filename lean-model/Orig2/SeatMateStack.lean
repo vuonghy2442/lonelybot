@@ -2276,6 +2276,522 @@ theorem nonFloater_nonKing_change_seatmate_of_not_found
     | inl a0 => exact stack_arm_inl hwfst hnk hb hchg hplay hnoStack
     | inr z0 => exact stack_arm_inr hwfst hb hnf (hnotfound z0 hb) hchg hplay hnoStack
 
+/-- **The `ends off-tableau` stack arm**: if `c` starts seated and ends off
+the tableau, it was raised, so a seat-mate (itself) is stacked. -/
+theorem nonFloater_change_stack_of_ends_none
+    {st w : State} (hwfst : st.WF) {c : Card}
+    (htab : ∃ b, seatOf st c = some b)
+    (hnone : seatOf w c = none)
+    {play : List Move} (hplay : ShufflePlayW st play w) :
+    ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play :=
+  stack_of_tabToFound_self (tabToFound_of_seat_none hwfst htab hnone hplay)
+
+/-- **The non-king `¬hfound` stack arm** in the negation shape used by the
+binary split. -/
+theorem nonFloater_nonKing_change_stack_of_not_found
+    {st w : State} (hwfst : st.WF) (hw : w.WF) {c : Card}
+    (hnk : c.rank ≠ Rank.king)
+    (htab : ∃ b, seatOf st c = some b)
+    (hnf : ¬ FloaterSpec st c)
+    (hchg : seatOf w c ≠ seatOf st c)
+    (hnotfound : ¬ ∃ z : Card,
+      seatOf st c = some (Sum.inr z) ∧ z.twin ∈ st.found z.twin.suit) :
+    ∀ play : List Move, ShufflePlayW st play w →
+      ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play := by
+  intro play hplay
+  exact nonFloater_nonKing_change_seatmate_of_not_found hwfst hw hnk htab hnf hchg
+    (fun z hz hmem => hnotfound ⟨z, hz, hmem⟩) play hplay
+
+private theorem ka_canSitOn_not_king {c z : Card} (h : canSitOn c z = true) :
+    c.rank ≠ Rank.king := by
+  obtain ⟨hidx, -⟩ := (canSitOn_eq c z).mp h
+  intro hk
+  have h12 : c.rank.toIdx = 12 := by rw [hk]; rfl
+  have hlt := Rank.toIdx_lt z.rank
+  omega
+
+/-- A king's tableau seat is always a pile-bottom seat (`inl`); an `inr`
+seat would let the king sit on a card. -/
+private theorem ka_king_seat_inl {s : State} (hwf : s.WF) {c : Card}
+    (hking : c.rank = Rank.king) {b : Base} (hse : seatOf s c = some b) :
+    ∃ a : Anchor, b = Sum.inl a := by
+  cases b with
+  | inl a => exact ⟨a, rfl⟩
+  | inr z =>
+      exfalso
+      obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hse
+      exact ka_canSitOn_not_king ((tfc_seat_parent hwf hhold hlast).1) hking
+
+/-- A non-Floater bare king forces every pile nonempty. -/
+private theorem ka_no_empty_of_nf {s : State} {c : Card} {a0 : Anchor}
+    (hking : c.rank = Rank.king)
+    (hse : seatOf s c = some (Sum.inl a0))
+    (hnf : ¬ FloaterSpec s c)
+    (hhid : (s.piles a0).hidden = []) :
+    ∀ a : Anchor, (s.piles a).isEmpty = false := by
+  intro a
+  cases ha : (s.piles a).isEmpty with
+  | false => rfl
+  | true =>
+      exact absurd (Or.inr ⟨a0, hse, hking, hhid, a, ha⟩) hnf
+
+/-- Piles with a nonempty face-up run are not empty. -/
+private theorem ka_pile_not_empty_of_faceUp_ne {p : Pile} (h : p.faceUp ≠ []) :
+    p.isEmpty = false := by
+  rcases p with ⟨hd, fu⟩
+  cases hd <;> cases fu <;> simp_all [Pile.isEmpty]
+
+/-- A removal with a nonempty remainder writes the remainder as the
+face-up run (restatement of the private `afterRunRemoved_faceUp_ne` in
+`Orig2/SeatMateStack.lean`). -/
+private theorem ka_afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card}
+    (h : pre ≠ []) : (Pile.afterRunRemoved p pre).faceUp = pre := by
+  cases pre with
+  | nil => exact absurd rfl h
+  | cons w t => rfl
+
+/-- Equal piles give equal seats (restatement of the private
+`seatOf_congr_piles` in `Orig2/SeatMateStack.lean`). -/
+private theorem ka_seatOf_congr_piles {u v : State} (hp : v.piles = u.piles)
+    (c : Card) : seatOf v c = seatOf u c := by
+  unfold seatOf State.pileHolding
+  rw [hp]
+
+/-! ## §2. The hidden ledger of a reversible step -/
+
+/-- A reversible raise never reveals: every hidden deck is unchanged. -/
+private theorem ka_tabToFound_hidden_eq {u v : State} {x : Card}
+    (hwf : u.WF) (hstep : State.step u (Move.tabToFound x) = some v)
+    (hrev : reversibleAtW u (Move.tabToFound x)) :
+    ∀ a : Anchor, (v.piles a).hidden = (u.piles a).hidden := by
+  intro a
+  obtain ⟨hnxt, a', hpa, hs⟩ := step_tabToFound_inv hstep
+  rw [hs]
+  dsimp only
+  by_cases ha : a = a'
+  · rw [ite_eq_left ha, ha]
+    rcases afterRunRemoved_hidden (u.piles a') (chop (u.piles a').faceUp) with
+      ⟨-, h⟩ | ⟨-, -, h⟩ | ⟨hchop, hhidne, -⟩
+    · exact h
+    · exact h
+    · exfalso
+      have hR : tabToFoundR u x = true :=
+        (tabToFoundR_iff_reversibleAtW hwf x).mpr hrev
+      cases hh : (u.piles a').hidden with
+      | nil => exact absurd hh hhidne
+      | cons g gs =>
+          simp only [tabToFoundR, hnxt, hpa, hchop, hh] at hR
+          exact Bool.noConfusion hR
+  · rw [ite_eq_right ha]
+
+/-- Every reversible step keeps every hidden deck. -/
+private theorem ka_hidden_eq_of_rev_step {u v : State} {m : Move}
+    (hwf : u.WF) (hstep : State.step u m = some v) (hrev : reversibleAtW u m) :
+    ∀ a : Anchor, (v.piles a).hidden = (u.piles a).hidden := by
+  intro a
+  cases m with
+  | draw =>
+      rw [stepDraw_piles hstep]
+  | wasteToFound x =>
+      obtain ⟨-, y, ys, hw, hs⟩ := step_wasteToFound_inv hstep
+      rw [hs]
+      rfl
+  | wasteToTab x b =>
+      exact absurd hrev (wasteToTab_not_reversibleAtW u x b)
+  | tabToFound x =>
+      exact ka_tabToFound_hidden_eq hwf hstep hrev a
+  | foundToTab x b =>
+      obtain ⟨c', htop, hcx, hcp, hs⟩ := step_foundToTab_inv hstep
+      rw [hs]
+      exact putCard_hidden_eq (st := u.setFound x.suit (chop (u.found x.suit)))
+        (c := x) (b := b) hcp a
+  | tabToTab x b =>
+      exact ((tfa_slide_conserves hwf hstep hrev).1.1 a).symm
+
+/-! ## §3. No empty pile appears without a king raise -/
+
+/-- With no empty pile to start with and no king raise fired, a
+reversible step creates no empty pile: a bare raise or a bare slide
+would have to move a king (the raise excluded, the slide's empty-seat
+landing or the bare-king hand needing an empty target at the origin). -/
+private theorem ka_no_empty_step {u v : State} {m : Move}
+    (hwf : u.WF) (hstep : State.step u m = some v)
+    (hrev : reversibleAtW u m)
+    (hne : ∀ a : Anchor, (u.piles a).isEmpty = false)
+    (hnoKing : ∀ x : Card, x.rank = Rank.king → m ≠ Move.tabToFound x) :
+    ∀ a : Anchor, (v.piles a).isEmpty = false := by
+  intro a
+  by_cases hva : (v.piles a).isEmpty = true
+  · exfalso
+    rcases KingFuel.empty_gain_step_is_raise_or_slide hstep hne ⟨a, hva⟩ with
+      ⟨x, a', hm, hpa, hemp⟩ | ⟨x, b, hm⟩
+    · -- an emptying raise is a king raise
+      have hstep' : State.step u (Move.tabToFound x) = some v := by
+        rw [← hm]; exact hstep
+      have hrev' : reversibleAtW u (Move.tabToFound x) := by
+        rw [← hm]; exact hrev
+      exact (hnoKing x (KingFuel.emptying_raise_is_king hstep' hrev' hpa hemp)) hm
+    · -- an emptying slide is a bare king slide, which needs an empty target
+      have hstep' : State.step u (Move.tabToTab x b) = some v := by
+        rw [← hm]; exact hstep
+      have hrev' : reversibleAtW u (Move.tabToTab x b) := by
+        rw [← hm]; exact hrev
+      obtain ⟨a0, hhold, hcp, hcell⟩ :=
+        tfc_tabToTabR_inv ((tabToTabR_iff_reversibleAtW hwf x b).mpr hrev')
+      cases b with
+      | inl t =>
+          obtain ⟨hempty, -⟩ := canPlace_inl hcp
+          rw [hne t] at hempty
+          exact Bool.noConfusion hempty
+      | inr z =>
+          obtain ⟨k, hloc, hsit⟩ := canPlace_inr hcp
+          rcases hcell with hbelow | ⟨hbelow, hhid, hking⟩
+          · -- the source keeps a nonempty face-up prefix; all other piles
+            -- are unchanged or appended to, hence no pile empties
+            obtain ⟨a1, hhold1, hcp1, hfr, hs⟩ := step_tabToTab_inv hstep'
+            have ha1 : a1 = a0 := Option.some.inj (hhold1.symm.trans hhold)
+            subst a1
+            have hQface :
+                (Pile.afterRunRemoved (u.piles a0)
+                  (below x (u.piles a0).faceUp)).faceUp
+                  = below x (u.piles a0).faceUp :=
+              ka_afterRunRemoved_faceUp_ne hbelow
+            have hsourceNonempty :
+                ∀ {a' : Anchor}, a' = a0 →
+                  ((u.setPile a0 (Pile.afterRunRemoved (u.piles a0)
+                    (below x (u.piles a0).faceUp))).piles a').isEmpty = false := by
+              intro a' ha'
+              subst a'
+              rw [setPile_piles_self]
+              obtain ⟨y, hy⟩ : ∃ y, y ∈ below x (u.piles a0).faceUp := by
+                cases hb : below x (u.piles a0).faceUp with
+                | nil => exact absurd hb hbelow
+                | cons y ys => exact ⟨y, by simp⟩
+              exact Pile.isEmpty_eq_false_of_mem
+                (p := Pile.afterRunRemoved (u.piles a0)
+                  (below x (u.piles a0).faceUp))
+                (by rw [hQface]; exact hy)
+            have hfalse : (v.piles a).isEmpty = false := by
+              rw [hs]
+              cases hz : (u.setPile a0 (Pile.afterRunRemoved (u.piles a0)
+                  (below x (u.piles a0).faceUp))).pileOfTop z with
+              | none =>
+                  rw [putRun_inr_none_piles hz a]
+                  by_cases ha0 : a = a0
+                  · exact hsourceNonempty ha0
+                  · rw [setPile_piles_ne ha0]
+                    exact hne a
+              | some t =>
+                  by_cases hat : a = t
+                  · rw [hat]
+                    rw [putRun_piles_inr_self (u.setPile a0 (Pile.afterRunRemoved
+                      (u.piles a0) (below x (u.piles a0).faceUp)))
+                      (fromCard x (u.piles a0).faceUp) z t hz]
+                    cases hc : fromCard x (u.piles a0).faceUp with
+                    | nil => exact absurd hc hfr
+                    | cons r rs =>
+                        exact Pile.isEmpty_eq_false_of_mem (c := r) (by simp)
+                  · rw [putRun_piles_inr_ne (u.setPile a0 (Pile.afterRunRemoved
+                      (u.piles a0) (below x (u.piles a0).faceUp)))
+                      (fromCard x (u.piles a0).faceUp) z t hz hat]
+                    by_cases ha0 : a = a0
+                    · exact hsourceNonempty ha0
+                    · rw [setPile_piles_ne ha0]
+                      exact hne a
+            rw [hfalse] at hva
+            exact Bool.noConfusion hva
+          · exact ka_canSitOn_not_king hsit hking
+  · cases ha : (v.piles a).isEmpty with
+    | false => rfl
+    | true => exact absurd ha hva
+
+/-! ## §4. The seat is constant while no king is raised -/
+
+/-- One reversible step with no king raise keeps a bare king's seat. -/
+private theorem ka_seat_step {u v : State} {m : Move} {c : Card} {a0 : Anchor}
+    (hwf : u.WF) (hstep : State.step u m = some v)
+    (hrev : reversibleAtW u m)
+    (hking : c.rank = Rank.king)
+    (hse : seatOf u c = some (Sum.inl a0))
+    (hcase : (u.piles a0).hidden ≠ [] ∨ (∀ j : Anchor, (u.piles j).isEmpty = false))
+    (hno : ∀ x : Card, x.rank = Rank.king → m ≠ Move.tabToFound x) :
+    seatOf v c = some (Sum.inl a0) := by
+  cases m with
+  | draw =>
+      rw [(chart_draw hstep).1 c]
+      exact hse
+  | wasteToFound x =>
+      obtain ⟨-, y, ys, hw, hs⟩ := step_wasteToFound_inv hstep
+      have hp : v.piles = u.piles := by rw [hs]; rfl
+      rw [ka_seatOf_congr_piles hp c]
+      exact hse
+  | wasteToTab x b =>
+      exact absurd hrev (wasteToTab_not_reversibleAtW u x b)
+  | tabToFound x =>
+      by_cases hxc : x = c
+      · exfalso
+        exact (hno x (by rw [hxc]; exact hking)) (by rw [hxc])
+      · rw [raise_seat_change_of_seated hstep hrev (by rw [hse]; simp)
+          (fun hcon => hxc hcon.symm)]
+        exact hse
+  | foundToTab x b =>
+      obtain ⟨c', htop, hc'c, hcp, hs⟩ := step_foundToTab_inv hstep
+      by_cases hxc : x = c
+      · exfalso
+        have hlast : lastOf (u.found c.suit) = some c := by
+          unfold State.foundTop at htop
+          rw [hxc] at htop
+          rw [hc'c, hxc] at htop
+          exact htop
+        have hfin : c ∈ u.found c.suit := lastOf_mem hlast
+        obtain ⟨hhold, hbl⟩ := tfc_seatOf_of_inl hse
+        exact ((mem_found_unique hwf hfin).1 a0).2 (pileHolding_mem hhold)
+      · rw [pull_seat_change hstep c (fun hcon => hxc hcon.symm)]
+        exact hse
+  | tabToTab x b =>
+      by_cases hxc : x = c
+      · exfalso
+        subst x
+        have hR : tabToTabR u c b = true :=
+          (tabToTabR_iff_reversibleAtW hwf c b).mpr hrev
+        obtain ⟨a, hhold, hcp, hcell⟩ := tfc_tabToTabR_inv hR
+        obtain ⟨hhold0, hbl0⟩ := tfc_seatOf_of_inl hse
+        have ha : a = a0 := Option.some.inj (hhold.symm.trans hhold0)
+        rw [ha] at hcell
+        rcases hcell with hbelow | ⟨-, hhid, -⟩
+        · exact hbelow hbl0
+        · rcases hcase with hhidne | hnonempty
+          · exact hhidne hhid
+          · cases b with
+            | inl t =>
+                obtain ⟨hempty, -⟩ := canPlace_inl hcp
+                rw [hnonempty t] at hempty
+                exact Bool.noConfusion hempty
+            | inr z =>
+                obtain ⟨k, -, hfit⟩ := canPlace_inr hcp
+                exact ka_canSitOn_not_king hfit hking
+      · rw [tfc_seat_point_edit hwf hstep hrev c]
+        rw [ite_eq_right (fun hcon => hxc hcon.symm)]
+        exact hse
+
+/-- Along a play with no king raise, a bare king's seat never changes,
+provided either its hidden deck is nonempty or every pile is nonempty. -/
+private theorem ka_seat_const_aux {u w : State} {play : List Move} {c : Card}
+    {a0 : Anchor}
+    (hplay : ShufflePlayW u play w) (hwf : u.WF)
+    (hno : ∀ x : Card, x.rank = Rank.king → Move.tabToFound x ∉ play)
+    (hking : c.rank = Rank.king)
+    (hse : seatOf u c = some (Sum.inl a0))
+    (hcase : (u.piles a0).hidden ≠ [] ∨
+      (∀ j : Anchor, (u.piles j).isEmpty = false)) :
+    seatOf w c = seatOf u c := by
+  induction hplay with
+  | nil => rfl
+  | @cons a b W m ρ hrev hstep hrest ih =>
+      have hnoStep : ∀ x : Card, x.rank = Rank.king → m ≠ Move.tabToFound x := by
+        intro x hxk hm
+        exact hno x hxk (by rw [hm]; exact List.mem_cons_self)
+      have hnoRest : ∀ x : Card, x.rank = Rank.king → Move.tabToFound x ∉ ρ := by
+        intro x hxk hmem
+        exact hno x hxk (List.mem_cons_of_mem _ hmem)
+      have hwfb : b.WF := step_wf hwf hstep
+      have hseb : seatOf b c = some (Sum.inl a0) :=
+        ka_seat_step hwf hstep hrev hking hse hcase hnoStep
+      have hcaseb : (b.piles a0).hidden ≠ [] ∨
+          (∀ j : Anchor, (b.piles j).isEmpty = false) := by
+        rcases hcase with hhid | hne
+        · exact Or.inl (by
+            rw [ka_hidden_eq_of_rev_step hwf hstep hrev a0]
+            exact hhid)
+        · exact Or.inr (ka_no_empty_step hwf hstep hrev hne hnoStep)
+      have hres := ih hwfb hnoRest hseb hcaseb
+      rw [hres, hseb, hse]
+
+/-! ## §5. A constructive search for a king raise -/
+
+private def ka_isKingRaise : Move → Bool
+  | Move.tabToFound x => decide (x.rank = Rank.king)
+  | _ => false
+
+private def ka_hasKingRaise : List Move → Bool
+  | [] => false
+  | m :: ρ => ka_isKingRaise m || ka_hasKingRaise ρ
+
+private theorem ka_hasKingRaise_cons_of_not {m : Move} {ρ : List Move}
+    (hm : ∀ x : Card, m ≠ Move.tabToFound x) :
+    ka_hasKingRaise (m :: ρ) = ka_hasKingRaise ρ := by
+  cases m with
+  | tabToFound x => exact absurd rfl (hm x)
+  | _ => rfl
+
+private theorem ka_hasKingRaise_iff (play : List Move) :
+    ka_hasKingRaise play = true ↔
+      ∃ x : Card, x.rank = Rank.king ∧ Move.tabToFound x ∈ play := by
+  induction play with
+  | nil => simp [ka_hasKingRaise]
+  | cons m ρ ih =>
+      cases m with
+      | tabToFound x =>
+          simp only [ka_hasKingRaise, ka_isKingRaise, Bool.or_eq_true,
+            decide_eq_true_eq]
+          constructor
+          · rintro (hx | hrest)
+            · exact ⟨x, hx, List.mem_cons_self⟩
+            · obtain ⟨y, hyk, hy⟩ := ih.mp hrest
+              exact ⟨y, hyk, List.mem_cons_of_mem _ hy⟩
+          · rintro ⟨y, hyk, hy⟩
+            rcases List.mem_cons.mp hy with h | h
+            · left
+              injection h with h1
+              rw [← h1]
+              exact hyk
+            · right
+              exact ih.mpr ⟨y, hyk, h⟩
+      | draw =>
+          rw [ka_hasKingRaise_cons_of_not (m := Move.draw) (ρ := ρ)
+            (fun x h => by nomatch h), ih]
+          constructor
+          · rintro ⟨y, hyk, hy⟩; exact ⟨y, hyk, List.mem_cons_of_mem _ hy⟩
+          · rintro ⟨y, hyk, hy⟩
+            rcases List.mem_cons.mp hy with h | h
+            · nomatch h
+            · exact ⟨y, hyk, h⟩
+      | wasteToFound y =>
+          rw [ka_hasKingRaise_cons_of_not (m := Move.wasteToFound y) (ρ := ρ)
+            (fun x h => by nomatch h), ih]
+          constructor
+          · rintro ⟨y', hyk, hy⟩; exact ⟨y', hyk, List.mem_cons_of_mem _ hy⟩
+          · rintro ⟨y', hyk, hy⟩
+            rcases List.mem_cons.mp hy with h | h
+            · nomatch h
+            · exact ⟨y', hyk, h⟩
+      | wasteToTab y b =>
+          rw [ka_hasKingRaise_cons_of_not (m := Move.wasteToTab y b) (ρ := ρ)
+            (fun x h => by nomatch h), ih]
+          constructor
+          · rintro ⟨y', hyk, hy⟩; exact ⟨y', hyk, List.mem_cons_of_mem _ hy⟩
+          · rintro ⟨y', hyk, hy⟩
+            rcases List.mem_cons.mp hy with h | h
+            · nomatch h
+            · exact ⟨y', hyk, h⟩
+      | foundToTab y b =>
+          rw [ka_hasKingRaise_cons_of_not (m := Move.foundToTab y b) (ρ := ρ)
+            (fun x h => by nomatch h), ih]
+          constructor
+          · rintro ⟨y', hyk, hy⟩; exact ⟨y', hyk, List.mem_cons_of_mem _ hy⟩
+          · rintro ⟨y', hyk, hy⟩
+            rcases List.mem_cons.mp hy with h | h
+            · nomatch h
+            · exact ⟨y', hyk, h⟩
+      | tabToTab y b =>
+          rw [ka_hasKingRaise_cons_of_not (m := Move.tabToTab y b) (ρ := ρ)
+            (fun x h => by nomatch h), ih]
+          constructor
+          · rintro ⟨y', hyk, hy⟩; exact ⟨y', hyk, List.mem_cons_of_mem _ hy⟩
+          · rintro ⟨y', hyk, hy⟩
+            rcases List.mem_cons.mp hy with h | h
+            · nomatch h
+            · exact ⟨y', hyk, h⟩
+
+/-! ## §6. The king arm -/
+
+theorem nonFloater_king_change_needs_king_stack
+    {st w : State} (hwfst : st.WF) (hw : w.WF) {c : Card}
+    (hking : c.rank = Rank.king)
+    (htab : ∃ b, seatOf st c = some b)
+    (hnf : ¬ FloaterSpec st c)
+    (hchg : seatOf w c ≠ seatOf st c) :
+    ∀ play : List Move, ShufflePlayW st play w →
+      ∃ x : Card, x.rank = Rank.king ∧ Move.tabToFound x ∈ play := by
+  have _ : w.WF := hw
+  intro play hplay
+  by_cases hsearch : ka_hasKingRaise play = true
+  · exact (ka_hasKingRaise_iff play).mp hsearch
+  · exfalso
+    obtain ⟨b, hseb⟩ := htab
+    obtain ⟨a0, hb⟩ := ka_king_seat_inl hwfst hking hseb
+    subst hb
+    have hno : ∀ x : Card, x.rank = Rank.king → Move.tabToFound x ∉ play := by
+      intro x hxk hmem
+      exact hsearch ((ka_hasKingRaise_iff play).mpr ⟨x, hxk, hmem⟩)
+    have hcase : (st.piles a0).hidden ≠ [] ∨
+        (∀ j : Anchor, (st.piles j).isEmpty = false) := by
+      by_cases hhid : (st.piles a0).hidden = []
+      · exact Or.inr (ka_no_empty_of_nf hking hseb hnf hhid)
+      · exact Or.inl hhid
+    exact hchg (ka_seat_const_aux hplay hwfst hno hking hseb hcase)
+
+theorem nonFloater_change_split
+    {st w : State} (hwfst : st.WF) (hw : w.WF) {c : Card}
+    (htab : ∃ b, seatOf st c = some b)
+    (hnf : ¬ FloaterSpec st c)
+    (hchg : seatOf w c ≠ seatOf st c) :
+    ∀ play : List Move, ShufflePlayW st play w →
+      (PullConfiguration st w c → HasTargetPull st c play)
+      ∧ (¬ PullConfiguration st w c → HasSeatMateStack c play) := by
+  intro play hplay
+  constructor
+  · intro hconf
+    exact nonFloater_change_found_needs_target_pull hwfst hw htab hnf hchg
+      hconf.1 hconf.2 play hplay
+  · intro hnot
+    by_cases hk : c.rank = Rank.king
+    · obtain ⟨x, hxk, hx⟩ :=
+        nonFloater_king_change_needs_king_stack hwfst hw hk htab hnf hchg play hplay
+      exact ⟨x, Or.inl ⟨hk, hxk⟩, hx⟩
+    · cases hwseat : seatOf w c with
+      | none =>
+          exact nonFloater_change_stack_of_ends_none hwfst htab hwseat hplay
+      | some b =>
+          have hnotfound : ¬ ∃ z : Card,
+              seatOf st c = some (Sum.inr z) ∧ z.twin ∈ st.found z.twin.suit := by
+            intro hf
+            exact hnot ⟨hf, ⟨b, hwseat⟩⟩
+          exact nonFloater_nonKing_change_stack_of_not_found hwfst hw hk htab hnf hchg
+            hnotfound play hplay
+
+/-- **The main disjunctive target**: a seat-mate raise or the origin parent's
+twin pull. -/
+theorem nonFloater_change_needs_seatmate_stack
+    {st w : State} (hwfst : st.WF) (hw : w.WF) {c : Card}
+    (htab : ∃ b, seatOf st c = some b)
+    (hnf : ¬ FloaterSpec st c)
+    (hchg : seatOf w c ≠ seatOf st c) :
+    ∀ play : List Move, ShufflePlayW st play w →
+      HasSeatMateStack c play ∨ HasTargetPull st c play := by
+  intro play hplay
+  have hsplit := nonFloater_change_split hwfst hw htab hnf hchg play hplay
+  cases hseat_st : seatOf st c with
+  | none =>
+      obtain ⟨b, hb⟩ := htab
+      rw [hseat_st] at hb
+      nomatch hb
+  | some bst =>
+      cases bst with
+      | inl a =>
+          exact Or.inl (hsplit.2 (by
+            rintro ⟨⟨z, hz, -⟩, -⟩
+            rw [hseat_st] at hz
+            nomatch hz))
+      | inr z0 =>
+          by_cases hmem : z0.twin ∈ st.found z0.twin.suit
+          · cases hseat_w : seatOf w c with
+            | none =>
+                exact Or.inl (hsplit.2 (by
+                  rintro ⟨-, ⟨b, hb⟩⟩
+                  rw [hseat_w] at hb
+                  nomatch hb))
+            | some bw =>
+                have hres := hsplit.1 ⟨⟨z0, hseat_st, hmem⟩, ⟨bw, hseat_w⟩⟩
+                exact Or.inr (by simpa only [HasTargetPull, hseat_st] using hres)
+          · exact Or.inl (hsplit.2 (by
+              rintro ⟨⟨z, hz, hzm⟩, -⟩
+              rw [hseat_st] at hz
+              injection hz with h1
+              have hz0 : z = z0 := (Sum.inr.inj h1).symm
+              rw [hz0] at hzm
+              exact hmem hzm))
+
 /-! ## The audit battery -/
 
 #print axioms card_eq_twin_of_rank_color
@@ -2285,3 +2801,8 @@ theorem nonFloater_nonKing_change_seatmate_of_not_found
 #print axioms tabToFound_of_seat_none
 #print axioms nonFloater_change_found_needs_target_pull
 #print axioms nonFloater_nonKing_change_seatmate_of_not_found
+#print axioms nonFloater_change_stack_of_ends_none
+#print axioms nonFloater_nonKing_change_stack_of_not_found
+#print axioms nonFloater_king_change_needs_king_stack
+#print axioms nonFloater_change_split
+#print axioms nonFloater_change_needs_seatmate_stack

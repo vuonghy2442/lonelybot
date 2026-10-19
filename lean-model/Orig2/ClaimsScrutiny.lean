@@ -269,14 +269,14 @@ certified and carded the same hour. -/
    forcing conservation; the owner's proof, the coordinator
    retraction logged) both certified and carded the same hour. -/
 
-/-! ## §S5. The seat-mate stack claim — REFUTED for ordinary cards (W1);
-the KING ARM SURVIVES (W2 retracted by the reversibility objection); the
-repaired ordinary arm is the blocker row -/
+/-! ## §S5. The seat-mate stack claim — REFUTED as requested (W3, the
+foundation twin pull); the repaired disjunction is proved at the card -/
 
-/-- **TOMBSTONE T3** — the seat-mate stack claim is FALSE as a whole: for an
-ordinary card neither it, nor its twin, nor a king need be stacked.  The
-KING arm of the same claim is TRUE (`king_change_needs_king_stack`); the
-tombstone's witness is an ordinary card, so the conjunction still fails. -/
+/-- **TOMBSTONE T3** — the seat-mate stack claim is FALSE as a whole: the
+foundation twin pull (W3) changes an ordinary card's seat with no
+`tabToFound` at all.  The KING arm of the same claim is TRUE (now proved as
+`nonFloater_king_change_needs_king_stack`); the tombstone's witness is an
+ordinary card, so the conjunction still fails. -/
 theorem tombstone_seatmate_stack :
     ¬ (∀ (st w : State), st.WF → w.WF → ∀ (c : Card),
         (∃ b, seatOf st c = some b) → ¬ Floater st c →
@@ -287,24 +287,41 @@ theorem tombstone_seatmate_stack :
 
 /-! ### §S5.0 EVIDENCE
 
-* **W1, the blocker (VALID).**  `c` seated on `z`, with `z.twin` covered by
-  `d`.  Every play that exposes `z.twin` must stack `d`: `d`'s only cargo
-  move is the twin hop onto `z`, and `z` is covered by `c` itself, so `d`
-  cannot leave its seat by cargo (riding a run keeps `seatOf = inr z.twin`).
-  The raise of `d` is itself reversible — its undo is the pull of `d` back
-  onto `z.twin`, which is the pile top after the raise, `canSitOn d z.twin`
-  being static — so it is a legal `ShufflePlayW` move.  Then `c` twin-hops.
-  The play contains `tabToFound d`, and `d` is neither `c` nor `c.twin`;
-  `c` ordinary, so no king is stacked either.  Refuted.
+* **W1 WITHDRAWN (2026-10-19).**  The proposed blocker `d` covering
+  `z.twin` is `c.twin` by `blocker_eq_twin` (the fit arithmetic and the
+  two-colour dichotomy pin it), hence `d` IS a seat-mate.  Raising `d`
+  stacks `c.twin`, so the play is not a counterexample; the blocker row is
+  the positive `tabToFound c.twin` arm.
 * **W2 RETRACTED (the irreversibility objection, owner 2026-10-18).**  The
   pile-emptying NON-KING raise is not a move of `ShufflePlayW`:
   `reversibleAtW` demands an exact return play (`∃ play, s₁.run play = some
   st`), and a non-king can never be put back on the emptied pile
   (`canPlace x (.inl a)` requires a king), nor restore the exact state any
   other way.  Hence **in the reversible world every pile-emptying raise
-  raises a KING** — the king arm is not refuted; it is TRUE. -/
+  raises a KING**; the king arm is TRUE and is now proved as
+  `nonFloater_king_change_needs_king_stack` in `Orig2/SeatMateStack.lean`.
+* **W3, the foundation twin pull (VALID).**  Let `c` sit on `z`, with
+  `z.twin` on top of its foundation (not on the tableau), and a pile top
+  `w` that fits `z.twin`.  The reversible pull `foundToTab z.twin w` makes
+  `z.twin` a live target; then `c` slides onto it.  The play changes
+  `seatOf c` and contains no `tabToFound` at all, so the requested shape
+  fails.  The machine-checked witness is `Temp/SeatMateCounter.lean`
+  (`SeatMateCounter.seatmate_stack_claim_false`); the repaired disjunction
+  is `nonFloater_change_needs_seatmate_stack` in
+  `Orig2/SeatMateStack.lean`, with the vocabulary
+  `PullConfiguration`/`HasTargetPull`/`HasSeatMateStack` in `Orig2/Vocab.lean`. -/
 
-/-! ### §S5.1 CANDIDATE VOCABULARY (the blocker split W1 makes unavoidable) -/
+/-! ### §S5.1 HISTORICAL CANDIDATE VOCABULARY (superseded by the card's
+proved heads)
+
+The candidates below were the pre-proof interface.  The live heads are
+`nonFloater_change_split`, `nonFloater_change_found_needs_target_pull`,
+`nonFloater_nonKing_change_seatmate_of_not_found`, and
+`nonFloater_king_change_needs_king_stack` in `Orig2/SeatMateStack.lean`;
+their statement vocabulary is `TargetInFoundation`, `EndsOnTableau`,
+`PullConfiguration`, `HasSeatMateStack`, and `HasTargetPull` in
+`Orig2/Vocab.lean` §9.1.  `ParentOf`/`Blocker` are retained only for the
+historical candidate rows below. -/
 
 /-- `ParentOf s d` — the card directly below `d` in its face-up run. -/
 def ParentOf (s : State) (d : Card) : Option Card :=
