@@ -35,6 +35,7 @@ import Orig2.TwinRerouteMulti
 import Orig2.TwinGroupoid
 import Orig2.TwinFunctor
 import Orig2.TwinPointFunctor
+import Orig2.TwinSpliceUnique
 import Orig2.FlagShip
 
 /-!
