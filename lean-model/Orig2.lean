@@ -23,6 +23,7 @@ import Orig2.OrbitFactor
 import Orig2.SeatMateStack
 import Orig2.TwinRelabel
 import Orig2.TwinSplice
+import Orig2.TwinSpliceWF
 import Orig2.TwinSuffixExchange
 import Orig2.TwinSwapRecipe
 import Orig2.TwinDrawTransfer
