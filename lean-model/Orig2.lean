@@ -47,6 +47,7 @@ import Orig2.TwinPointOrbit
 import Orig2.TwinPointNormalize
 import Orig2.TwinNormalizeSplit
 import Orig2.FiberTransferCapstone
+import Orig2.FiberTransferCapstoneRider
 import Orig2.FlagShip
 
 /-!
