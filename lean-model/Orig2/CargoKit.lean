@@ -635,17 +635,14 @@ theorem tfc_mem_afterRunRemoved_below_zone {p : Pile} {x c : Card}
 `Orig2/Classification.lean:428` <- `Orig/Irreversible.lean:1272`) -/
 
 /-- PORT of `Orig2/Classification.lean:428` (`pileOfTop_top`, frozen home
-`Orig/Irreversible.lean:1272`) at the seam's public search kit. -/
+`Orig/Irreversible.lean:1272`) — RE-EVIDENCED 2026-10-19 at the
+search-integrity card's public `pileOfTop_top` (`Orig2/Integrity.lean`,
+hosted below both former consumers per the hoist pattern); this name
+stays for the cold consumers' cites, byte-stability. -/
 theorem tfc_pileOfTop_top {st : State} {z : Card} {k : Anchor}
     (h : st.pileOfTop z = some k) :
-    (st.piles k).faceUp ≠ [] ∧ lastOf (st.piles k).faceUp = some z := by
-  have hd := firstWhere_sound (p := fun a => decide (st.topOf a = some z)) h
-  have htop : lastOf (st.piles k).faceUp = some z := of_decide_eq_true hd
-  constructor
-  · intro hc
-    rw [hc] at htop
-    exact absurd htop (by simp [lastOf])
-  · exact htop
+    (st.piles k).faceUp ≠ [] ∧ lastOf (st.piles k).faceUp = some z :=
+  pileOfTop_top h
 
 /-- PORT verbatim from `Orig/Reach.lean:1624`. -/
 theorem tfc_top_search_unique {st : State} {z : Card} {j k : Anchor}

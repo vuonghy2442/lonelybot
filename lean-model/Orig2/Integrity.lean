@@ -587,6 +587,27 @@ end Pile
 
 /-! ### The top search -/
 
+/-- The pile-top search's sound reading: a located pile's face-up
+run is nonempty and really ends at the searched card.  HOSTED HERE
+(2026-10-19, the hoist-below-both-consumers pattern): the frozen
+home `Orig/Irreversible.lean:1272` rides above the closed seam;
+the classification card's former private twin (its §1m landing)
+is STRUCK for this public home (its call sites resolve by name over
+its import), and CargoKit's public `tfc_pileOfTop_top` re-evidences
+here as an alias, its name kept for the cold consumers' cites
+(byte-stability).  The read rides the core's `firstWhere_sound`
+alone — the search-integrity card is its natural public home. -/
+theorem pileOfTop_top {st : State} {z : Card} {k : Anchor}
+    (h : st.pileOfTop z = some k) :
+    (st.piles k).faceUp ≠ [] ∧ lastOf (st.piles k).faceUp = some z := by
+  have hd := firstWhere_sound (p := fun a => decide (st.topOf a = some z)) h
+  have htop : lastOf (st.piles k).faceUp = some z := of_decide_eq_true hd
+  constructor
+  · intro hc
+    rw [hc] at htop
+    exact absurd htop (by simp [lastOf])
+  · exact htop
+
 /-- The top search is exact at `WF` states: it answers `a`
 precisely when `z` is pile `a`'s top card.  PORTED verbatim from
 `Orig/Integrity.lean:539`; NEW to `Orig2`. -/
@@ -807,6 +828,7 @@ Per promoted head, this card.  Expected profile: `[]`,
 #print axioms pileHolding_inj
 #print axioms Pile.top_eq_lastOf_iff
 #print axioms Pile.mem_of_top
+#print axioms pileOfTop_top
 #print axioms pileOfTop_eq_some_iff
 #print axioms pileOfTop_inj
 #print axioms runOK_head_gt

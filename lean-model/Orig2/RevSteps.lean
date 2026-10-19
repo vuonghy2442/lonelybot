@@ -119,6 +119,31 @@ theorem rev_steps_iff (P : State → Move → Prop) (A B : State) :
       exact ⟨m, hp, hstep⟩
     exact ⟨steps_map h1 rAB, steps_map h1 rBA⟩
 
+/-! ## The generic preservation row
+
+The companion shape per-leg lifts re-derive: a predicate held at
+the near end of every leg is held at the far end of the whole
+span, over ANY binary step relation (letter families instantiate
+at `R = StepOf P`).  This card's own row, 2026-10-19.  Honest
+scope: WF-RELATIVE lifts — whose per-leg premise consumes the near
+state's `WF` while the far facts arrive only through concrete
+cargo rows — stay at the compound combinator grade
+(`Orig2/CargoKit.lean`'s `tfa_chain_lift`, behind the floater
+books); lifts whose per-leg premise is self-contained instantiate
+here (the orbit WF fence at `Orig2/FloatOrbit.lean`). -/
+
+/-- **THE GENERIC JOURNEY-PRESERVATION ROW** — a predicate carried
+by every leg of a span is carried along the whole span, over any
+binary step relation. -/
+theorem steps_preserved (R : State → State → Prop) (Q : State → Prop)
+    (hleg : ∀ {w z : State}, R w z → Q w → Q z) :
+    ∀ {w z : State}, Steps R w z → Q w → Q z := by
+  intro w z hs
+  induction hs with
+  | refl s => exact id
+  | cons hl t ih => exact fun hq => ih (hleg hl hq)
+
 /-! ## The audit battery -/
 
 #print axioms rev_steps_iff
+#print axioms steps_preserved

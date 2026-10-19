@@ -121,19 +121,11 @@ frozen file rides above the core seam): the under-seat giveback
 over the chop, and the bare-king vacate onto the emptied seat.
 -/
 
-/-- The pile-top search's sound reading: a located pile's face-up
-run is nonempty and really ends at the searched card.  PORTED
-verbatim from `Orig/Irreversible.lean:1272`. -/
-private theorem pileOfTop_top {st : State} {z : Card} {k : Anchor}
-    (h : st.pileOfTop z = some k) :
-    (st.piles k).faceUp ≠ [] ∧ lastOf (st.piles k).faceUp = some z := by
-  have hd := firstWhere_sound (p := fun a => decide (st.topOf a = some z)) h
-  have htop : lastOf (st.piles k).faceUp = some z := of_decide_eq_true hd
-  constructor
-  · intro hc
-    rw [hc] at htop
-    exact absurd htop (by simp [lastOf])
-  · exact htop
+/- `pileOfTop_top` (the §1m private landing of
+`Orig/Irreversible.lean:1272`) moved 2026-10-19 to the
+search-integrity card — public at `Orig2/Integrity.lean` under the
+same bare name, so this card's call sites resolve by import
+(the hoist-below-both-consumers pattern). -/
 
 /-- The pile-level no-reveal-empty round trip.  PORTED verbatim
 from `Orig/Irreversible.lean:1469`. -/
