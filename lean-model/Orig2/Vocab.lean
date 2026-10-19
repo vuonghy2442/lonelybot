@@ -814,6 +814,26 @@ def twinPairSwapStrict (u v : State) (c : Card) : Prop :=
     cutOf u = cutOf v
 
 /-!
+### §11.1. The fiber-transfer interface  (live, 2026-10-19)
+
+The transfer program's two statement-level predicates: the strict twin
+swap is realizable inside the orbit (`SwappableIn`), and a seat-mate is
+reversibly raisable to the foundation (`RaiseLicensed`).  The local recipe
+proves `RaiseLicensed → SwappableIn`; the general transfer proves the
+predicate is member-invariant within a foundation fiber.
+-/
+
+/-- **SwappableIn s x** — the strict twin swap of `⟨x, x.twin⟩` is
+realizable inside the same-orbit class of `s`. -/
+def SwappableIn (s : State) (x : Card) : Prop :=
+  ∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v
+
+/-- **RaiseLicensed s x** — some seat-mate of `x` is reversibly raisable to
+the foundation at `s` (the local enabling move for the twin-swap recipe). -/
+def RaiseLicensed (s : State) (x : Card) : Prop :=
+  ∃ y : Card, SeatMate x y ∧ reversibleAtW s (Move.tabToFound y)
+
+/-!
 # THE REVIEW ANNEX — pending adjudication
 
 The old tier's remaining main vocabulary.  Verdict slots open; no
