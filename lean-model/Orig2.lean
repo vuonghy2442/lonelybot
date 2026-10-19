@@ -15,6 +15,7 @@ import Orig2.AnchorRelabel
 import Orig2.KingOrbitFull
 import Orig2.KingTrace
 import Orig2.KingSwapStrict
+import Orig2.KingSwapAssembly
 import Orig2.Claims
 import Orig2.ClaimsScrutiny
 import Orig2.OrbitFactor
@@ -39,6 +40,7 @@ import Orig2.TwinPointFunctor
 import Orig2.TwinSpliceUnique
 import Orig2.TwinPointTransfer
 import Orig2.TwinSpliceComm
+import Orig2.TwinSplicePlay
 import Orig2.FlagShip
 
 /-!
