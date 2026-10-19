@@ -1501,6 +1501,524 @@ private theorem stack_seat_change {u v : State} {m : Move} {c z0 : Card}
         rw [h] at hse'
         exact hne (eq_of_seat hse')
 
+/-- A raise of the card itself is always a seat-mate stack. -/
+private theorem stack_of_tabToFound_self {c : Card} {play : List Move}
+    (h : Move.tabToFound c ∈ play) :
+    ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play := by
+  by_cases hk : c.rank = Rank.king
+  · exact ⟨c, Or.inl ⟨hk, hk⟩, h⟩
+  · exact ⟨c, Or.inr ⟨hk, Or.inl rfl⟩, h⟩
+
+/-- A raise of the twin is a seat-mate stack. -/
+private theorem stack_of_tabToFound_twin {c : Card} {play : List Move}
+    (h : Move.tabToFound c.twin ∈ play) :
+    ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play := by
+  by_cases hk : c.rank = Rank.king
+  · refine ⟨c.twin, Or.inl ⟨hk, ?_⟩, h⟩
+    simpa [Card.twin] using hk
+  · exact ⟨c.twin, Or.inr ⟨hk, Or.inr rfl⟩, h⟩
+
+private theorem fg_canSitOn_parent_of_seat {s : State} (hwf : s.WF)
+    {c z : Card} (hse : seatOf s c = some (Sum.inr z)) :
+    canSitOn c z = true := by
+  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hse
+  exact (tfc_seat_parent hwf hhold hlast).1
+
+/-- A seated card's parent tops no pile (same restatement, second
+conjunct). -/
+private theorem fg_parent_not_top {s : State} (hwf : s.WF)
+    {c z : Card} (hse : seatOf s c = some (Sum.inr z)) :
+    s.pileOfTop z = none := by
+  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hse
+  exact (tfc_seat_parent hwf hhold hlast).2
+
+/-- The twin relabeling is invisible to the fit (restatement of
+`Orig/Twin.lean:74`, not seam-available). -/
+private theorem fg_canSitOn_twin_left (c b : Card) :
+    canSitOn c.twin b = canSitOn c b := by
+  rcases c with ⟨s, r⟩
+  rcases b with ⟨s', r'⟩
+  cases s <;> cases s' <;> rfl
+
+/-- A live `z0.twin` top makes a seated card a floater-spec
+(restatement of `Orig2/SeatMateStack.lean`'s private
+`floaterSpec_of_top`). -/
+private theorem fg_floaterSpec_of_top {s : State} {c z0 : Card} {a k : Anchor}
+    (hse : seatOf s c = some (Sum.inr z0))
+    (hhold : s.pileHolding c = some a)
+    (htop : s.pileOfTop z0.twin = some k) :
+    FloaterSpec s c :=
+  Or.inl ⟨z0, a, hse, hhold, Or.inl ⟨k, htop⟩⟩
+
+/-- For a non-king card seated on `z0`, floater-spec is exactly a live
+`z0.twin` target (restatement of `Orig2/SeatMateStack.lean`'s private
+`top_of_floaterSpec`). -/
+private theorem fg_top_of_floaterSpec {s : State} {c z0 : Card}
+    (hse : seatOf s c = some (Sum.inr z0))
+    (hnk : c.rank ≠ Rank.king) (hf : FloaterSpec s c) :
+    ∃ k : Anchor, s.pileOfTop z0.twin = some k := by
+  rcases hf with ⟨z, a, hsez, hhold, htop | ⟨hk, -⟩⟩ | ⟨a, hseinl, hk, -⟩
+  · have hz : z = z0 := by
+      rw [hsez] at hse
+      injection hse with h1
+      exact Sum.inr.inj h1
+    rw [hz] at htop
+    exact htop
+  · exact absurd hk hnk
+  · exact absurd hk hnk
+
+/-- Appending a fresh card leaves the prefix below it equal to the old
+list (restatement of `Orig2/SeatMateStack.lean`'s private
+`below_snoc_not_mem`). -/
+private theorem fg_below_snoc_not_mem {x : Card} :
+    ∀ {L : List Card}, x ∉ L → below x (L ++ [x]) = L
+  | [], _ => by rw [List.nil_append, below_cons, ite_eq_left rfl]
+  | y :: t, hx => by
+      rw [List.cons_append, below_cons]
+      have hyx : y ≠ x := fun h => hx (List.mem_cons.mpr (Or.inl h.symm))
+      rw [ite_eq_right hyx]
+      have hx' : x ∉ t := fun h => hx (List.mem_cons.mpr (Or.inr h))
+      rw [fg_below_snoc_not_mem hx']
+
+/-- The removal-with-remainder writes the remainder as the face-up run
+(restatement of `Orig2/SeatMateStack.lean`'s private
+`afterRunRemoved_faceUp_ne`). -/
+private theorem fg_afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card}
+    (h : pre ≠ []) : (Pile.afterRunRemoved p pre).faceUp = pre := by
+  cases pre with
+  | nil => exact absurd rfl h
+  | cons w t => rfl
+
+/-- A removal with an empty remainder over an empty hidden deck leaves
+an empty face-up run (restatement of
+`Orig2/SeatMateStack.lean`'s private `afterRunRemoved_faceUp_nil`). -/
+private theorem fg_afterRunRemoved_faceUp_nil {p : Pile} {pre : List Card}
+    (hpre : pre = []) (hhid : p.hidden = []) :
+    (Pile.afterRunRemoved p pre).faceUp = [] := by
+  subst hpre
+  show (Pile.revealTop { p with faceUp := [] }).faceUp = []
+  unfold Pile.revealTop
+  dsimp only
+  rw [hhid]
+
+/-- A reversible raise never fires the reveal: the `tabToFoundR` cell
+at an empty chop forces the hidden deck empty.  (Restatement of the
+conclusion of `Orig2/SeatMateStack.lean`'s private
+`raise_hidden_nil_of_chop_nil`, re-proved from the public oracle
+bridge.) -/
+private theorem fg_hidden_nil_of_chop_nil {u : State} {x : Card} {a : Anchor}
+    (hwf : u.WF) (hrev : reversibleAtW u (Move.tabToFound x))
+    (hn : u.nextUp x = true) (hpa : u.pileOfTop x = some a)
+    (hchop : chop (u.piles a).faceUp = []) :
+    (u.piles a).hidden = [] := by
+  have hR : tabToFoundR u x = true :=
+    (tabToFoundR_iff_reversibleAtW hwf x).mpr hrev
+  cases hhid : (u.piles a).hidden with
+  | nil => rfl
+  | cons h t =>
+      simp only [tabToFoundR, hn, hpa, hchop, hhid] at hR
+      exact Bool.noConfusion hR
+
+/-- The last of a moving run is the last of its pile's face-up list. -/
+private theorem fg_lastOf_fromCard {x : Card} {l : List Card}
+    (hfr : fromCard x l ≠ []) :
+    lastOf (fromCard x l) = lastOf l := by
+  have h1 : lastOf (below x l ++ fromCard x l) = lastOf (fromCard x l) :=
+    tfc_lastOf_append_ne _ hfr
+  rw [tfc_below_fromCard x l] at h1
+  exact h1.symm
+
+/-! ## §2. The first-gain step -/
+
+theorem floaterSpec_gain_step {u v : State} {m : Move} {c z0 : Card}
+    (hwf : u.WF) (hstep : State.step u m = some v)
+    (hrev : reversibleAtW u m)
+    (hse : seatOf u c = some (Sum.inr z0))
+    (hse' : seatOf v c = some (Sum.inr z0))
+    (hnk : c.rank ≠ Rank.king)
+    (hnf : ¬ FloaterSpec u c) (hf : FloaterSpec v c) :
+    m = Move.tabToFound c.twin ∨
+      (∃ b : Base, m = Move.foundToTab z0.twin b) := by
+  obtain ⟨ahold, hhold, -, hlastc⟩ := tfc_seatOf_of_inr hse
+  -- no `z0.twin` top at the origin
+  have hnotop : u.pileOfTop z0.twin = none := by
+    cases h : u.pileOfTop z0.twin with
+    | none => rfl
+    | some k => exact absurd (fg_floaterSpec_of_top hse hhold h) hnf
+  -- a `z0.twin` top at the successor
+  obtain ⟨kv, htopv⟩ := fg_top_of_floaterSpec hse' hnk hf
+  have htopk : lastOf (v.piles kv).faceUp = some z0.twin :=
+    (tfc_pileOfTop_top htopv).2
+  -- the old-top contradiction kit
+  have oldTop : ∀ j, v.piles j = u.piles j →
+      lastOf (v.piles j).faceUp = some z0.twin → False := by
+    intro j hpj hvj
+    have hu : lastOf (u.piles j).faceUp = some z0.twin := by
+      rw [← hpj]
+      exact hvj
+    have hsome : u.pileOfTop z0.twin = some j :=
+      (pileOfTop_eq_some_iff hwf).mpr hu
+    rw [hnotop] at hsome
+    nomatch hsome
+  cases m with
+  | draw =>
+      exfalso
+      have hp : v.piles = u.piles := stepDraw_piles hstep
+      exact oldTop kv (by rw [hp]) htopk
+  | wasteToFound x =>
+      exfalso
+      obtain ⟨-, y, ys, hw, hs⟩ := step_wasteToFound_inv hstep
+      have hp : v.piles = u.piles := by rw [hs]; rfl
+      exact oldTop kv (by rw [hp]) htopk
+  | wasteToTab x b =>
+      exact absurd hrev (wasteToTab_not_reversibleAtW u x b)
+  | tabToFound x =>
+      -- the witness top is the donor pile's new top
+      obtain ⟨hnxt, a, hpa, hs⟩ := step_tabToFound_inv hstep
+      have hkva : kv = a := by
+        by_cases hk : kv = a
+        · exact hk
+        · exfalso
+          have hpk : v.piles kv = u.piles kv := by
+            rw [hs]
+            dsimp only
+            rw [ite_eq_right hk]
+          exact oldTop kv hpk htopk
+      subst kv
+      have hpa' : v.piles a =
+          Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp) := by
+        rw [hs]
+        dsimp only
+        rw [ite_eq_left rfl]
+      have hlastQ : lastOf
+          (Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp)).faceUp
+          = some z0.twin := by
+        rw [← hpa']
+        exact htopk
+      -- reversibility excludes the reveal
+      have hchopNe : chop (u.piles a).faceUp ≠ [] := by
+        intro hchop
+        have hhid : (u.piles a).hidden = [] :=
+          fg_hidden_nil_of_chop_nil hwf hrev hnxt hpa hchop
+        have hface : (Pile.afterRunRemoved (u.piles a)
+            (chop (u.piles a).faceUp)).faceUp = [] :=
+          fg_afterRunRemoved_faceUp_nil hchop hhid
+        rw [hface] at hlastQ
+        nomatch hlastQ
+      have hlastPre : lastOf (chop (u.piles a).faceUp) = some z0.twin := by
+        have h := hlastQ
+        rw [fg_afterRunRemoved_faceUp_ne hchopNe] at h
+        exact h
+      -- the raised card sat directly on `z0.twin`
+      have hlastx : lastOf (u.piles a).faceUp = some x :=
+        (tfc_pileOfTop_top hpa).2
+      have hface : (u.piles a).faceUp = chop (u.piles a).faceUp ++ [x] :=
+        lastOf_chop hlastx
+      have hnd : (u.piles a).faceUp.Nodup := runOK_nodup (hwf.2.1 a)
+      have hnotmem : x ∉ chop (u.piles a).faceUp := by
+        rw [hface] at hnd
+        exact List.snoc_nodup_notMem _ _ hnd
+      have hbelow : below x (u.piles a).faceUp = chop (u.piles a).faceUp := by
+        have h := fg_below_snoc_not_mem (x := x)
+          (L := chop (u.piles a).faceUp) hnotmem
+        rwa [← hface] at h
+      have hholdx : u.pileHolding x = some a :=
+        (pileHolding_eq_some_iff hwf).mpr (lastOf_mem hlastx)
+      have hxse : seatOf u x = some (Sum.inr z0.twin) :=
+        tfc_seatOf_inr_intro hholdx (by rw [hbelow]; exact hlastPre)
+      have hx : x = c.twin := blocker_eq_twin hwf hse hxse
+      exact Or.inl (by rw [hx])
+  | foundToTab x b =>
+      -- every new top is the pulled card itself
+      obtain ⟨x', htopx, hx'x, hcp, hs⟩ := step_foundToTab_inv hstep
+      subst x'
+      cases b with
+      | inl t =>
+          have hvt : v.piles t = (⟨[], [x]⟩ : Pile) := by
+            rw [hs]
+            show (if t = t then (⟨[], [x]⟩ : Pile)
+              else (u.setFound x.suit (chop (u.found x.suit))).piles t) = ⟨[], [x]⟩
+            rw [ite_eq_left rfl]
+          have hpk : ∀ j, j ≠ t → v.piles j = u.piles j := by
+            intro j hj
+            rw [hs]
+            show (if j = t then (⟨[], [x]⟩ : Pile)
+              else (u.setFound x.suit (chop (u.found x.suit))).piles j) = u.piles j
+            rw [ite_eq_right hj]
+            rfl
+          by_cases hkt : kv = t
+          · subst kv
+            have hlastx : lastOf (v.piles t).faceUp = some x := by
+              rw [hvt]
+              rfl
+            have hxz : x = z0.twin := by
+              rw [hlastx] at htopk
+              exact Option.some.inj htopk
+            exact Or.inr ⟨Sum.inl t, by rw [hxz]⟩
+          · exact False.elim (oldTop kv (hpk kv hkt) htopk)
+      | inr z =>
+          cases hz : (u.setFound x.suit (chop (u.found x.suit))).pileOfTop z with
+          | none =>
+              have hv : v = u.setFound x.suit (chop (u.found x.suit)) := by
+                rw [hs]
+                show (u.setFound x.suit (chop (u.found x.suit))).putCard x (Sum.inr z)
+                  = u.setFound x.suit (chop (u.found x.suit))
+                rw [State.putCard, hz]
+              have hpku : v.piles kv = u.piles kv := by
+                rw [hv]
+                rfl
+              exact False.elim (oldTop kv hpku htopk)
+          | some t =>
+              have hvt : v.piles t =
+                  { (u.setFound x.suit (chop (u.found x.suit))).piles t with
+                    faceUp := ((u.setFound x.suit (chop (u.found x.suit))).piles t).faceUp
+                      ++ [x] } := by
+                rw [hs]
+                show ((u.setFound x.suit (chop (u.found x.suit))).putCard x
+                  (Sum.inr z)).piles t = _
+                rw [State.putCard, hz]
+                exact setPile_piles_self
+              have hpk : ∀ j, j ≠ t → v.piles j
+                  = (u.setFound x.suit (chop (u.found x.suit))).piles j := by
+                intro j hj
+                rw [hs]
+                show ((u.setFound x.suit (chop (u.found x.suit))).putCard x
+                  (Sum.inr z)).piles j = _
+                rw [State.putCard, hz]
+                exact setPile_piles_ne hj
+              by_cases hkt : kv = t
+              · subst kv
+                rw [hvt] at htopk
+                rw [lastOf_snoc] at htopk
+                have hxz : x = z0.twin := Option.some.inj htopk
+                exact Or.inr ⟨Sum.inr z, by rw [hxz]⟩
+              · have hpku : v.piles kv = u.piles kv := by
+                  rw [hpk kv hkt]
+                  rfl
+                exact False.elim (oldTop kv hpku htopk)
+  | tabToTab x b =>
+      exfalso
+      obtain ⟨a, hhold, hcp, hfr, hs⟩ := step_tabToTab_inv hstep
+      have hmem : x ∈ (u.piles a).faceUp := pileHolding_mem hhold
+      have hR : tabToTabR u x b = true :=
+        (tabToTabR_iff_reversibleAtW hwf x b).mpr hrev
+      obtain ⟨aR, hholdR, hcpR, hcellR⟩ := tfc_tabToTabR_inv hR
+      have haR : aR = a := Option.some.inj (hholdR.symm.trans hhold)
+      subst aR
+      -- a new top equal to the moving run's top repeats an old top
+      have runAbsurd :
+          lastOf (fromCard x (u.piles a).faceUp) = some z0.twin → False := by
+        intro hl
+        have hu : u.pileOfTop z0.twin = some a :=
+          (pileOfTop_eq_some_iff hwf).mpr (by
+            show lastOf (u.piles a).faceUp = some z0.twin
+            rw [← fg_lastOf_fromCard hfr]
+            exact hl)
+        rw [hnotop] at hu
+        nomatch hu
+      -- a new source top equal to `z0.twin` puts the mover on it
+      have sourceAbsurd :
+          lastOf (Pile.afterRunRemoved (u.piles a)
+            (below x (u.piles a).faceUp)).faceUp = some z0.twin → False := by
+        intro hlastQ
+        cases hpre : below x (u.piles a).faceUp with
+        | nil =>
+            rw [hpre] at hlastQ
+            rcases hcellR with hne | ⟨-, hhid, -⟩
+            · exact absurd hpre hne
+            · rw [Pile.afterRunRemoved_bare hhid] at hlastQ
+              nomatch hlastQ
+        | cons w ws =>
+            rw [hpre] at hlastQ
+            have hlastPre : lastOf (below x (u.piles a).faceUp) = some z0.twin := by
+              have h := hlastQ
+              rw [fg_afterRunRemoved_faceUp_ne (p := u.piles a)
+                (pre := w :: ws) (by simp)] at h
+              rw [hpre]
+              exact h
+            have hxse : seatOf u x = some (Sum.inr z0.twin) :=
+              tfc_seatOf_inr_intro hhold hlastPre
+            have hx : x = c.twin := blocker_eq_twin hwf hse hxse
+            have hfitc : canSitOn c z0 = true := fg_canSitOn_parent_of_seat hwf hse
+            have hz0none : u.pileOfTop z0 = none := fg_parent_not_top hwf hse
+            rw [hx] at hcp
+            cases b with
+            | inl t =>
+                obtain ⟨-, hking⟩ := canPlace_inl hcp
+                exact hnk (by
+                  have hrank : (c.twin).rank = c.rank := rfl
+                  rw [hrank] at hking
+                  exact hking)
+            | inr w =>
+                obtain ⟨k, hlocw, hfitw⟩ := canPlace_inr hcp
+                have hfitcw : canSitOn c w = true := by
+                  rw [← fg_canSitOn_twin_left c w]
+                  exact hfitw
+                rcases tfc_fitting_parent hfitcw hfitc with hw | hw
+                · rw [hw] at hlocw
+                  rw [hz0none] at hlocw
+                  nomatch hlocw
+                · rw [hw] at hlocw
+                  rw [hnotop] at hlocw
+                  nomatch hlocw
+      have sourceTop : ∀ (hva : v.piles a = Pile.afterRunRemoved (u.piles a)
+            (below x (u.piles a).faceUp)),
+          lastOf (v.piles a).faceUp = some z0.twin → False := by
+        intro hva hv
+        apply sourceAbsurd
+        rw [← hva]
+        exact hv
+      cases b with
+      | inl t =>
+          have hv_t : v.piles t = (⟨[], fromCard x (u.piles a).faceUp⟩ : Pile) := by
+            rw [hs]
+            show (((u.setPile a (Pile.afterRunRemoved (u.piles a)
+              (below x (u.piles a).faceUp))).putRun
+              (fromCard x (u.piles a).faceUp) (Sum.inl t)).piles t) = _
+            rw [putRun_eq_inl, setPile_piles_self]
+          have hv_j : ∀ j, j ≠ t → v.piles j =
+              (u.setPile a (Pile.afterRunRemoved (u.piles a)
+                (below x (u.piles a).faceUp))).piles j := by
+            intro j hj
+            rw [hs]
+            show (((u.setPile a (Pile.afterRunRemoved (u.piles a)
+              (below x (u.piles a).faceUp))).putRun
+              (fromCard x (u.piles a).faceUp) (Sum.inl t)).piles j) = _
+            rw [putRun_eq_inl, setPile_piles_ne hj]
+          by_cases hka : kv = a
+          · subst kv
+            by_cases hta : a = t
+            · subst t
+              apply runAbsurd
+              rw [hv_t] at htopk
+              exact htopk
+            · have hva : v.piles a = Pile.afterRunRemoved (u.piles a)
+                  (below x (u.piles a).faceUp) := by
+                rw [hv_j a hta, setPile_piles_self]
+              exact sourceTop hva htopk
+          · by_cases hkt : kv = t
+            · subst kv
+              apply runAbsurd
+              rw [hv_t] at htopk
+              exact htopk
+            · have hpku : v.piles kv = u.piles kv := by
+                rw [hv_j kv hkt, setPile_piles_ne hka]
+              exact False.elim (oldTop kv hpku htopk)
+      | inr z =>
+          cases hz : (u.setPile a (Pile.afterRunRemoved (u.piles a)
+              (below x (u.piles a).faceUp))).pileOfTop z with
+          | none =>
+              have hv : v = u.setPile a (Pile.afterRunRemoved (u.piles a)
+                  (below x (u.piles a).faceUp)) := by
+                rw [hs]
+                show ((u.setPile a (Pile.afterRunRemoved (u.piles a)
+                  (below x (u.piles a).faceUp))).putRun
+                  (fromCard x (u.piles a).faceUp) (Sum.inr z)) =
+                  u.setPile a (Pile.afterRunRemoved (u.piles a)
+                    (below x (u.piles a).faceUp))
+                rw [State.putRun, hz]
+              by_cases hka : kv = a
+              · subst kv
+                have hva : v.piles a = Pile.afterRunRemoved (u.piles a)
+                    (below x (u.piles a).faceUp) := by
+                  rw [hv, setPile_piles_self]
+                exact sourceTop hva htopk
+              · have hpku : v.piles kv = u.piles kv := by
+                  rw [hv, setPile_piles_ne hka]
+                exact False.elim (oldTop kv hpku htopk)
+          | some t =>
+              have hv_t : v.piles t =
+                  { (u.setPile a (Pile.afterRunRemoved (u.piles a)
+                      (below x (u.piles a).faceUp))).piles t with
+                    faceUp := ((u.setPile a (Pile.afterRunRemoved (u.piles a)
+                      (below x (u.piles a).faceUp))).piles t).faceUp
+                        ++ fromCard x (u.piles a).faceUp } := by
+                rw [hs]
+                show ((u.setPile a (Pile.afterRunRemoved (u.piles a)
+                  (below x (u.piles a).faceUp))).putRun
+                  (fromCard x (u.piles a).faceUp) (Sum.inr z)).piles t = _
+                rw [putRun_inr_eq hz]
+                rw [setPile_piles_self]
+              have hv_j : ∀ j, j ≠ t → v.piles j =
+                  (u.setPile a (Pile.afterRunRemoved (u.piles a)
+                    (below x (u.piles a).faceUp))).piles j := by
+                intro j hj
+                rw [hs]
+                show ((u.setPile a (Pile.afterRunRemoved (u.piles a)
+                  (below x (u.piles a).faceUp))).putRun
+                  (fromCard x (u.piles a).faceUp) (Sum.inr z)).piles j = _
+                rw [putRun_inr_eq hz]
+                rw [setPile_piles_ne hj]
+              by_cases hka : kv = a
+              · subst kv
+                by_cases hta : a = t
+                · subst t
+                  apply runAbsurd
+                  rw [hv_t] at htopk
+                  rw [setPile_piles_self, tfc_lastOf_append_ne _ hfr] at htopk
+                  exact htopk
+                · have hva : v.piles a = Pile.afterRunRemoved (u.piles a)
+                      (below x (u.piles a).faceUp) := by
+                    rw [hv_j a hta, setPile_piles_self]
+                  exact sourceTop hva htopk
+              · by_cases hkt : kv = t
+                · subst kv
+                  apply runAbsurd
+                  rw [hv_t] at htopk
+                  rw [tfc_lastOf_append_ne _ hfr] at htopk
+                  exact htopk
+                · have hpku : v.piles kv = u.piles kv := by
+                    rw [hv_j kv hkt, setPile_piles_ne hka]
+                  exact False.elim (oldTop kv hpku htopk)
+
+/-! ## Audit battery -/
+
+
+/-- The per-step stack invariant: before the first gain, either the seated
+card stays on its parent with `¬FloaterSpec` and the target still outside the
+foundation, or a seat-mate raise has already occurred. -/
+private theorem stack_step {u v : State} {m : Move} {c z0 : Card}
+    (hwf : u.WF) (hstep : State.step u m = some v)
+    (hrev : reversibleAtW u m)
+    (hse : seatOf u c = some (Sum.inr z0))
+    (hnf : ¬ FloaterSpec u c)
+    (hznot : z0.twin ∉ u.found z0.twin.suit)
+    (hnoStack : ∀ x : Card, SeatMate c x → m ≠ Move.tabToFound x) :
+    (seatOf v c = some (Sum.inr z0) ∧ ¬ FloaterSpec v c ∧
+        z0.twin ∉ v.found z0.twin.suit) ∨
+      (∃ x : Card, SeatMate c x ∧ m = Move.tabToFound x) := by
+  have hnk : c.rank ≠ Rank.king :=
+    canSitOn_not_king (canSitOn_parent_of_seat hwf hse)
+  have hfit : canSitOn c z0 = true := canSitOn_parent_of_seat hwf hse
+  have hseat : seatOf v c = some (Sum.inr z0) ∨
+      (∃ x : Card, SeatMate c x ∧ m = Move.tabToFound x) := by
+    by_cases hnone : seatOf v c = none
+    · have hm : m = Move.tabToFound c :=
+        step_seat_none_eq_tabToFound hwf hstep hrev (by rw [hse]; simp) hnone
+      exact Or.inr ⟨c, Or.inr ⟨hnk, Or.inl rfl⟩, hm⟩
+    · obtain ⟨b, hb⟩ : ∃ b, seatOf v c = some b := by
+        cases hv : seatOf v c with
+        | none => exact absurd hv hnone
+        | some b => exact ⟨b, rfl⟩
+      by_cases hb0 : b = Sum.inr z0
+      · exact Or.inl (by rw [hb0] at hb; exact hb)
+      · exact False.elim (stack_seat_change hwf hstep hrev hse hnf hnoStack hb hb0)
+  rcases hseat with hsame | hstack
+  · by_cases hgain : FloaterSpec v c
+    · rcases floaterSpec_gain_step hwf hstep hrev hse hsame hnk hnf hgain with
+        hraise | ⟨b, hpull⟩
+      · exact Or.inr ⟨c.twin, Or.inr ⟨hnk, Or.inr rfl⟩, hraise⟩
+      · exfalso
+        rw [hpull] at hstep
+        obtain ⟨z', htop, hz'c, hcp, hs⟩ := step_foundToTab_inv hstep
+        have hlast : lastOf (u.found z0.twin.suit) = some z0.twin := by
+          unfold State.foundTop at htop
+          rw [hz'c] at htop
+          exact htop
+        exact hznot (lastOf_mem hlast)
+    · exact Or.inl ⟨hsame, hgain, not_found_step hwf hstep hrev hse hnf hznot⟩
+  · exact Or.inr hstack
+
 /-! ## The audit battery -/
 
 #print axioms card_eq_twin_of_rank_color
