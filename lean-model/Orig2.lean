@@ -33,6 +33,7 @@ import Orig2.TwinTransferRiderFree
 import Orig2.TwinRecipeSegment
 import Orig2.TwinRecipeRiders
 import Orig2.TwinRiderPath
+import Orig2.TwinBothCovered
 import Orig2.DetourKit
 import Orig2.TwinReroute
 import Orig2.TwinRerouteMulti
