@@ -46,6 +46,18 @@ def SelfSwapSeg (x : Card) (s w : State) (seg : List Move) : Prop :=
 
 /-! ## §2. The segment transfer -/
 
+/-- **A strict-swap block is a self-swap segment.**  Rider-general uniqueness
+identifies the block's endpoint with the run splice of its start, so any
+`ShufflePlayW` block whose endpoint is a strict twin-swap target is a
+`SelfSwapSeg`. -/
+theorem selfSwapSeg_of_strict {s w : State} {x : Card} {seg : List Move}
+    (hwf : s.WF) (hwf' : w.WF)
+    (hx : ∃ z, seatOf s x = some (Sum.inr z))
+    (hxt : ∃ z : Card, seatOf s x.twin = some (Sum.inr z.twin))
+    (hstrict : twinPairSwapStrict s w x) (hplay : ShufflePlayW s seg w) :
+    SelfSwapSeg x s w seg :=
+  ⟨hwf, hx, hxt, hplay, eq_splice_of_twinPairSwapStrict hwf hwf' hx hxt hstrict⟩
+
 /-- **The self-swap transfer.**  If `seg` ends at the run splice of `s`,
 then `SwappableIn s x` transports to the endpoint.  The orbit row at
 `s` reverses direction through the setoid symmetry; the endpoint's
@@ -175,6 +187,7 @@ theorem selfSwapSeg_of_rider_raise
 /-! ## §6. Audit -/
 
 #print axioms swappableIn_transfer_selfSwap
+#print axioms selfSwapSeg_of_strict
 #print axioms swappableIn_transfer_preludePath
 #print axioms selfSwapSeg_of_rider_raise
 
