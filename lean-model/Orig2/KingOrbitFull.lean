@@ -566,17 +566,7 @@ theorem sameOrbitVacant_of_vacancy {st : State} (h : HasVacancy st) :
     SameOrbitVacant st :=
   ⟨st, sameOrbitSetoid.iseqv.refl st, h⟩
 
-/-- Assembly form: if every member of the class carries a vacancy, the whole
-class has the clean king orbit.  (The remaining work is to remove the
-per-member vacancy hypothesis with the first-vacancy trace.) -/
-theorem kingAssignmentComplete_of_forall_vacancy {st : State} (hwf : st.WF)
-    (h : ∀ w, sameOrbitSetoid.r st w → HasVacancy w) :
-    KingAssignmentComplete st := by
-  intro w hw
-  exact kingAssignmentAt_of_vacancy hwf hw (h w hw)
-
 #print axioms sameOrbitVacant_of_vacancy
-#print axioms kingAssignmentComplete_of_forall_vacancy
 
 /-- `NoVacancy` is the negation of `HasVacancy`. -/
 theorem noVacancy_iff_not_hasVacancy (st : State) :
@@ -786,13 +776,3 @@ theorem kingAssignmentFixed_of_not_vacant {st : State} (hwf : st.WF)
 
 #print axioms seatOf_walk_noVacant
 #print axioms kingAssignmentFixed_of_not_vacant
-
-/-- The dichotomy assembly, with the complete half supplied: the fixed half is
-proved unconditionally, so the remaining content is exactly the
-`SameOrbitVacant → KingAssignmentComplete` direction. -/
-theorem kingOrbitDichotomy_of_complete {st : State} (hwf : st.WF)
-    (hcomplete : SameOrbitVacant st → KingAssignmentComplete st) :
-    KingOrbitDichotomy st :=
-  ⟨hcomplete, kingAssignmentFixed_of_not_vacant hwf⟩
-
-#print axioms kingOrbitDichotomy_of_complete

@@ -1,9 +1,8 @@
 import Orig2.KingOrbitFull
-import Orig2.SeatMateStack
 
 
 /-!
-# Orig2.KingShufflePerm — the king-shuffle/anchor-permutation bridge
+# Orig2.KingTrace — the king-shuffle/anchor-permutation bridge
 
 A `KingShuffle.hop` moves a bare bottomed king from its anchor `a` into
 an empty anchor `e`.  The king bottoms its pile, the donor hidden deck
@@ -126,23 +125,8 @@ theorem king_hop_permute {u v : State} {c : Card} {a e : Anchor}
   · rfl
   · rfl
 
-/-- **KingShuffle.is_permute** — every shuffle-reachable state is an
-anchor relabeling of the origin: a sequence of bare-king hops composes
-into one anchor permutation. -/
-theorem KingShuffle.is_permute {u v : State} (h : KingShuffle u v) :
-    ∃ σ : AnchorPerm, v = u.permute σ := by
-  induction h with
-  | refl u => exact ⟨AnchorPerm.id, by simp⟩
-  | @hop u v w c a e hseat _hking hhid hvac hfired hrest ih =>
-      obtain ⟨σ, hσ⟩ := ih
-      refine ⟨σ.comp (AnchorPerm.swap a e), ?_⟩
-      rw [hσ, king_hop_permute hseat hhid hvac hfired, State.permute_comp]
-
-#print axioms KingShuffle.is_permute
-
-
 /-!
-# Orig2.KingVKPermExtend — extending a partial VK bijection to an anchor permutation
+# Orig2.KingTrace — extending a partial VK bijection to an anchor permutation
 -/
 
 /-- Computable test for `KingBottom w a`. -/
@@ -175,20 +159,8 @@ theorem vkSetB_eq_true {w : State} {a : Anchor} :
 
 /-- Filtering a duplicate-free list stays duplicate-free. -/
 theorem nodup_filter {α : Type} (p : α → Bool) {l : List α} (h : l.Nodup) :
-    (l.filter p).Nodup := by
-  induction l with
-  | nil => exact List.Pairwise.nil
-  | cons x xs ih =>
-      rw [List.nodup_cons] at h
-      rw [List.filter_cons]
-      by_cases hp : p x = true
-      · rw [if_pos hp, List.nodup_cons]
-        refine ⟨?_, ih h.2⟩
-        intro hx
-        rw [List.mem_filter] at hx
-        exact h.1 hx.1
-      · rw [if_neg hp]
-        exact ih h.2
+    (l.filter p).Nodup :=
+  List.filter_sublist.nodup h
 
 /-- The computable enumeration of fuel-set anchors. -/
 def vkList (w : State) : List Anchor :=
@@ -241,7 +213,7 @@ theorem lookup_eq_some_iff {α β : Type} [DecidableEq α] {ps : List (α × β)
       simp only [lookup]
       by_cases hxa : x = a
       · subst a
-        rw [if_pos rfl, Option.some.injEq]
+        rw [ite_eq_left rfl, Option.some.injEq]
         constructor
         · intro h
           subst h
@@ -251,7 +223,7 @@ theorem lookup_eq_some_iff {α β : Type} [DecidableEq α] {ps : List (α × β)
           · exact (Prod.mk.injEq ..).mp h |>.2.symm
           · exfalso
             exact hnd.1 (List.mem_map.mpr ⟨(x, b), h, rfl⟩)
-      · rw [if_neg hxa, ih hnd.2]
+      · rw [ite_eq_right hxa, ih hnd.2]
         constructor
         · intro h
           rw [List.mem_cons]
@@ -264,33 +236,9 @@ theorem lookup_eq_some_iff {α β : Type} [DecidableEq α] {ps : List (α × β)
             exact (Prod.mk.injEq ..).mp h |>.1.symm
           · exact h
 
-theorem lookup_eq_none_iff {α β : Type} [DecidableEq α] {ps : List (α × β)}
-    {a : α} (hnd : (ps.map Prod.fst).Nodup) :
-    lookup ps a = none ↔ a ∉ ps.map Prod.fst := by
-  induction ps with
-  | nil => simp [lookup]
-  | cons p t ih =>
-      obtain ⟨x, y⟩ := p
-      rw [List.map_cons] at hnd
-      rw [List.nodup_cons] at hnd
-      simp only [lookup]
-      by_cases hxa : x = a
-      · subst a
-        simp [hnd]
-      · rw [if_neg hxa, ih hnd.2]
-        constructor
-        · intro h hmem
-          rw [List.map_cons, List.mem_cons] at hmem
-          rcases hmem with hx | hmem
-          · exact hxa hx.symm
-          · exact h hmem
-        · intro h hmem
-          exact h (by rw [List.map_cons, List.mem_cons]; exact Or.inr hmem)
-
 #print axioms vkSetB_eq_true
 #print axioms mem_vkList
 #print axioms lookup_eq_some_iff
-#print axioms lookup_eq_none_iff
 
 
 /-- Removing one occurrence by filtering changes the length by one. -/
@@ -298,14 +246,14 @@ theorem length_filter_ne_of_mem {α : Type} [DecidableEq α] {d : List α} {x : 
     (hd : d.Nodup) (hx : x ∈ d) :
     (d.filter (fun y => decide (y ≠ x))).length = d.length - 1 := by
   induction d with
-  | nil => exact False.elim (by simpa using hx)
+  | nil => exact False.elim (by simp at hx)
   | cons y ys ih =>
       rw [List.nodup_cons] at hd
       rw [List.filter_cons]
       by_cases hy : y = x
       · subst y
         have hfalse : decide (x ≠ x) = false := by simp
-        rw [if_neg (by rw [hfalse]; simp)]
+        rw [ite_eq_right (by rw [hfalse]; simp)]
         have hfilter : ys.filter (fun z => decide (z ≠ x)) = ys := by
           rw [List.filter_eq_self]
           intro z hz
@@ -321,7 +269,7 @@ theorem length_filter_ne_of_mem {α : Type} [DecidableEq α] {d : List α} {x : 
           · exact False.elim (hy h.symm)
           · exact h
         have htrue : decide (y ≠ x) = true := decide_eq_true hy
-        rw [if_pos htrue]
+        rw [ite_eq_left htrue]
         have hlen := ih hd.2 hxys
         simp only [List.length_cons]
         rw [hlen]
@@ -371,14 +319,14 @@ theorem countP_memB_eq_length {α : Type} [DecidableEq α] {l d : List α}
             exact h.1
         have hih := ih hl.2 hd' hsub'
         have hxmem : memB x d = true := memB_eq_true.mpr hx
-        rw [if_pos hxmem, hcount, hih, hdlen]
+        rw [ite_eq_left hxmem, hcount, hih, hdlen]
         have hpos : 0 < d.length := List.length_pos_iff_exists_mem.mpr ⟨x, hx⟩
         omega
       · have hxmem : memB x d = false := by
           cases hb : memB x d
           · rfl
           · exact False.elim (hx (memB_eq_true.mp hb))
-        rw [if_neg (by rw [hxmem]; simp)]
+        rw [ite_eq_right (by rw [hxmem]; simp)]
         simpa using ih hl.2 hd (by
           intro a ha
           have ha_l : a ∈ x :: xs := hsub a ha
@@ -393,16 +341,16 @@ theorem length_filter_add_filter_not {α : Type} (p : α → Bool) (l : List α)
   | cons x xs ih =>
       rw [List.filter_cons, List.filter_cons]
       by_cases hp : p x = true
-      · rw [if_pos hp]
+      · rw [ite_eq_left hp]
         have h2 : (p x == false) = false := by simp [hp]
-        rw [if_neg (by rw [h2]; simp)]
+        rw [ite_eq_right (by rw [h2]; simp)]
         simp only [List.length_cons] at ih ⊢
         omega
       · have h2 : (p x == false) = true := by
           cases h : p x
           · rfl
           · exact False.elim (hp h)
-        rw [if_neg hp, if_pos h2]
+        rw [ite_eq_right hp, ite_eq_left h2]
         simp only [List.length_cons] at ih ⊢
         omega
 
@@ -440,7 +388,7 @@ theorem sigmaFun_of_mem_extra {pairs extra : List (Anchor × Anchor)}
   have hl : lookup extra a = some b :=
     (lookup_eq_some_iff (ps := extra) (a := a) (b := b) hnd).mpr h
   rw [sigmaFun]
-  rw [if_neg (by rw [hdom]; simp), if_pos hmem, hl]
+  rw [ite_eq_right (by rw [hdom]; simp), ite_eq_left hmem, hl]
   rfl
 
 theorem sigmaFun_eq_self {pairs extra : List (Anchor × Anchor)} {a : Anchor}
@@ -448,12 +396,11 @@ theorem sigmaFun_eq_self {pairs extra : List (Anchor × Anchor)} {a : Anchor}
     (hextra : memB a (extra.map Prod.fst) = false) :
     sigmaFun pairs extra a = a := by
   rw [sigmaFun]
-  rw [if_neg (by rw [hdom]; simp), if_neg (by rw [hextra]; simp)]
+  rw [ite_eq_right (by rw [hdom]; simp), ite_eq_right (by rw [hextra]; simp)]
 
 /-- A Bool cannot be both `false` and `true`. -/
-theorem false_of_eq_false_eq_true {b : Bool} (hf : b = false) (ht : b = true) : False := by
-  rw [hf] at ht
-  exact Bool.noConfusion ht
+theorem false_of_eq_false_eq_true {b : Bool} (hf : b = false) (ht : b = true) : False :=
+  Bool.noConfusion (hf.symm.trans ht)
 
 #print axioms sigmaFun_of_mem_pairs
 #print axioms sigmaFun_of_mem_extra
@@ -783,11 +730,11 @@ theorem exists_perm_extending_pairs {w : State} (pairs : List (Anchor × Anchor)
 
 
 /-!
-# Orig2.KingShuffleRealize — realizing a prescribed VK permutation
+# Orig2.KingTrace — realizing a prescribed VK permutation
 
 A `KingShuffle` only exchanges a bottomed bare king with the current
 vacancy.  On the fuel set `VKSet` this is a permutation, and every
-shuffle induces an anchor permutation (`KingShuffle.is_permute`).  This
+shuffle induces an anchor permutation (`KingShuffle.is_permute_vk`).  This
 card proves the converse form needed by the realization argument: a
 prescribed `AnchorPerm` that preserves `VKSet` and fixes every non-VK
 anchor is realized by a shuffle, i.e. the target state is exactly the
@@ -882,39 +829,6 @@ private theorem targetSeat_of_seat {σ : AnchorPerm} {u : State} {c : Card}
     targetSeat σ u c = σ.toFun a := by
   unfold targetSeat
   rw [h]
-
-/-- Computable test for a king-bottom anchor, searched through the
-enumerated bottomed kings. -/
-private def kingBottomBRealize (u : State) (j : Anchor) : Bool :=
-  (kingsOf u).any (fun c => decide (seatOf u c = some (Sum.inl j)))
-
-/-- The computable king-bottom test is exact. -/
-private theorem kingBottomBRealize_iff {u : State} (hwf : u.WF) (j : Anchor) :
-    kingBottomBRealize u j = true ↔ KingBottom u j := by
-  unfold kingBottomBRealize
-  rw [List.any_eq_true]
-  constructor
-  · rintro ⟨c, hc, hdec⟩
-    have hse : seatOf u c = some (Sum.inl j) := of_decide_eq_true hdec
-    obtain ⟨a, hkb, hse'⟩ := (mem_kingsOf hwf).mp hc
-    have haj : a = j := Sum.inl.inj (Option.some.inj (hse'.symm.trans hse))
-    subst haj
-    exact hkb
-  · intro hkb
-    obtain ⟨c, hse, hkng, hhid⟩ := hkb
-    have hc : c ∈ kingsOf u :=
-      (mem_kingsOf hwf).mpr ⟨j, ⟨c, hse, hkng, hhid⟩, hse⟩
-    exact ⟨c, hc, decide_eq_true hse⟩
-
-/-- Computable test for `VKSet`. -/
-private def vkSetBRealize (u : State) (j : Anchor) : Bool :=
-  (u.piles j).isEmpty || kingBottomBRealize u j
-
-/-- The computable `VKSet` test is exact. -/
-private theorem vkSetBRealize_iff {u : State} (hwf : u.WF) (j : Anchor) :
-    vkSetBRealize u j = true ↔ VKSet u j := by
-  unfold vkSetBRealize VKSet
-  rw [Bool.or_eq_true, kingBottomBRealize_iff hwf]
 
 /-- **KingShuffle.is_permute_vk** — the anchor permutation induced by a
 shuffle preserves `VKSet` and fixes every non-VK anchor.  The latter is
@@ -1053,17 +967,17 @@ theorem realize_perm {u : State} (hwf : u.WF) (hvac : HasVacancy u)
       exact hjπ
   have hπσ_fun : π.toFun = σ.toFun := by
     funext j
-    by_cases hkbB : kingBottomBRealize u j = true
-    · exact hπ_king j ((kingBottomBRealize_iff hwf j).mp hkbB)
-    · by_cases hvB : vkSetBRealize u j = true
-      · have hjVK : VKSet u j := (vkSetBRealize_iff hwf j).mp hvB
+    by_cases hkbB : kingBottomB u j = true
+    · exact hπ_king j (kingBottomB_eq_true.mp hkbB)
+    · by_cases hvB : vkSetB u j = true
+      · have hjVK : VKSet u j := vkSetB_eq_true.mp hvB
         have hkb : ¬ KingBottom u j :=
-          fun h => hkbB ((kingBottomBRealize_iff hwf j).mpr h)
+          fun h => hkbB (kingBottomB_eq_true.mpr h)
         have hje : j = e0 := ((hVK_dec j).mp hjVK).resolve_left hkb
         subst hje
         exact hπ_e0
       · have hjVK : ¬ VKSet u j :=
-          fun h => hvB ((vkSetBRealize_iff hwf j).mpr h)
+          fun h => hvB (vkSetB_eq_true.mpr h)
         exact (hfix_π j hjVK).trans (hσfix j hjVK).symm
   have hπσ : π = σ := AnchorPerm.ext_toFun hπσ_fun
   refine ⟨v, hks, ?_⟩
@@ -1094,8 +1008,8 @@ this yields `KingOrbitDichotomy`.
 -/
 
 /-- Convert `¬ (b = true)` to `b = false`. -/
-theorem bool_eq_false_of_not_true {b : Bool} (h : ¬ b = true) : b = false := by
-  cases b <;> simp_all
+theorem bool_eq_false_of_not_true {b : Bool} (h : ¬ b = true) : b = false :=
+  Bool.eq_false_iff.mpr h
 
 /-- A reversible slide out of a no-vacancy state cannot create a vacancy. -/
 theorem no_vacancy_after_reversible_slide {u v : State} {x : Card} {b : Base}
@@ -1119,6 +1033,14 @@ inductive NVWalk : State → List Move → State → Prop
       (hstep : State.step s m = some s1) (hrest : NVWalk s1 ρ s') :
       NVWalk s (m :: ρ) s'
 
+/-- Forget the no-vacancy bookkeeping of an `NVWalk`. -/
+theorem NVWalk.to_shuffle {w s0 : State} {ρ : List Move} (h : NVWalk w ρ s0) :
+    ShufflePlayW w ρ s0 := by
+  induction h with
+  | nil s => exact Walk.nil s
+  | @cons s s1 s' m ρ hrev hno_s hno_s1 hstep hrest ih =>
+      exact Walk.cons hrev hstep ih
+
 theorem seatOf_NVWalk {w s0 : State} {ρ : List Move} (h : NVWalk w ρ s0)
     (hwf : w.WF) {c : Card} (hc : KingBottomCard w c) :
     seatOf s0 c = seatOf w c := by
@@ -1138,13 +1060,8 @@ theorem seatOf_NVWalk {w s0 : State} {ρ : List Move} (h : NVWalk w ρ s0)
       exact ih'.trans hseat
 
 theorem vk_NVWalk {w s0 : State} {ρ : List Move} (h : NVWalk w ρ s0)
-    (hwf : w.WF) : ∀ j, VKSet w j ↔ VKSet s0 j := by
-  induction h with
-  | nil s => intro j; rfl
-  | @cons s s1 s' m ρ hrev hno_s hno_s1 hstep hrest ih =>
-      intro j
-      have hwf1 : s1.WF := step_wf hwf hstep
-      exact (vk_step_rev hwf hstep hrev j).trans (ih hwf1 j)
+    (hwf : w.WF) : ∀ j, VKSet w j ↔ VKSet s0 j :=
+  vk_walk_invariant h.to_shuffle hwf
 
 theorem NVWalk_noVacancy_end {w s0 : State} {ρ : List Move} (h : NVWalk w ρ s0)
     (hno_w : NoVacancy w) : NoVacancy s0 := by
@@ -1235,100 +1152,6 @@ theorem first_vacancy_split {w u : State} {ρ : List Move}
 
 
 
-/-- A bare-king raise creates no new bottomed card: every bottomed card after
-the raise was already bottomed before it. -/
-theorem kingBottomCard_raise_back {s0 s1 : State} {x : Card} {a : Anchor}
-    (hwf0 : s0.WF) (hstep : State.step s0 (Move.tabToFound x) = some s1)
-    (hp : s0.pileOfTop x = some a) (hvac : (s1.piles a).isEmpty = true)
-    {c : Card} (hc1 : KingBottomCard s1 c) :
-    KingBottomCard s0 c := by
-  obtain ⟨ac, hkb1, hseat1⟩ := hc1
-  obtain ⟨hn, a', hp', hv⟩ := step_tabToFound_inv hstep
-  have haa : a' = a := by
-    rw [hp] at hp'
-    injection hp' with h
-    exact h.symm
-  rw [haa] at hv
-  have hac_ne : ac ≠ a := by
-    intro h
-    rw [h] at hseat1
-    have hmem : c ∈ (s1.piles a).faceUp :=
-      pileHolding_mem (tfc_seatOf_of_inl hseat1).1
-    rw [Pile.isEmpty_eq] at hvac
-    rw [hvac.2] at hmem
-    exact absurd hmem (by simp)
-  have hpile : s1.piles ac = s0.piles ac := by
-    rw [hv]
-    dsimp only
-    rw [if_neg hac_ne]
-  have hwfs1 : s1.WF := step_wf hwf0 hstep
-  have hkb0 : KingBottom s0 ac :=
-    (kingBottom_congr_of_pile_eq hwf0 hwfs1 hpile).mpr hkb1
-  have hhold1 : s1.pileHolding c = some ac := (tfc_seatOf_of_inl hseat1).1
-  have hhold0 : s0.pileHolding c = some ac := by
-    exact (pileHolding_eq_some_iff hwf0).mpr (by
-      rw [← hpile]
-      exact pileHolding_mem hhold1)
-  have hseat0 : seatOf s0 c = some (Sum.inl ac) := by
-    rw [tfc_seatOf_pair hhold0]
-    rw [tfc_seatOf_pair hhold1] at hseat1
-    rw [hpile] at hseat1
-    exact hseat1
-  exact ⟨ac, hkb0, hseat0⟩
-
-/-- A card other than the raised king stays bottomed after a bare-king raise. -/
-theorem kingBottomCard_raise_survivor {s0 s1 : State} {x : Card} {a : Anchor}
-    (hwf0 : s0.WF) (hstep : State.step s0 (Move.tabToFound x) = some s1)
-    (hp : s0.pileOfTop x = some a) (hvac : (s1.piles a).isEmpty = true)
-    {c : Card} (hc0 : KingBottomCard s0 c) (hcx : c ≠ x) :
-    KingBottomCard s1 c := by
-  obtain ⟨ac, hkb0, hseat0⟩ := hc0
-  obtain ⟨hn, a', hp', hv⟩ := step_tabToFound_inv hstep
-  have haa : a' = a := by
-    rw [hp] at hp'
-    injection hp' with h
-    exact h.symm
-  rw [haa] at hv
-  have hface_hid := (KingFuel.raise_empties_iff hstep hp).mp hvac
-  have hseat_x : seatOf s0 x = some (Sum.inl a) := by
-    have hhold : s0.pileHolding x = some a :=
-      (pileHolding_eq_some_iff hwf0).mpr (by rw [hface_hid.1]; simp)
-    have hbelow : below x (s0.piles a).faceUp = [] := by
-      rw [hface_hid.1]; simp [below]
-    exact tfc_seatOf_inl_intro hhold hbelow
-  have hac_ne : ac ≠ a := by
-    intro h
-    apply hcx
-    rw [h] at hseat0
-    exact king_seat_injective hseat0 hseat_x
-  have hpile : s1.piles ac = s0.piles ac := by
-    rw [hv]
-    dsimp only
-    rw [if_neg hac_ne]
-  have hwfs1 : s1.WF := step_wf hwf0 hstep
-  have hkb1 : KingBottom s1 ac :=
-    (kingBottom_congr_of_pile_eq hwf0 hwfs1 hpile).mp hkb0
-  have hhold0 : s0.pileHolding c = some ac := (tfc_seatOf_of_inl hseat0).1
-  have hhold1 : s1.pileHolding c = some ac := by
-    exact (pileHolding_eq_some_iff hwfs1).mpr (by
-      rw [hpile]
-      exact pileHolding_mem hhold0)
-  have hseat1 : seatOf s1 c = some (Sum.inl ac) := by
-    rw [tfc_seatOf_pair hhold1]
-    rw [tfc_seatOf_pair hhold0] at hseat0
-    rw [hpile]
-    exact hseat0
-  exact ⟨ac, hkb1, hseat1⟩
-
-
-/-- Forget the no-vacancy bookkeeping of an `NVWalk`. -/
-theorem NVWalk.to_shuffle {w s0 : State} {ρ : List Move} (h : NVWalk w ρ s0) :
-    ShufflePlayW w ρ s0 := by
-  induction h with
-  | nil s => exact Walk.nil s
-  | @cons s s1 s' m ρ hrev hno_s hno_s1 hstep hrest ih =>
-      exact Walk.cons hrev hstep ih
-
 private theorem nodup_map_anchor {l : List Card} {f : Card → Anchor}
     (h : l.Nodup) (hinj : ∀ c ∈ l, ∀ c' ∈ l, f c = f c' → c = c') :
     (l.map f).Nodup := by
@@ -1362,11 +1185,7 @@ theorem kingAssignmentComplete_of_sameOrbitVacant {st : State} (hwf : st.WF)
     (hvac : SameOrbitVacant st) : KingAssignmentComplete st := by
   intro w hw τ hτ
   by_cases hvacw : hasVacancyB w = true
-  · have hvacw' : HasVacancy w := hasVacancyB_eq_true.mp hvacw
-    obtain ⟨w', hst_w', hseat⟩ :=
-      king_assignment_sameOrbit_of_vacancy hwf hw hvacw' hτ
-    refine ⟨w', ?_, hseat⟩
-    exact sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hw) hst_w'
+  · exact kingAssignmentAt_of_vacancy hwf hw (hasVacancyB_eq_true.mp hvacw) τ hτ
   · have hvacw' : ¬ HasVacancy w := fun h => hvacw (hasVacancyB_eq_true.mpr h)
     have hno_w : NoVacancy w := (noVacancy_iff_not_hasVacancy w).mpr hvacw'
     obtain ⟨u, hst_u, hvac_u⟩ := hvac
@@ -1413,14 +1232,14 @@ theorem kingAssignmentComplete_of_sameOrbitVacant {st : State} (hwf : st.WF)
           have hs1a' : s1.piles a' = s0.piles a' := by
             rw [hv]
             dsimp only
-            rw [if_neg ha'a]
+            rw [ite_eq_right ha'a]
           rw [hs1a'] at ha'
           exact hno0 a' ha'
       · exfalso
         have hs1b : s1.piles b = s0.piles b := by
           rw [hv]
           dsimp only
-          rw [if_neg hba]
+          rw [ite_eq_right hba]
         rw [hs1b] at hb
         exact hno0 b hb
     -- the finite pairs and the extended VK permutation
@@ -1496,7 +1315,7 @@ theorem kingAssignmentComplete_of_sameOrbitVacant {st : State} (hwf : st.WF)
       have hpair : (anc, τ c) ∈ pairs := by
         rw [List.mem_map]
         refine ⟨c, hc_cs, ?_⟩
-        simp [pairs, ha]
+        simp [ha]
       have hσa : σ.toFun anc = τ c := by
         have := hσ_pair (anc, τ c) hpair
         simpa [ha] using this
@@ -1518,3 +1337,168 @@ theorem kingOrbitDichotomy {st : State} (hwf : st.WF) : KingOrbitDichotomy st :=
    kingAssignmentFixed_of_not_vacant hwf⟩
 
 #print axioms kingOrbitDichotomy
+
+/-- Every class member carrying a vacancy makes the class vacant. -/
+theorem sameOrbitVacant_of_allVacant {st : State} (h : AllVacant st) :
+    SameOrbitVacant st :=
+  sameOrbitVacant_of_vacancy (h st (sameOrbitSetoid.iseqv.refl st))
+
+theorem NVWalk_wf {w s0 : State} {ρ : List Move} (h : NVWalk w ρ s0)
+    (hwf : w.WF) : s0.WF := by
+  induction h with
+  | nil s => exact hwf
+  | @cons s s1 s' m ρ hrev hno_s hno_s1 hstep hrest ih =>
+      exact ih (step_wf hwf hstep)
+
+set_option maxHeartbeats 1600000 in
+/-- The constructive forward half of the vacancy dichotomy: if the class has a
+vacancy and some class member has no vacancy, then some class member has a
+bare king raisable to the foundation. -/
+theorem someKingFoundable_of_vacancy_and_noVacancy {st : State} (hwf : st.WF)
+    (hvac : SameOrbitVacant st)
+    (hno : ∃ w, sameOrbitSetoid.r st w ∧ NoVacancy w) :
+    SomeKingFoundable st := by
+  obtain ⟨w, hw, hnw⟩ := hno
+  obtain ⟨u, hst_u, hvac_u⟩ := hvac
+  have hw_keep : sameOrbitSetoid.r st w := hw
+  have hst_u_keep : sameOrbitSetoid.r st u := hst_u
+  obtain ⟨ρw, hw_st, σw, hst_w⟩ := hw
+  obtain ⟨ρu, hu_st, σu, hst_u'⟩ := hst_u
+  have hwfw : w.WF := run_wf hwf
+    (Walk_run (P := fun st m => reversibleAtW st m) (st := st) (W := w) hst_w)
+  have hforward : ShufflePlayW w (ρw ++ σu) u :=
+    ShufflePlayW_append hw_st hst_u'
+  obtain ⟨pre, x, a, s0, s1, suffix, hpre, hstep, hp, hno0, hvac_s1,
+    hrev_raise, hsuffix⟩ := first_vacancy_split hwfw hforward hnw hvac_u
+  have hwfs0 : s0.WF := NVWalk_wf hpre hwfw
+  have hraise_sh : ShufflePlayW s0 [Move.tabToFound x] s1 :=
+    Walk.cons hrev_raise hstep (Walk.nil s1)
+  have hforward0 : ShufflePlayW w pre s0 := hpre.to_shuffle
+  have hu_w : RevEqW u w := RevEqW_trans hst_u_keep (RevEqW_symm hw_keep)
+  obtain ⟨ρuw, hu_w_sh, σuw, hw_u_sh⟩ := hu_w
+  have hs0_u : ShufflePlayW s0 ([Move.tabToFound x] ++ suffix) u :=
+    ShufflePlayW_append hraise_sh hsuffix
+  have hrev_s0 : ShufflePlayW s0 ([Move.tabToFound x] ++ suffix ++ ρuw) w :=
+    ShufflePlayW_append hs0_u hu_w_sh
+  have hclass_w_s0 : sameOrbitSetoid.r w s0 :=
+    ⟨[Move.tabToFound x] ++ suffix ++ ρuw, hrev_s0, pre, hforward0⟩
+  have hclass_st_s0 : sameOrbitSetoid.r st s0 :=
+    sameOrbitSetoid.iseqv.trans hw_keep hclass_w_s0
+  have hface_hid := (KingFuel.raise_empties_iff hstep hp).mp hvac_s1
+  have hhold : s0.pileHolding x = some a :=
+    (pileHolding_eq_some_iff hwfs0).mpr (by rw [hface_hid.1]; simp)
+  have hbelow : below x (s0.piles a).faceUp = [] := by
+    rw [hface_hid.1]
+    simp [below]
+  have hseat : seatOf s0 x = some (Sum.inl a) :=
+    tfc_seatOf_inl_intro hhold hbelow
+  have hrank : x.rank = Rank.king :=
+    KingFuel.emptying_raise_is_king hstep hrev_raise hp hvac_s1
+  have hkb : KingBottom s0 a := ⟨x, hseat, hrank, hface_hid.2⟩
+  have hfoundable : KingFoundable s0 x :=
+    ⟨hrank, a, s1, hkb, hseat, hface_hid.1, hstep, hrev_raise⟩
+  exact ⟨s0, hclass_st_s0, x, hfoundable⟩
+
+#print axioms sameOrbitVacant_of_allVacant
+#print axioms someKingFoundable_of_vacancy_and_noVacancy
+
+/-- **Vacancy from a foundable king** — the reverse half of the vacancy
+dichotomy.  A class with a raisable bare king is a vacant class: the
+raise empties the king's seat (`KingFuel.raise_empties_iff`), and the
+raise is reversible, with the exact `.foundToTab` pull as its inverse
+step (`step_foundToTab_of_tabToFound_bare`).  Both the raise and the pull
+are witness steps, so the emptied state is a class-mate of the king's
+state. -/
+theorem sameOrbitVacant_of_someKingFoundable {st : State} (hwf : st.WF)
+    (h : SomeKingFoundable st) : SameOrbitVacant st := by
+  obtain ⟨w, hst_w, c, hrank, a, s1, hkb, hseat, hface, hstep, hrev⟩ := h
+  have hst_w_keep : sameOrbitSetoid.r st w := hst_w
+  obtain ⟨ρw, hw_st, σw, hst_w'⟩ := hst_w
+  have hwfw : w.WF := run_wf hwf
+    (Walk_run (P := fun st m => reversibleAtW st m) (st := st) (W := w) hst_w')
+  obtain ⟨-, -, -, hhid⟩ := hkb
+  have hlast : (w.piles a).top = some c := by
+    show lastOf (w.piles a).faceUp = some c
+    rw [hface]
+    simpa only [List.nil_append] using (lastOf_snoc (front := ([] : List Card)) (c := c))
+  have hp : w.pileOfTop c = some a := (pileOfTop_eq_some_iff hwfw).mpr hlast
+  have hchop : chop (w.piles a).faceUp = [] := by
+    rw [hface]
+    rfl
+  have hstep2 : State.step s1 (Move.foundToTab c (Sum.inl a)) = some w :=
+    step_foundToTab_of_tabToFound_bare hstep hp hchop hhid hrank
+  have hrev_pull : reversibleAtW s1 (Move.foundToTab c (Sum.inl a)) :=
+    reversible_mirrorW hstep2 hstep
+  have hfwd : ShufflePlayW s1 [Move.foundToTab c (Sum.inl a)] w :=
+    Walk.cons hrev_pull hstep2 (Walk.nil w)
+  have hback : ShufflePlayW w [Move.tabToFound c] s1 :=
+    Walk.cons hrev hstep (Walk.nil s1)
+  have hclass_w_s1 : sameOrbitSetoid.r w s1 :=
+    ⟨[Move.foundToTab c (Sum.inl a)], hfwd, [Move.tabToFound c], hback⟩
+  have hclass_st_s1 : sameOrbitSetoid.r st s1 :=
+    sameOrbitSetoid.iseqv.trans hst_w_keep hclass_w_s1
+  have hvac_s1 : (s1.piles a).isEmpty = true :=
+    (KingFuel.raise_empties_iff hstep hp).mpr ⟨hface, hhid⟩
+  exact ⟨s1, hclass_st_s1, a, hvac_s1⟩
+
+/-- **The vacancy dichotomy's constructive fork** — a vacant class either
+keeps a vacancy at every member, or some member carries a raisable bare
+king (`someKingFoundable_of_vacancy_and_noVacancy`).  The extraction of
+the no-vacancy member from `¬ AllVacant` is the only classical step; the
+`SomeKingFoundable` arm itself is constructive. -/
+theorem sameOrbitVacant_imp_allVacant_or_someKingFoundable {st : State} (hwf : st.WF)
+    (hvac : SameOrbitVacant st) : AllVacant st ∨ SomeKingFoundable st := by
+  classical
+  by_cases hA : AllVacant st
+  · exact Or.inl hA
+  · right
+    have hno : ∃ w, sameOrbitSetoid.r st w ∧ NoVacancy w := by
+      apply Classical.byContradiction
+      intro h
+      apply hA
+      intro w hw
+      apply Classical.byContradiction
+      intro hnv
+      exact h ⟨w, hw, (noVacancy_iff_not_hasVacancy w).mpr hnv⟩
+    exact someKingFoundable_of_vacancy_and_noVacancy hwf hvac hno
+
+/-- **`vacancyDichotomy`** — the class-level vacancy read splits exactly:
+either every class member carries a vacancy (the permanent-vacancy
+regime), or some class member has a bare king raisable to the foundation
+(the vacancy-creating regime). -/
+theorem vacancyDichotomy {st : State} (hwf : st.WF) : VacancyDichotomy st :=
+  ⟨sameOrbitVacant_imp_allVacant_or_someKingFoundable hwf,
+    fun h => h.elim sameOrbitVacant_of_allVacant
+      (sameOrbitVacant_of_someKingFoundable hwf)⟩
+
+#print axioms sameOrbitVacant_of_someKingFoundable
+#print axioms sameOrbitVacant_imp_allVacant_or_someKingFoundable
+#print axioms vacancyDichotomy
+
+
+/-- Choice-free negative form of the vacancy dichotomy: if the class has a
+vacancy and no class member has a raisable bare king, then every class member
+keeps a vacancy.  (The disjunction `AllVacant ∨ SomeKingFoundable` needs
+excluded middle; this negative form does not.) -/
+theorem allVacant_of_vacancy_of_not_foundable {st : State} (hwf : st.WF)
+    (hvac : SameOrbitVacant st) (hno : ¬ SomeKingFoundable st) :
+    AllVacant st := by
+  intro w hw
+  by_cases hb : hasVacancyB w = true
+  · exact hasVacancyB_eq_true.mp hb
+  · exfalso
+    have hnot : ¬ HasVacancy w := fun h => hb (hasVacancyB_eq_true.mpr h)
+    have hnw : NoVacancy w := (noVacancy_iff_not_hasVacancy w).mpr hnot
+    exact hno (someKingFoundable_of_vacancy_and_noVacancy hwf hvac ⟨w, hw, hnw⟩)
+
+#print axioms allVacant_of_vacancy_of_not_foundable
+
+/-- **`someKingFoundable_of_vacancy_and_nonVacant`** — the strongest
+choice-free positive vacancy dichotomy: a class with a vacancy and a
+non-vacant member has a raisable bare king. -/
+theorem someKingFoundable_of_vacancy_and_nonVacant {st : State} (hwf : st.WF)
+    (hvac : SameOrbitVacant st) (hnv : SomeNonVacant st) :
+    SomeKingFoundable st :=
+  someKingFoundable_of_vacancy_and_noVacancy hwf hvac hnv
+
+#print axioms someKingFoundable_of_vacancy_and_nonVacant

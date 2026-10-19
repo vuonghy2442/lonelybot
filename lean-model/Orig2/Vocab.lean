@@ -751,15 +751,20 @@ def KingInjection (w : State) (τ : Card → Anchor) : Prop :=
   (∀ c, KingBottomCard w c → VKSet w (τ c)) ∧
     (∀ c c', KingBottomCard w c → KingBottomCard w c' → τ c = τ c' → c = c')
 
-/-- **KingFounded w c** — the king card `c` already sits in its suit's
-foundation at `w`.  This is the post-state of a bare-king raise. -/
-def KingFounded (w : State) (c : Card) : Prop :=
-  c.rank = Rank.king ∧ c ∈ w.found c.suit
+/-- **KingFoundable w c** — a bare bottomed king that can be raised to the
+foundation: the pile is exactly `[c]`, and `tabToFound c` is a legal
+witness-reversible step.  Raising it creates the vacancy. -/
+def KingFoundable (w : State) (c : Card) : Prop :=
+  c.rank = Rank.king ∧
+    ∃ a s1, KingBottom w a ∧ seatOf w c = some (Sum.inl a) ∧
+      (w.piles a).faceUp = [c] ∧
+      State.step w (Move.tabToFound c) = some s1 ∧
+      reversibleAtW w (Move.tabToFound c)
 
-/-- **SomeKingFounded st** — some class member has a king already in the
-foundation.  This is the accessible-king regime of the vacancy dichotomy. -/
-def SomeKingFounded (st : State) : Prop :=
-  ∃ w, sameOrbitSetoid.r st w ∧ ∃ c, KingFounded w c
+/-- **SomeKingFoundable st** — some class member has a bare king that can be
+raised to the foundation.  This is the vacancy-creating regime. -/
+def SomeKingFoundable (st : State) : Prop :=
+  ∃ w, sameOrbitSetoid.r st w ∧ ∃ c, KingFoundable w c
 
 /-- **KingAssignmentAt w** — the assignment property at one state, read
 intrinsically: every injective map from `w`'s bottomed kings into `w`'s own
@@ -1023,6 +1028,10 @@ the four rows are the verbatim carrier kit); zero sorry; zero
 -/
 /-- **VacancyDichotomy st** — the class-level vacancy read splits into two
 regimes: either every class member keeps a vacancy, or some class member has
-a king already in the foundation (the accessible-king regime). -/
+a bare king raisable to the foundation. -/
 def VacancyDichotomy (st : State) : Prop :=
-  SameOrbitVacant st ↔ AllVacant st ∨ SomeKingFounded st
+  SameOrbitVacant st ↔ AllVacant st ∨ SomeKingFoundable st
+
+/-- **SomeNonVacant st** — some class member has no vacant spot. -/
+def SomeNonVacant (st : State) : Prop :=
+  ∃ w, sameOrbitSetoid.r st w ∧ NoVacancy w

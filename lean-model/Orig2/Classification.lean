@@ -308,6 +308,74 @@ private theorem tabToFound_undo_bare {st : State} {c : Card} {a : Anchor} {s₁ 
           else st.piles a'') = st.piles a''
       rw [ite_eq_right ha''])
 
+/-- **The bare `.tabToFound` inverse step** — the exact `.foundToTab`
+pull that undoes a successful no-reveal `.tabToFound` which empties its
+source pile: the king returns to the now-empty original seat `a`.  This
+is the step-level content of `tabToFound_undo_bare`, exposed because the
+vacancy dichotomy needs the inverse step itself (the witness form only
+hands the composite undo play). -/
+theorem step_foundToTab_of_tabToFound_bare {st : State} {c : Card} {a : Anchor}
+    {s₁ : State}
+    (hstep : State.step st (Move.tabToFound c) = some s₁)
+    (hpa : st.pileOfTop c = some a)
+    (hchop : chop (st.piles a).faceUp = [])
+    (hhidden : (st.piles a).hidden = [])
+    (hking : c.rank = Rank.king) :
+    State.step s₁ (Move.foundToTab c (Sum.inl a)) = some st := by
+  obtain ⟨-, a₀, hpa₀, hs₁⟩ := step_tabToFound_inv hstep
+  rw [hpa] at hpa₀
+  injection hpa₀ with haa
+  subst haa
+  obtain ⟨hs₁found, hs₁other, hft⟩ := tabToFound_found_trio hs₁
+
+  have hface : (st.piles a).faceUp = [c] := by
+    obtain ⟨-, hlastc⟩ := pileOfTop_top hpa
+    have hc0 : (st.piles a).faceUp = chop (st.piles a).faceUp ++ [c] :=
+      lastOf_chop hlastc
+    rw [hchop, List.nil_append] at hc0
+    exact hc0
+  have hpile : st.piles a = ⟨[], [c]⟩ := Pile.ext hhidden hface
+  have hpla : s₁.piles a = ⟨[], []⟩ := by
+    rw [hs₁]
+    show (if a = a then
+        Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+        else st.piles a) = _
+    rw [ite_eq_left rfl, hchop]
+    exact afterRunRemoved_empty_eq _ hhidden
+  have hcp : s₁.canPlace c (Sum.inl a) = true := by
+    show ((s₁.piles a).isEmpty && decide (c.rank = Rank.king)) = true
+    rw [hpla, decide_eq_true hking]
+    rfl
+  simp only [State.step, hft]
+  rw [hcp]
+  refine congrArg some (?_ :
+    (s₁.setFound c.suit (chop (s₁.found c.suit))).putCard c (Sum.inl a) = st)
+  rw [putCard_inl_eq_setPile]
+  refine State.ext (funext fun σ => ?_) (funext fun a'' => ?_) ?_ ?_ ?_
+  · show (if σ = c.suit then chop (s₁.found c.suit) else s₁.found σ) = st.found σ
+    by_cases hσ : σ = c.suit
+    · rw [hσ, ite_eq_left rfl, hs₁found, chop_snoc]
+    · rw [ite_eq_right hσ]
+      exact hs₁other σ hσ
+  · show (if a'' = a then (⟨[], [c]⟩ : Pile) else s₁.piles a'') = st.piles a''
+    by_cases ha'' : a'' = a
+    · rw [ha'', ite_eq_left rfl, hpile]
+    · rw [ite_eq_right ha'']
+      rw [hs₁]
+      show (if a'' = a then
+          Pile.afterRunRemoved (st.piles a) (chop (st.piles a).faceUp)
+          else st.piles a'') = st.piles a''
+      rw [ite_eq_right ha'']
+  · show s₁.stock = st.stock
+    rw [hs₁]
+    rfl
+  · show s₁.waste = st.waste
+    rw [hs₁]
+    rfl
+  · show s₁.drawStep = st.drawStep
+    rw [hs₁]
+    rfl
+
 /-! ### §1n. The list & run mini kit
 
 The frozen classification card's own private list and `runOK`
@@ -2423,6 +2491,7 @@ Per proved head, this card.  Expected profile per the card header:
 `Classical.choice`.  The claim's battery line lives here since the
 promotion (see §7). -/
 
+#print axioms step_foundToTab_of_tabToFound_bare
 #print axioms wasteToFound_not_reversibleAtW
 #print axioms wasteToTab_not_reversibleAtW
 #print axioms drawR_iff_reversibleAtW
