@@ -751,17 +751,6 @@ private theorem found_mem_step_of_not_pull {u v : State} {m : Move} {x : Card}
       rw [putRun_found, setPile_found]
       exact hmem
 
-/-- Appending a fresh card leaves the prefix below it equal to the old list. -/
-private theorem below_snoc_not_mem {x : Card} :
-    ∀ {L : List Card}, x ∉ L → below x (L ++ [x]) = L
-  | [], _ => by rw [List.nil_append, below_cons, ite_eq_left rfl]
-  | y :: t, hx => by
-      rw [List.cons_append, below_cons]
-      have hyx : y ≠ x := fun h => hx (List.mem_cons.mpr (Or.inl h.symm))
-      rw [ite_eq_right hyx]
-      have hx' : x ∉ t := fun h => hx (List.mem_cons.mpr (Or.inr h))
-      rw [below_snoc_not_mem hx']
-
 /-- A card in the foundation has no seat. -/
 private theorem seatOf_none_of_found {s : State} (hwf : s.WF) {c : Card}
     (h : c ∈ s.found c.suit) : seatOf s c = none := by
@@ -1403,40 +1392,6 @@ private theorem fg_top_of_floaterSpec {s : State} {c z0 : Card}
   · exact absurd hk hnk
   · exact absurd hk hnk
 
-/-- Appending a fresh card leaves the prefix below it equal to the old
-list (restatement of `Orig2/SeatMateStack.lean`'s private
-`below_snoc_not_mem`). -/
-private theorem fg_below_snoc_not_mem {x : Card} :
-    ∀ {L : List Card}, x ∉ L → below x (L ++ [x]) = L
-  | [], _ => by rw [List.nil_append, below_cons, ite_eq_left rfl]
-  | y :: t, hx => by
-      rw [List.cons_append, below_cons]
-      have hyx : y ≠ x := fun h => hx (List.mem_cons.mpr (Or.inl h.symm))
-      rw [ite_eq_right hyx]
-      have hx' : x ∉ t := fun h => hx (List.mem_cons.mpr (Or.inr h))
-      rw [fg_below_snoc_not_mem hx']
-
-/-- The removal-with-remainder writes the remainder as the face-up run
-(restatement of `Orig2/SeatMateStack.lean`'s private
-`afterRunRemoved_faceUp_ne`). -/
-private theorem fg_afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card}
-    (h : pre ≠ []) : (Pile.afterRunRemoved p pre).faceUp = pre := by
-  cases pre with
-  | nil => exact absurd rfl h
-  | cons w t => rfl
-
-/-- A removal with an empty remainder over an empty hidden deck leaves
-an empty face-up run (restatement of
-`Orig2/SeatMateStack.lean`'s private `afterRunRemoved_faceUp_nil`). -/
-private theorem fg_afterRunRemoved_faceUp_nil {p : Pile} {pre : List Card}
-    (hpre : pre = []) (hhid : p.hidden = []) :
-    (Pile.afterRunRemoved p pre).faceUp = [] := by
-  subst hpre
-  show (Pile.revealTop { p with faceUp := [] }).faceUp = []
-  unfold Pile.revealTop
-  dsimp only
-  rw [hhid]
-
 /-- A reversible raise never fires the reveal: the `tabToFoundR` cell
 at an empty chop forces the hidden deck empty.  (Restatement of the
 conclusion of `Orig2/SeatMateStack.lean`'s private
@@ -1538,12 +1493,12 @@ theorem floaterSpec_gain_step {u v : State} {m : Move} {c z0 : Card}
           fg_hidden_nil_of_chop_nil hwf hrev hnxt hpa hchop
         have hface : (Pile.afterRunRemoved (u.piles a)
             (chop (u.piles a).faceUp)).faceUp = [] :=
-          fg_afterRunRemoved_faceUp_nil hchop hhid
+          afterRunRemoved_faceUp_nil hchop hhid
         rw [hface] at hlastQ
         nomatch hlastQ
       have hlastPre : lastOf (chop (u.piles a).faceUp) = some z0.twin := by
         have h := hlastQ
-        rw [fg_afterRunRemoved_faceUp_ne hchopNe] at h
+        rw [afterRunRemoved_faceUp_ne hchopNe] at h
         exact h
       -- the raised card sat directly on `z0.twin`
       have hlastx : lastOf (u.piles a).faceUp = some x :=
@@ -1555,7 +1510,7 @@ theorem floaterSpec_gain_step {u v : State} {m : Move} {c z0 : Card}
         rw [hface] at hnd
         exact List.snoc_nodup_notMem _ _ hnd
       have hbelow : below x (u.piles a).faceUp = chop (u.piles a).faceUp := by
-        have h := fg_below_snoc_not_mem (x := x)
+        have h := below_snoc_not_mem (x := x)
           (L := chop (u.piles a).faceUp) hnotmem
         rwa [← hface] at h
       have hholdx : u.pileHolding x = some a :=
@@ -1668,7 +1623,7 @@ theorem floaterSpec_gain_step {u v : State} {m : Move} {c z0 : Card}
             rw [hpre] at hlastQ
             have hlastPre : lastOf (below x (u.piles a).faceUp) = some z0.twin := by
               have h := hlastQ
-              rw [fg_afterRunRemoved_faceUp_ne (p := u.piles a)
+              rw [afterRunRemoved_faceUp_ne (p := u.piles a)
                 (pre := w :: ws) (by simp)] at h
               rw [hpre]
               exact h
@@ -2171,22 +2126,6 @@ private theorem ka_no_empty_of_nf {s : State} {c : Card} {a0 : Anchor}
   | true =>
       exact absurd (Or.inr ⟨a0, hse, hking, hhid, a, ha⟩) hnf
 
-/-- A removal with a nonempty remainder writes the remainder as the
-face-up run (restatement of the private `afterRunRemoved_faceUp_ne` in
-`Orig2/SeatMateStack.lean`). -/
-private theorem ka_afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card}
-    (h : pre ≠ []) : (Pile.afterRunRemoved p pre).faceUp = pre := by
-  cases pre with
-  | nil => exact absurd rfl h
-  | cons w t => rfl
-
-/-- Equal piles give equal seats (restatement of the private
-`seatOf_congr_piles` in `Orig2/SeatMateStack.lean`). -/
-private theorem ka_seatOf_congr_piles {u v : State} (hp : v.piles = u.piles)
-    (c : Card) : seatOf v c = seatOf u c := by
-  unfold seatOf State.pileHolding
-  rw [hp]
-
 /-! ## §2. The hidden ledger of a reversible step -/
 
 /-- A reversible raise never reveals: every hidden deck is unchanged. -/
@@ -2285,7 +2224,7 @@ private theorem ka_no_empty_step {u v : State} {m : Move}
                 (Pile.afterRunRemoved (u.piles a0)
                   (below x (u.piles a0).faceUp)).faceUp
                   = below x (u.piles a0).faceUp :=
-              ka_afterRunRemoved_faceUp_ne hbelow
+              afterRunRemoved_faceUp_ne hbelow
             have hsourceNonempty :
                 ∀ {a' : Anchor}, a' = a0 →
                   ((u.setPile a0 (Pile.afterRunRemoved (u.piles a0)
@@ -2353,7 +2292,7 @@ private theorem ka_seat_step {u v : State} {m : Move} {c : Card} {a0 : Anchor}
   | wasteToFound x =>
       obtain ⟨-, y, ys, hw, hs⟩ := step_wasteToFound_inv hstep
       have hp : v.piles = u.piles := by rw [hs]; rfl
-      rw [ka_seatOf_congr_piles hp c]
+      rw [seatOf_congr_piles hp c]
       exact hse
   | wasteToTab x b =>
       exact absurd hrev (wasteToTab_not_reversibleAtW u x b)
@@ -2622,6 +2561,62 @@ theorem nonFloater_change_needs_seatmate_stack
               rw [hz0] at hzm
               exact hmem hzm))
 
+/-- A `setPile` at a different anchor, whose new pile does not top the
+searched card, leaves the top search alone. -/
+theorem pileOfTop_setPile_ne {st : State} (hwf : st.WF)
+    {b k : Anchor} {z : Card} {Q : Pile}
+    (h : st.pileOfTop z = some k) (hb : b ≠ k) (hQ : Q.top ≠ some z) :
+    (st.setPile b Q).pileOfTop z = some k := by
+  have htopk : st.topOf k = some z :=
+    of_decide_eq_true (firstWhere_sound (p := fun a => decide (st.topOf a = some z)) h)
+  show firstWhere (fun a => decide ((st.setPile b Q).topOf a = some z)) Anchor.all = some k
+  apply firstWhere_find (Anchor.mem_all k)
+  · simp only [decide_eq_true_eq]
+    rw [setPile_topOf_ne (st := st) (k := k) (b := b) (Q := Q)
+      (fun hkb => hb hkb.symm)]
+    exact htopk
+  · intro y _ hyk
+    simp only [decide_eq_false_iff_not]
+    by_cases hyb : y = b
+    · subst hyb
+      simpa only [State.topOf, setPile_piles_self] using hQ
+    · rw [setPile_topOf_ne (st := st) (k := y) (b := b) (Q := Q) hyb]
+      intro htop
+      exact (mem_faceUp_unique hwf (lastOf_mem htopk) y hyk).1 (lastOf_mem htop)
+
+/-- A reversible raise whose chop is nonempty flips no hidden card: every
+card that had no seat still has none. -/
+theorem raise_none_of_chop_ne {u v : State} {d y : Card} {a : Anchor}
+    (hstep : State.step u (Move.tabToFound d) = some v)
+    (hpa : u.pileOfTop d = some a)
+    (hchop : chop (u.piles a).faceUp ≠ [])
+    (hseat : seatOf u y = none) : seatOf v y = none := by
+  obtain ⟨-, a', hpa', hv⟩ := step_tabToFound_inv hstep
+  have hae : a' = a := pileOfTop_inj hpa' hpa
+  rw [hae] at hv
+  have hnone : u.pileHolding y = none := holdNone_of_seatNone hseat
+  have hnotmem : ∀ a', y ∉ (u.piles a').faceUp :=
+    fun a' => tfc_not_mem_faceUp_of_holdNone hnone a'
+  have hmem : ∀ a', y ∈ (({ u.setFound d.suit (u.found d.suit ++ [d]) with
+      piles := fun x => if x = a then Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp)
+        else u.piles x }).piles a').faceUp ↔ y ∈ (u.piles a').faceUp := by
+    intro a'
+    show y ∈ (if a' = a then Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp)
+      else u.piles a').faceUp ↔ y ∈ (u.piles a').faceUp
+    by_cases ha' : a' = a
+    · rw [ite_eq_left ha', ha', afterRunRemoved_faceUp_ne hchop]
+      constructor
+      · intro hm
+        exact absurd (chop_mem hm) (hnotmem a)
+      · intro hm
+        exact absurd hm (hnotmem a)
+    · rw [ite_eq_right ha']
+  rw [hv]
+  apply tfc_seatOf_none
+  apply tfc_pileHolding_none
+  intro a' hm
+  exact hnotmem a' ((hmem a').mp hm)
+
 /-! ## The audit battery -/
 
 #print axioms card_eq_twin_of_rank_color
@@ -2636,3 +2631,5 @@ theorem nonFloater_change_needs_seatmate_stack
 #print axioms nonFloater_king_change_needs_king_stack
 #print axioms nonFloater_change_split
 #print axioms nonFloater_change_needs_seatmate_stack
+#print axioms pileOfTop_setPile_ne
+#print axioms raise_none_of_chop_ne

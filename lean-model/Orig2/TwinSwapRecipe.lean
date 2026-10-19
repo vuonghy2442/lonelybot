@@ -16,34 +16,7 @@ scratch card under `Temp/`, importing only the public
 
 /-! ## Private list and twin arithmetic -/
 
-private theorem tsr_card_twin_ne (z : Card) : z.twin ≠ z := by
-  obtain ⟨sz, rz⟩ := z
-  cases sz <;> simp [Card.twin, Suit.twin]
-
-private theorem tsr_below_snoc_not_mem {x : Card} :
-    ∀ {L : List Card}, x ∉ L → below x (L ++ [x]) = L
-  | [], _ => by rw [List.nil_append, below_cons, ite_eq_left rfl]
-  | y :: t, hx => by
-      rw [List.cons_append, below_cons]
-      have hyx : y ≠ x := fun h => hx (List.mem_cons.mpr (Or.inl h.symm))
-      rw [ite_eq_right hyx]
-      have hx' : x ∉ t := fun h => hx (List.mem_cons.mpr (Or.inr h))
-      rw [tsr_below_snoc_not_mem hx']
-
-private theorem tsr_mem_chop {x : Card} : ∀ {l : List Card}, x ∈ chop l → x ∈ l
-  | [], h => by simp [chop] at h
-  | [y], h => by simp [chop] at h
-  | y :: z :: t, h => by
-      rw [show chop (y :: z :: t) = y :: chop (z :: t) from rfl] at h
-      rcases List.mem_cons.mp h with rfl | h'
-      · exact List.mem_cons.mpr (Or.inl rfl)
-      · exact List.mem_cons.mpr (Or.inr (tsr_mem_chop h'))
-
-private theorem tsr_afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card}
-    (h : pre ≠ []) : (Pile.afterRunRemoved p pre).faceUp = pre := by
-  cases pre with
-  | nil => exact absurd rfl h
-  | cons w t => rfl
+/-! ## Private twin arithmetic -/
 
 private theorem tsr_canSitOn_twin_target (c z : Card) :
     canSitOn c z.twin = canSitOn c z := by
@@ -55,72 +28,6 @@ private theorem tsr_canSitOn_twin_mover (c z : Card) :
   rcases c with ⟨s, r⟩
   rcases z with ⟨s', r'⟩
   cases s <;> cases s' <;> rfl
-
-/-- A `setPile` at a different anchor, whose new pile does not top the
-searched card, leaves the top search alone. -/
-private theorem tsr_pileOfTop_setPile_ne {st : State} (hwf : st.WF)
-    {b k : Anchor} {z : Card} {Q : Pile}
-    (h : st.pileOfTop z = some k) (hb : b ≠ k) (hQ : Q.top ≠ some z) :
-    (st.setPile b Q).pileOfTop z = some k := by
-  have htopk : st.topOf k = some z :=
-    of_decide_eq_true (firstWhere_sound (p := fun a => decide (st.topOf a = some z)) h)
-  show firstWhere (fun a => decide ((st.setPile b Q).topOf a = some z)) Anchor.all = some k
-  apply firstWhere_find (Anchor.mem_all k)
-  · simp only [decide_eq_true_eq]
-    rw [setPile_topOf_ne (st := st) (k := k) (b := b) (Q := Q)
-      (fun hkb => hb hkb.symm)]
-    exact htopk
-  · intro y _ hyk
-    simp only [decide_eq_false_iff_not]
-    by_cases hyb : y = b
-    · subst hyb
-      simpa only [State.topOf, setPile_piles_self] using hQ
-    · rw [setPile_topOf_ne (st := st) (k := y) (b := b) (Q := Q) hyb]
-      intro htop
-      exact (mem_faceUp_unique hwf (lastOf_mem htopk) y hyk).1 (lastOf_mem htop)
-
-private theorem tsr_holdNone_of_seatNone {s : State} {y : Card}
-    (h : seatOf s y = none) : s.pileHolding y = none := by
-  cases hh : s.pileHolding y with
-  | none => rfl
-  | some a =>
-      exfalso
-      unfold seatOf at h
-      rw [hh] at h
-      cases hg : List.getLast? (below y (s.piles a).faceUp) <;> simp [hg] at h
-
-/-- A reversible raise whose chop is nonempty flips no hidden card: every
-card that had no seat still has none. -/
-private theorem tsr_raise_none {u v : State} {d y : Card} {a : Anchor}
-    (hstep : State.step u (Move.tabToFound d) = some v)
-    (hpa : u.pileOfTop d = some a)
-    (hchop : chop (u.piles a).faceUp ≠ [])
-    (hseat : seatOf u y = none) : seatOf v y = none := by
-  obtain ⟨-, a', hpa', hv⟩ := step_tabToFound_inv hstep
-  have hae : a' = a := pileOfTop_inj hpa' hpa
-  rw [hae] at hv
-  have hnone : u.pileHolding y = none := tsr_holdNone_of_seatNone hseat
-  have hnotmem : ∀ a', y ∉ (u.piles a').faceUp :=
-    fun a' => tfc_not_mem_faceUp_of_holdNone hnone a'
-  have hmem : ∀ a', y ∈ (({ u.setFound d.suit (u.found d.suit ++ [d]) with
-      piles := fun x => if x = a then Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp)
-        else u.piles x }).piles a').faceUp ↔ y ∈ (u.piles a').faceUp := by
-    intro a'
-    show y ∈ (if a' = a then Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp)
-      else u.piles a').faceUp ↔ y ∈ (u.piles a').faceUp
-    by_cases ha' : a' = a
-    · rw [ite_eq_left ha', ha', tsr_afterRunRemoved_faceUp_ne hchop]
-      constructor
-      · intro hm
-        exact absurd (tsr_mem_chop hm) (hnotmem a)
-      · intro hm
-        exact absurd hm (hnotmem a)
-    · rw [ite_eq_right ha']
-  rw [hv]
-  apply tfc_seatOf_none
-  apply tfc_pileHolding_none
-  intro a' hm
-  exact hnotmem a' ((hmem a').mp hm)
 
 theorem twinPairSwapStrict_of_twin_raise
     {st : State} {c z : Card} {a : Anchor}
@@ -148,7 +55,7 @@ theorem twinPairSwapStrict_of_twin_raise
     conv =>
       lhs
       rw [hfaceA]
-    exact tsr_below_snoc_not_mem hctNotChop
+    exact below_snoc_not_mem hctNotChop
   have hlastChopT : lastOf (chop (st.piles a).faceUp) = some z.twin := by
     rw [← hbelowT]
     exact hlastt0
@@ -171,7 +78,7 @@ theorem twinPairSwapStrict_of_twin_raise
       have hrank : c.twin.rank.toIdx = c.rank.toIdx := rfl
       omega
     · rcases List.mem_singleton.mp h2 with hceq
-      exact tsr_card_twin_ne c hceq.symm
+      exact card_twin_ne c hceq.symm
   -- the two fit facts
   have hfit0 : canSitOn c z = true := (tfc_seat_parent hwf hhold0 hlast0).1
   have hfitT : canSitOn c z.twin = true := by
@@ -202,7 +109,7 @@ theorem twinPairSwapStrict_of_twin_raise
     simp only [st1, ite_eq_right ha']
   have hst1_pa0 : st1.piles a0 = st.piles a0 := hst1_pne a0 ha0a
   have hst1_face : (st1.piles a).faceUp = chop (st.piles a).faceUp := by
-    rw [hst1_pa, tsr_afterRunRemoved_faceUp_ne hchopNe]
+    rw [hst1_pa, afterRunRemoved_faceUp_ne hchopNe]
   have hst1_top : st1.pileOfTop z.twin = some a := by
     rw [pileOfTop_eq_some_iff hwf1]
     show lastOf (st1.piles a).faceUp = some z.twin
@@ -236,7 +143,7 @@ theorem twinPairSwapStrict_of_twin_raise
   -- `c` is not in the donor run, so it is not in the chop either
   have hcNotA : c ∉ (st.piles a).faceUp :=
     (mem_faceUp_unique hwf (pileHolding_mem hhold0) a (fun h => ha0a h.symm)).1
-  have hcNotPreA : c ∉ chop (st.piles a).faceUp := fun hm => hcNotA (tsr_mem_chop hm)
+  have hcNotPreA : c ∉ chop (st.piles a).faceUp := fun hm => hcNotA (chop_mem hm)
   -- the slide's exact step shape
   obtain ⟨a0', hhold2, hcp2, hfr2, hu2eq⟩ := step_tabToTab_inv hstep2
   have ha0'a0 : a0' = a0 := by
@@ -248,17 +155,17 @@ theorem twinPairSwapStrict_of_twin_raise
       (below c (st1.piles a0).faceUp)).top = some z := by
     show lastOf (Pile.afterRunRemoved (st1.piles a0)
       (below c (st1.piles a0).faceUp)).faceUp = some z
-    rw [hst1_pa0, tsr_afterRunRemoved_faceUp_ne hb0ne]
+    rw [hst1_pa0, afterRunRemoved_faceUp_ne hb0ne]
     exact hlast0
   have hQne : (Pile.afterRunRemoved (st1.piles a0)
       (below c (st1.piles a0).faceUp)).top ≠ some z.twin := by
     rw [hQtop]
     intro h
-    exact tsr_card_twin_ne z (Option.some.inj h).symm
+    exact card_twin_ne z (Option.some.inj h).symm
   have hset1_top : (st1.setPile a0
       (Pile.afterRunRemoved (st1.piles a0) (below c (st1.piles a0).faceUp))).pileOfTop z.twin
       = some a :=
-    tsr_pileOfTop_setPile_ne hwf1 hst1_top ha0a hQne
+    pileOfTop_setPile_ne hwf1 hst1_top ha0a hQne
   have hu2_pa0 : u2.piles a0 =
       Pile.afterRunRemoved (st1.piles a0) (below c (st1.piles a0).faceUp) := by
     rw [hu2eq]
@@ -410,17 +317,17 @@ theorem twinPairSwapStrict_of_twin_raise
       = some z.twin := by
     show lastOf (Pile.afterRunRemoved (u2.piles a)
       (chop (st.piles a).faceUp)).faceUp = some z.twin
-    rw [tsr_afterRunRemoved_faceUp_ne hchopNe]
+    rw [afterRunRemoved_faceUp_ne hchopNe]
     exact hlastChopT
   have hQa_ne : (Pile.afterRunRemoved (u2.piles a) (chop (st.piles a).faceUp)).top
       ≠ some z := by
     rw [hQa_top]
     intro h
-    exact tsr_card_twin_ne z (Option.some.inj h)
+    exact card_twin_ne z (Option.some.inj h)
   have hseta_top : (u2.setPile a
       (Pile.afterRunRemoved (u2.piles a) (chop (st.piles a).faceUp))).pileOfTop z
       = some a0 :=
-    tsr_pileOfTop_setPile_ne hwf2 hu2_top ha0a.symm hQa_ne
+    pileOfTop_setPile_ne hwf2 hu2_top ha0a.symm hQa_ne
   have hmemc_u2 : c ∈ (u2.piles a).faceUp := by
     rw [hu2_face_a, hrun0]
     exact List.mem_append_right _ (List.mem_cons.mpr (Or.inl rfl))
@@ -533,7 +440,7 @@ theorem twinPairSwapStrict_of_twin_raise
   -- §S. The two pair seats
   have hv_seat_c : seatOf v c = some (Sum.inr z.twin) := by
     have h1 : seatOf v c = seatOf u2 c :=
-      pull_seat_change hstep3 c (fun h => tsr_card_twin_ne c h.symm)
+      pull_seat_change hstep3 c (fun h => card_twin_ne c h.symm)
     have h2 : seatOf u2 c = some (Sum.inr z.twin) := by
       have h := tfc_seat_point_edit hwf1 hstep2 hrev2 c
       rw [h]
@@ -545,7 +452,7 @@ theorem twinPairSwapStrict_of_twin_raise
       exact (mem_faceUp_unique hwf hmemt a0 ha0a).1 (mem_below _ hm)
     have hbel : below c.twin (v.piles a0).faceUp = below c (st.piles a0).faceUp := by
       rw [hv_face_a0]
-      exact tsr_below_snoc_not_mem hctNotPre0
+      exact below_snoc_not_mem hctNotPre0
     have hholdv : v.pileHolding c.twin = some a0 := by
       rw [pileHolding_eq_some_iff hwf3, hv_face_a0]
       exact List.mem_append_right _ (List.mem_cons.mpr (Or.inl rfl))
@@ -561,7 +468,7 @@ theorem twinPairSwapStrict_of_twin_raise
     have h3 : seatOf st1 y = seatOf st y := by
       by_cases hs : seatOf st y = none
       · rw [hs]
-        exact tsr_raise_none hstep1 hpa hchopNe hs
+        exact raise_none_of_chop_ne hstep1 hpa hchopNe hs
       ·       exact raise_seat_change_of_seated hstep1 hraise' hs hyt
     rw [h1, h2, h3]
   -- §F. The fixed readouts

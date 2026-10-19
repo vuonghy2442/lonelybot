@@ -49,38 +49,6 @@ private theorem map_relabel_eq_self {x : Card} :
         (fun hm => hx (List.mem_cons_of_mem c hm))
         (fun hm => ht (List.mem_cons_of_mem c hm))]
 
-/-- The zones list is mapped by the transposition. -/
-private theorem zones_relabel (x : Card) (st : State) :
-    (State.relabelTwin x st).zones =
-      st.zones.map (List.map (Card.relabelTwin x)) := by
-  simp only [State.zones, State.relabelTwin, List.map_map, List.map_append,
-    List.map_cons, List.map_nil, Function.comp_def]
-
-/-- Filtering a mapped list by a mapped value. -/
-private theorem filter_map_relabel (x c : Card) :
-    ∀ l : List Card,
-      ((l.map (Card.relabelTwin x)).filter
-          (fun y => decide (y = Card.relabelTwin x c))).length =
-        (l.filter (fun y => decide (y = c))).length
-  | [] => rfl
-  | y :: t => by
-      rw [List.map_cons, List.filter_cons, List.filter_cons]
-      by_cases hyc : y = c
-      · have hτ : Card.relabelTwin x y = Card.relabelTwin x c := by rw [hyc]
-        rw [decide_eq_true hyc, decide_eq_true hτ, ite_eq_left rfl,
-          ite_eq_left rfl, List.length_cons, List.length_cons,
-          filter_map_relabel x c t]
-      · have hτ : Card.relabelTwin x y ≠ Card.relabelTwin x c :=
-          fun h => hyc (card_relabelTwin_injective x h)
-        rw [decide_eq_false hyc, decide_eq_false hτ]
-        exact filter_map_relabel x c t
-
-/-- The card count transports through the transposition. -/
-private theorem cardCount_relabel (x : Card) (st : State) (c : Card) :
-    (State.relabelTwin x st).cardCount (Card.relabelTwin x c) = st.cardCount c := by
-  unfold State.cardCount
-  rw [zones_relabel, flatMap_map_id_relabel, filter_map_relabel]
-
 /-! ## §2. The uniqueness row -/
 
 /-- **THE MINIMAL-GATE FORM** — a strict twin-swap target whose card

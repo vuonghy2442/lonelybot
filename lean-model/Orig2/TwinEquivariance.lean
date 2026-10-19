@@ -1099,37 +1099,6 @@ theorem step_comm_of_not_foundPair {st st' : State} {x : Card} {m : Move}
 
 /-! ## §12. `WF` transport and the reversibility shape -/
 
-/-- The zones list is mapped by the transposition. -/
-theorem zones_relabelTwin (x : Card) (st : State) :
-    (State.relabelTwin x st).zones =
-      st.zones.map (List.map (Card.relabelTwin x)) := by
-  simp only [State.zones, State.relabelTwin, List.map_map, List.map_append,
-    List.map_cons, List.map_nil, Function.comp_def]
-
-/-- Filtering a mapped list by a mapped value. -/
-theorem filter_map_relabelTwin (x c : Card) :
-    ∀ l : List Card,
-      ((l.map (Card.relabelTwin x)).filter
-          (fun y => decide (y = Card.relabelTwin x c))).length =
-        (l.filter (fun y => decide (y = c))).length
-  | [] => rfl
-  | y :: t => by
-      rw [List.map_cons, List.filter_cons, List.filter_cons]
-      by_cases hyc : y = c
-      · have hτ : Card.relabelTwin x y = Card.relabelTwin x c := by rw [hyc]
-        rw [decide_eq_true hyc, decide_eq_true hτ, ite_eq_left rfl, ite_eq_left rfl,
-          List.length_cons, List.length_cons, filter_map_relabelTwin x c t]
-      · have hτ : Card.relabelTwin x y ≠ Card.relabelTwin x c :=
-          fun h => hyc (card_relabelTwin_injective x h)
-        rw [decide_eq_false hyc, decide_eq_false hτ]
-        exact filter_map_relabelTwin x c t
-
-/-- The card count transports through the transposition. -/
-theorem cardCount_relabelTwin (x : Card) (st : State) (c : Card) :
-    (State.relabelTwin x st).cardCount (Card.relabelTwin x c) = st.cardCount c := by
-  unfold State.cardCount
-  rw [zones_relabelTwin, flatMap_map_id_relabel, filter_map_relabelTwin]
-
 /-- Face-up legality is invariant under the transposition. -/
 theorem runOK_map_relabelTwin (x : Card) :
     ∀ l : List Card, runOK (l.map (Card.relabelTwin x)) = runOK l
@@ -1154,7 +1123,7 @@ theorem wf_relabelTwin {st : State} {x : Card} (hwf : st.WF)
       runOK_map_relabelTwin x]
     exact hwf.2.1 a
   · intro c hc
-    have h := cardCount_relabelTwin x st (Card.relabelTwin x c)
+    have h := cardCount_relabel x st (Card.relabelTwin x c)
     rw [card_relabelTwin_involutive] at h
     rw [h]
     exact hwf.2.2.1 (Card.relabelTwin x c) (Card.mem_universe _)

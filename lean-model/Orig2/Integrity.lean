@@ -825,6 +825,17 @@ theorem off_zones_of_seat {st : State} (hwf : st.WF) {c : Card}
     exact hown
   · exact (hother a' ha).1
 
+/-- No seat means no holding. -/
+theorem holdNone_of_seatNone {s : State} {y : Card}
+    (h : seatOf s y = none) : s.pileHolding y = none := by
+  cases hh : s.pileHolding y with
+  | none => rfl
+  | some a =>
+      exfalso
+      unfold seatOf at h
+      rw [hh] at h
+      cases hg : List.getLast? (below y (s.piles a).faceUp) <;> simp [hg] at h
+
 /-- Two cards of equal rank cannot occupy different positions of a legal
 run: ranks strictly descend along it. -/
 theorem runOK_rank_distinct {l : List Card} (hok : runOK l = true)
@@ -897,4 +908,5 @@ Per promoted head, this card.  Expected profile: `[]`,
 #print axioms ne_of_canSitOn
 #print axioms mem_faceUp_of_seat
 #print axioms off_zones_of_seat
+#print axioms holdNone_of_seatNone
 #print axioms runOK_rank_distinct

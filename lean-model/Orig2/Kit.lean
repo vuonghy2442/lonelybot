@@ -2376,6 +2376,16 @@ theorem below_cons_self (c : Card) (t : List Card) :
     below c (c :: t) = [] := by
   rw [below_cons, ite_eq_left rfl]
 
+theorem below_snoc_not_mem {x : Card} :
+    ∀ {L : List Card}, x ∉ L → below x (L ++ [x]) = L
+  | [], _ => by rw [List.nil_append, below_cons, ite_eq_left rfl]
+  | y :: t, hx => by
+      rw [List.cons_append, below_cons]
+      have hyx : y ≠ x := fun h => hx (List.mem_cons.mpr (Or.inl h.symm))
+      rw [ite_eq_right hyx]
+      have hx' : x ∉ t := fun h => hx (List.mem_cons.mpr (Or.inr h))
+      rw [below_snoc_not_mem hx']
+
 theorem universe_nodup : Card.universe.Nodup := by decide
 
 /-! ## The audit battery
@@ -2407,4 +2417,5 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 #print axioms pileHolding_congr_piles
 #print axioms seatOf_congr_piles
 #print axioms below_cons_self
+#print axioms below_snoc_not_mem
 #print axioms universe_nodup

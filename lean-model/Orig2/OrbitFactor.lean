@@ -593,17 +593,9 @@ physics kit `Orig2/Kit.lean` — `take_drop_add`, `take_ge_length`,
 `run_draw_cons`, `run_replicate_append`, `run_cons_shape`,
 `drain_to_pass`, `draw_passBase_reversibleW`,
 `drain_positions_one`, `base_positions_one`, and the in-phase
-round trip.  One name-compatible alias below; the pass-base
+round trip (`draw_inphase_reversibleW` directly); the pass-base
 short-waste row (`draw_reversible_selfRecycleW`) is subsumed by
 Kit's `draw_passBase_reversibleW` and retires here. -/
-
-/-- **The in-phase round trip**, witness grade (this card's private
-name; PORTED VERBATIM from `Orig/Phase.lean:1513` — a Kit alias
-over `draw_inphase_reversibleW`). -/
-private theorem draw_reversible_inphaseW {st : State} (hd : 0 < st.drawStep)
-    (hs : st.stock ≠ []) (hw : st.waste ≠ []) (hph : inPhase st = true) :
-    reversibleAtW st Move.draw :=
-  draw_inphase_reversibleW hd hs hw hph
 
 /-! ### §1.5.6 The witness-grade draw commit rows (Phase
 restatements)
@@ -680,7 +672,7 @@ private theorem draw_revW_congr {x x' : State} (hpos : 0 < x.drawStep)
             refine decide_eq_true ?_
             rw [← hds, ← hw]
             exact hres
-          exact draw_reversible_inphaseW hx'pos hst'
+          exact draw_inphase_reversibleW hx'pos hst'
             (by
               intro hc
               exact hpr (hw.trans hc)) hph'
@@ -1125,7 +1117,6 @@ Per proved head: `[propext]`/`[propext, Quot.sound]` only; zero
 #print axioms draw_passBase_reversibleW
 #print axioms drain_positions_one
 #print axioms base_positions_one
-#print axioms draw_reversible_inphaseW
 #print axioms draw_revW_congr
 #print axioms leg_zone_keep
 #print axioms shuffleW_zone_keep

@@ -19,14 +19,6 @@ open State
 
 /-! ## List kit: cutting at the second of two consecutive members -/
 
-private theorem below_fromCard_disjoint {l : List Card} (hok : runOK l = true)
-    {c y : Card} (hyP : y ∈ below c l) (hyR : y ∈ fromCard c l) : False := by
-  have hrun : runOK (below c l ++ fromCard c l) = true := by
-    rw [tfc_below_fromCard c l]
-    exact hok
-  have hlt := runOK_desc hrun hyP hyR
-  omega
-
 /-- The `below`-prefix at a card immediately following another known
 card, when nothing earlier in the prefix meets the cut. -/
 private theorem below_second_cons (P R : List Card) {x y : Card}
@@ -84,9 +76,9 @@ theorem exchangeSuffix_eq_splice_bottom
     simp
   have hytB : y.twin ∈ (s.piles b).faceUp := tfc_mem_fromCard _ hytFromB
   have hyNotBelowA : y ∉ below x (s.piles a).faceUp :=
-    fun h => below_fromCard_disjoint (hwf.runOK_of a) h hyFromA
+    fun h => run_split_disjoint (hwf.runOK_of a) h hyFromA
   have hytNotBelowB : y.twin ∉ below x.twin (s.piles b).faceUp :=
-    fun h => below_fromCard_disjoint (hwf.runOK_of b) h hytFromB
+    fun h => run_split_disjoint (hwf.runOK_of b) h hytFromB
   have hokFromA : runOK (x :: y :: restA) = true := by
     rw [← hcardA]
     exact tfc_runOK_fromCard _ _ (hwf.runOK_of a)
