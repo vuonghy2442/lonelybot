@@ -186,18 +186,12 @@ theorem tfc_sum_map_single {α : Type} [DecidableEq α] :
             (fun j hj hne2 => hzero j (List.mem_cons_of_mem _ hj) hne2)
           omega
 
-/-- PORT verbatim from `Orig/Reach.lean:299`. -/
-theorem tfc_flatMap_id_append : ∀ (A B : List (List Card)),
-    (A ++ B).flatMap id = (A.flatMap id) ++ (B.flatMap id) := by
-  intro A B
-  induction A with
-  | nil => rfl
-  | cons z t ih =>
-      show (z ++ ((t ++ B).flatMap id)) = (z ++ (t.flatMap id)) ++ (B.flatMap id)
-      rw [show (t ++ B).flatMap id = (t.flatMap id) ++ (B.flatMap id) from ih]
-      exact (List.append_assoc z (t.flatMap id) (B.flatMap id)).symm
-
-/-- PORT verbatim from `Orig/Reach.lean:312`. -/
+/-- PORT verbatim from `Orig/Reach.lean:312`.  DEDUP UPDATE
+(2026-10-18): the split below rides `flatMapAppend` at `f = id`
+(`Orig2/Integrity.lean`, public since the search-integrity split)
+— this kit's former `tfc_flatMap_id_append` twin (a port of
+`Orig/Reach.lean:299`, the `f = id` instance of the general row)
+is STRUCK per the dedup sweep. -/
 theorem tfc_cardCount_zones (st : State) (c : Card) :
     st.cardCount c =
       tfc_cntFlat c (Suit.all.map st.found)
@@ -207,9 +201,10 @@ theorem tfc_cardCount_zones (st : State) (c : Card) :
   have h2 : ([st.stock, st.waste] : List (List Card)).flatMap id
       = st.stock ++ st.waste :=
     congrArg (st.stock ++ ·) (List.append_nil st.waste)
-  show tfc_cnt c ((Suit.all.map st.found ++ (Anchor.all.map
+  show tfc_cnt c ((Suit.all.map st.found
+      ++ (Anchor.all.map
       (fun a => (st.piles a).hidden ++ (st.piles a).faceUp) ++ [st.stock, st.waste])).flatMap id) = _
-  rw [tfc_flatMap_id_append, tfc_flatMap_id_append, h2, tfc_cnt_app c, tfc_cnt_app c,
+  rw [flatMapAppend id, flatMapAppend id, h2, tfc_cnt_app c, tfc_cnt_app c,
     tfc_cnt_app c, tfc_cntFlat_flatMap c, tfc_cntFlat_flatMap c]
   omega
 
@@ -286,7 +281,11 @@ theorem tfc_cntFlat_map_two_mem {α : Type} {z : Card} (F : α → List Card) :
         · have := ih b₁ b₂ h₁' h₂' hne hz₁ hz₂
           omega
 
-/-- PORT verbatim from `Orig/Reach.lean:1612`. -/
+/-- PORT verbatim from `Orig/Reach.lean:1612`.  KINSHIP (2026-10-18):
+the WF-graded twin, over the zones-split kit rather than the count
+kit, is `Orig2/Integrity.lean`'s `wf_two_piles_ne` — different grade
+and engine (count premise vs `State.WF`, split-lemma vs `tfc_cnt`
+arithmetic), one row home each by the grade-distinction rule. -/
 theorem tfc_two_pile_zone_absurd {st : State} {z : Card} {j k : Anchor} (hjk : j ≠ k)
     (hcc : st.cardCount z = 1)
     (hzj : z ∈ (st.piles j).hidden ++ (st.piles j).faceUp)
@@ -1514,20 +1513,13 @@ theorem tfc_pileHolding_pin {st : State} {x : Card} {k : Anchor}
     (fun j _ hjk => decide_false_of_not (hno j hjk))
 
 /-- The found pile is the only candidate: membership elsewhere is
-absurd (occurrence uniqueness; `Orig2/Integrity.lean`'s
-`wf_two_piles_ne` pattern). -/
+absurd.  RE-EVIDENCED 2026-10-18 over the search-integrity card's
+exactness rows (`pileHolding_eq_some_iff` + `pileHolding_inj`,
+`Orig2/Integrity.lean`) — the count-kit derivation retired. -/
 theorem tfc_holding_pin' {st : State} (hwf : st.WF) {x : Card} {q : Anchor}
     (hh : st.pileHolding x = some q) {j : Anchor} (hmem : x ∈ (st.piles j).faceUp) :
-    j = q := by
-  by_cases hjq : j = q
-  · exact hjq
-  · exfalso
-    have hccx : st.cardCount x = 1 := hwf.2.2.1 x (Card.mem_universe x)
-    have hq : x ∈ (st.piles q).hidden ++ (st.piles q).faceUp :=
-      List.mem_append.mpr (Or.inr (pileHolding_mem hh))
-    have hj : x ∈ (st.piles j).hidden ++ (st.piles j).faceUp :=
-      List.mem_append.mpr (Or.inr hmem)
-    exact tfc_two_pile_zone_absurd hjq hccx hj hq
+    j = q :=
+  pileHolding_inj ((pileHolding_eq_some_iff hwf).2 hmem) hh
 
 /-- Two memberships in one face-up list double the count (the WF-free
 count lane). -/
@@ -1549,15 +1541,14 @@ theorem tfc_pileHolding_none {st : State} {x : Card}
   show firstWhere (fun a => decide (x ∈ (st.piles a).faceUp)) Anchor.all = none
   exact tfc_firstWhere_none Anchor.all (fun j _ => decide_false_of_not (hno j))
 
-/-- Face-up occurrence uniqueness, both lanes explicit (the
-`Orig2/Integrity.lean` `wf_two_piles_ne` pattern at the seam). -/
+/-- Face-up occurrence uniqueness, both lanes explicit.  RE-EVIDENCED
+2026-10-18 at the search-integrity card's `mem_faceUp_unique`
+(`Orig2/Integrity.lean`) — the count-kit derivation retired; the
+integrity row carries the full census (hidden lane, stock, waste,
+foundations) and this projection reads its face-up half. -/
 theorem tfc_faceUp_uniq_other {st : State} (hwf : st.WF) {x : Card} {q j : Anchor}
-    (hmemq : x ∈ (st.piles q).faceUp) (hjq : j ≠ q) : x ∉ (st.piles j).faceUp := by
-  intro hmem
-  have hccx : st.cardCount x = 1 := hwf.2.2.1 x (Card.mem_universe x)
-  exact tfc_two_pile_zone_absurd hjq hccx
-    (List.mem_append.mpr (Or.inr hmem))
-    (List.mem_append.mpr (Or.inr hmemq))
+    (hmemq : x ∈ (st.piles q).faceUp) (hjq : j ≠ q) : x ∉ (st.piles j).faceUp :=
+  (mem_faceUp_unique hwf hmemq j hjq).1
 
 /-- THE ONE-POINT-EDIT SEAT ROW (the chart's UPDATE claim, re-proved
 inline over the seam's step unfold `Orig/Play.lean:129-140` and
@@ -2307,7 +2298,6 @@ theorem tfa_chain_lift {R : State → State → Prop}
 #print axioms tfc_cntFlat_map_delta
 #print axioms tfc_sum_map_zero
 #print axioms tfc_sum_map_single
-#print axioms tfc_flatMap_id_append
 #print axioms tfc_cardCount_zones
 #print axioms tfc_cntFlat_list_mem_ge
 #print axioms tfc_faceUp_cnt_le_cardCount
