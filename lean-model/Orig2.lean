@@ -16,12 +16,14 @@ import Orig2.KingOrbitFull
 import Orig2.KingTrace
 import Orig2.KingShufflePerm
 import Orig2.KingShuffleRealize
+import Orig2.KingVKPermExtend
 import Orig2.Claims
 import Orig2.ClaimsScrutiny
 import Orig2.OrbitFactor
 import Orig2.SeatMateStack
 import Orig2.TwinRelabel
 import Orig2.TwinSplice
+import Orig2.TwinSuffixExchange
 import Orig2.TwinSwapRecipe
 import Orig2.TwinDrawTransfer
 import Orig2.TwinEquivariance
