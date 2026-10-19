@@ -379,3 +379,59 @@ theorem swappableIn_uB_cJH : SwappableIn uB cJH :=
 #print axioms swappableIn_uB_cJH
 
 end TwinBothCovered
+
+/-!
+## §8. Public surface for the concrete 5L world
+
+The concrete world B is entirely private above.  These aliases expose
+the pair card, the two endpoints, the five-move play, and the private
+rows needed by downstream cards, without changing any private proof.
+-/
+
+namespace TwinBothCovered
+
+open State
+
+/-- Public alias for the concrete pair card `Q♠` of world B. -/
+def cQSpub : Card := cQS
+
+/-- Public alias for world B's concrete source state. -/
+def uBpub : State := uB
+
+/-- Public alias for the concrete five-leg endpoint state. -/
+def v5pub : State := v5
+
+/-- Public alias for the concrete five-move play. -/
+def play5pub : List Move := play5
+
+/-- The private world-B integrity row, exposed. -/
+theorem uBpub_wf : uBpub.WF := uB_wf
+
+/-- Both twins are `.inr`-seated at the concrete source: `Q♠` on `K♦`
+and `Q♣` on `K♥`. -/
+theorem uBpub_seats :
+    (∃ z, seatOf uBpub cQSpub = some (Sum.inr z)) ∧
+      (∃ z : Card, seatOf uBpub cQSpub.twin = some (Sum.inr z.twin)) :=
+  ⟨⟨⟨Suit.diamond, Rank.king⟩, by decide⟩,
+   ⟨⟨Suit.diamond, Rank.king⟩, by decide⟩⟩
+
+/-- The private five-leg shuffle, exposed at the public aliases. -/
+theorem play5pub_shuffle : ShufflePlayW uBpub play5pub v5pub := play5_fwd
+
+/-- The private endpoint identity `v5 = uB.spliceTwinRuns Q♠`, exposed. -/
+theorem v5pub_eq_splice : v5pub = uBpub.spliceTwinRuns cQSpub := v5_eq_splice
+
+/-- The private concrete swap at world B, exposed at the public aliases. -/
+theorem swappableIn_uB_cQSpub : SwappableIn uBpub cQSpub := swappableIn_uB_cQS
+
+#print axioms cQSpub
+#print axioms uBpub
+#print axioms v5pub
+#print axioms play5pub
+#print axioms uBpub_wf
+#print axioms uBpub_seats
+#print axioms play5pub_shuffle
+#print axioms v5pub_eq_splice
+#print axioms swappableIn_uB_cQSpub
+
+end TwinBothCovered
