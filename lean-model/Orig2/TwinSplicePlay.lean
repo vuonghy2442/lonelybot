@@ -25,7 +25,7 @@ Zero `sorry`, zero `Classical.choice`.
 /-- A pair-free reversible letter keeps both twins' `.inr` seats
 exactly; the mover-off rows and the one-point-edit rows supply the
 per-letter preservation. -/
-private theorem seat_inr_of_pairFree_step {u v : State} {x : Card} {m : Move}
+theorem seat_inr_of_pairFree_step {u v : State} {x : Card} {m : Move}
     (hwf : u.WF) (hstep : State.step u m = some v)
     (hrev : reversibleAtW u m) (hno : NotFoundPair x m)
     (hx : ∃ z, seatOf u x = some (Sum.inr z))
