@@ -14,6 +14,7 @@ import Orig2.FloatOrbit
 import Orig2.AnchorRelabel
 import Orig2.KingOrbitFull
 import Orig2.KingTrace
+import Orig2.KingSwapStrict
 import Orig2.Claims
 import Orig2.ClaimsScrutiny
 import Orig2.OrbitFactor
