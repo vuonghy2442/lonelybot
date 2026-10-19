@@ -1441,41 +1441,7 @@ theorem sameOrbitVacant_of_someKingFoundable {st : State} (hwf : st.WF)
     (KingFuel.raise_empties_iff hstep hp).mpr ⟨hface, hhid⟩
   exact ⟨s1, hclass_st_s1, a, hvac_s1⟩
 
-/-- **The vacancy dichotomy's constructive fork** — a vacant class either
-keeps a vacancy at every member, or some member carries a raisable bare
-king (`someKingFoundable_of_vacancy_and_noVacancy`).  The extraction of
-the no-vacancy member from `¬ AllVacant` is the only classical step; the
-`SomeKingFoundable` arm itself is constructive. -/
-theorem sameOrbitVacant_imp_allVacant_or_someKingFoundable {st : State} (hwf : st.WF)
-    (hvac : SameOrbitVacant st) : AllVacant st ∨ SomeKingFoundable st := by
-  classical
-  by_cases hA : AllVacant st
-  · exact Or.inl hA
-  · right
-    have hno : ∃ w, sameOrbitSetoid.r st w ∧ NoVacancy w := by
-      apply Classical.byContradiction
-      intro h
-      apply hA
-      intro w hw
-      apply Classical.byContradiction
-      intro hnv
-      exact h ⟨w, hw, (noVacancy_iff_not_hasVacancy w).mpr hnv⟩
-    exact someKingFoundable_of_vacancy_and_noVacancy hwf hvac hno
-
-/-- **`vacancyDichotomy_classical`** — the classical form of the
-class-level vacancy split: either every class member carries a vacancy (the
-permanent-vacancy regime), or some class member has a bare king raisable to
-the foundation (the vacancy-creating regime).  Kept as the historical
-classical disjunction; the choice-free `vacancyDichotomy` is proved at the
-end of this card via the cardinality invariant. -/
-theorem vacancyDichotomy_classical {st : State} (hwf : st.WF) : VacancyDichotomy st :=
-  ⟨sameOrbitVacant_imp_allVacant_or_someKingFoundable hwf,
-    fun h => h.elim sameOrbitVacant_of_allVacant
-      (sameOrbitVacant_of_someKingFoundable hwf)⟩
-
 #print axioms sameOrbitVacant_of_someKingFoundable
-#print axioms sameOrbitVacant_imp_allVacant_or_someKingFoundable
-#print axioms vacancyDichotomy_classical
 
 
 /-- Choice-free negative form of the vacancy dichotomy: if the class has a
