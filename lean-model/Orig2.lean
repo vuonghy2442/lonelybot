@@ -26,6 +26,7 @@ import Orig2.TwinSwapUnique
 import Orig2.TwinTransferRiderFree
 import Orig2.TwinRecipeSegment
 import Orig2.DetourKit
+import Orig2.TwinReroute
 import Orig2.FlagShip
 
 /-!
