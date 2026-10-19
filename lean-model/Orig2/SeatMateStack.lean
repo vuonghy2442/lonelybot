@@ -2004,20 +2004,277 @@ private theorem stack_step {u v : State} {m : Move} {c z0 : Card}
       · exact Or.inl (by rw [hb0] at hb; exact hb)
       · exact False.elim (stack_seat_change hwf hstep hrev hse hnf hnoStack hb hb0)
   rcases hseat with hsame | hstack
-  · by_cases hgain : FloaterSpec v c
-    · rcases floaterSpec_gain_step hwf hstep hrev hse hsame hnk hnf hgain with
-        hraise | ⟨b, hpull⟩
-      · exact Or.inr ⟨c.twin, Or.inr ⟨hnk, Or.inr rfl⟩, hraise⟩
-      · exfalso
-        rw [hpull] at hstep
-        obtain ⟨z', htop, hz'c, hcp, hs⟩ := step_foundToTab_inv hstep
-        have hlast : lastOf (u.found z0.twin.suit) = some z0.twin := by
-          unfold State.foundTop at htop
-          rw [hz'c] at htop
-          exact htop
-        exact hznot (lastOf_mem hlast)
-    · exact Or.inl ⟨hsame, hgain, not_found_step hwf hstep hrev hse hnf hznot⟩
+  · cases htop : v.pileOfTop z0.twin with
+    | none =>
+        have hnoGain : ¬ FloaterSpec v c := by
+          intro hf
+          obtain ⟨k, hk⟩ := top_of_floaterSpec hsame hnk hf
+          rw [htop] at hk
+          nomatch hk
+        exact Or.inl ⟨hsame, hnoGain, not_found_step hwf hstep hrev hse hnf hznot⟩
+    | some k =>
+        obtain ⟨a', hhold', -, -⟩ := tfc_seatOf_of_inr hsame
+        have hgain : FloaterSpec v c := floaterSpec_of_top hsame hhold' htop
+        rcases floaterSpec_gain_step hwf hstep hrev hse hsame hnk hnf hgain with
+          hraise | ⟨b, hpull⟩
+        · exact Or.inr ⟨c.twin, Or.inr ⟨hnk, Or.inr rfl⟩, hraise⟩
+        · exfalso
+          rw [hpull] at hstep
+          obtain ⟨z', htop', hz'c, hcp, hs⟩ := step_foundToTab_inv hstep
+          have hlast : lastOf (u.found z0.twin.suit) = some z0.twin := by
+            unfold State.foundTop at htop'
+            rw [hz'c] at htop'
+            exact htop'
+          exact hznot (lastOf_mem hlast)
   · exact Or.inr hstack
+
+/-- The boolean form of `SeatMate`. -/
+private def seatMateB (c x : Card) : Bool :=
+  (decide (c.rank = Rank.king) && decide (x.rank = Rank.king)) ||
+    (!decide (c.rank = Rank.king) && (decide (x = c) || decide (x = c.twin)))
+
+private theorem seatMateB_eq (c x : Card) : seatMateB c x = true ↔ SeatMate c x := by
+  unfold seatMateB SeatMate
+  by_cases hk : c.rank = Rank.king <;> simp [hk]
+
+/-- A finite search for a seat-mate raise in a play (constructive witness). -/
+private def stackHead (c : Card) (m : Move) : Bool :=
+  match m with
+  | Move.tabToFound x => seatMateB c x
+  | _ => false
+
+private theorem stackHead_tabToFound (c x : Card) :
+    stackHead c (Move.tabToFound x) = true ↔ SeatMate c x := by
+  simp [stackHead, seatMateB_eq]
+
+private def hasStack (c : Card) : List Move → Bool
+  | [] => false
+  | m :: ρ => stackHead c m || hasStack c ρ
+
+private theorem hasStack_cons_of_not {c : Card} {m : Move} {ρ : List Move}
+    (hm : ∀ x : Card, m ≠ Move.tabToFound x) :
+    hasStack c (m :: ρ) = hasStack c ρ := by
+  cases m with
+  | tabToFound x => exact absurd rfl (hm x)
+  | _ => rfl
+
+private theorem hasStack_iff (c : Card) : ∀ (play : List Move),
+    hasStack c play = true ↔ ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play
+  | [] => by simp [hasStack]
+  | m :: ρ => by
+      cases m with
+      | tabToFound x =>
+          simp only [hasStack, Bool.or_eq_true, stackHead_tabToFound]
+          constructor
+          · rintro (hs | hs)
+            · exact ⟨x, hs, List.mem_cons_self⟩
+            · obtain ⟨y, hsy, hy⟩ := (hasStack_iff c ρ).mp hs
+              exact ⟨y, hsy, List.mem_cons_of_mem _ hy⟩
+          · rintro ⟨y, hsy, hy⟩
+            rcases List.mem_cons.mp hy with h | h
+            · injection h with h1
+              left
+              rw [← h1]
+              exact hsy
+            · exact Or.inr ((hasStack_iff c ρ).mpr ⟨y, hsy, h⟩)
+      | draw =>
+          rw [hasStack_cons_of_not (c := c) (m := Move.draw) (ρ := ρ) (fun x h => by nomatch h),
+            hasStack_iff c ρ]
+          constructor
+          · rintro ⟨y, hsy, hy⟩; exact ⟨y, hsy, List.mem_cons_of_mem _ hy⟩
+          · rintro ⟨y, hsy, hy⟩
+            rcases List.mem_cons.mp hy with h | h
+            · nomatch h
+            · exact ⟨y, hsy, h⟩
+      | wasteToFound y =>
+          rw [hasStack_cons_of_not (c := c) (m := Move.wasteToFound y) (ρ := ρ) (fun x h => by nomatch h),
+            hasStack_iff c ρ]
+          constructor
+          · rintro ⟨z, hsz, hz⟩; exact ⟨z, hsz, List.mem_cons_of_mem _ hz⟩
+          · rintro ⟨z, hsz, hz⟩
+            rcases List.mem_cons.mp hz with h | h
+            · nomatch h
+            · exact ⟨z, hsz, h⟩
+      | wasteToTab y b =>
+          rw [hasStack_cons_of_not (c := c) (m := Move.wasteToTab y b) (ρ := ρ) (fun x h => by nomatch h),
+            hasStack_iff c ρ]
+          constructor
+          · rintro ⟨z, hsz, hz⟩; exact ⟨z, hsz, List.mem_cons_of_mem _ hz⟩
+          · rintro ⟨z, hsz, hz⟩
+            rcases List.mem_cons.mp hz with h | h
+            · nomatch h
+            · exact ⟨z, hsz, h⟩
+      | foundToTab y b =>
+          rw [hasStack_cons_of_not (c := c) (m := Move.foundToTab y b) (ρ := ρ) (fun x h => by nomatch h),
+            hasStack_iff c ρ]
+          constructor
+          · rintro ⟨z, hsz, hz⟩; exact ⟨z, hsz, List.mem_cons_of_mem _ hz⟩
+          · rintro ⟨z, hsz, hz⟩
+            rcases List.mem_cons.mp hz with h | h
+            · nomatch h
+            · exact ⟨z, hsz, h⟩
+      | tabToTab y b =>
+          rw [hasStack_cons_of_not (c := c) (m := Move.tabToTab y b) (ρ := ρ) (fun x h => by nomatch h),
+            hasStack_iff c ρ]
+          constructor
+          · rintro ⟨z, hsz, hz⟩; exact ⟨z, hsz, List.mem_cons_of_mem _ hz⟩
+          · rintro ⟨z, hsz, hz⟩
+            rcases List.mem_cons.mp hz with h | h
+            · nomatch h
+            · exact ⟨z, hsz, h⟩
+
+/-- A non-king card at the bottom of a pile cannot move to another seat:
+its slide is unlicensed, and every other letter either preserves its seat or
+raises it (a stack). -/
+private theorem bottom_seat_step {u v : State} {m : Move} {c : Card} {a0 : Anchor}
+    (hwf : u.WF) (hstep : State.step u m = some v)
+    (hrev : reversibleAtW u m)
+    (hse : seatOf u c = some (Sum.inl a0))
+    (hnk : c.rank ≠ Rank.king)
+    (hnoStack : ∀ x : Card, SeatMate c x → m ≠ Move.tabToFound x) :
+    seatOf v c = some (Sum.inl a0) ∨
+      (∃ x : Card, SeatMate c x ∧ m = Move.tabToFound x) := by
+  cases m with
+  | draw =>
+      exact Or.inl (by rw [(chart_draw hstep).1 c]; exact hse)
+  | wasteToFound x =>
+      obtain ⟨-, y, ys, hw, hs⟩ := step_wasteToFound_inv hstep
+      have hp : v.piles = u.piles := by rw [hs]; rfl
+      exact Or.inl (by rw [seatOf_congr_piles hp c]; exact hse)
+  | wasteToTab x b =>
+      exact absurd hrev (wasteToTab_not_reversibleAtW u x b)
+  | tabToFound x =>
+      by_cases hxc : x = c
+      · exact Or.inr ⟨c, Or.inr ⟨hnk, Or.inl rfl⟩, by rw [hxc]⟩
+      · exact Or.inl (by
+          rw [raise_seat_change_of_seated hstep hrev (by rw [hse]; simp) (fun hcon => hxc hcon.symm)]
+          exact hse)
+  | foundToTab x b =>
+      by_cases hxc : x = c
+      · exfalso
+        rw [hxc] at hstep
+        obtain ⟨c', htop, hc'c, hcp, hs⟩ := step_foundToTab_inv hstep
+        have hlast : lastOf (u.found c.suit) = some c := by
+          unfold State.foundTop at htop
+          rw [hc'c] at htop
+          exact htop
+        have hcfin : c ∈ u.found c.suit := lastOf_mem hlast
+        have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seatOf_ne (by rw [hse]; simp)
+        obtain ⟨a, ha⟩ := hcface
+        exact ((mem_found_unique hwf hcfin).1 a).2 ha
+      · exact Or.inl (by
+          rw [pull_seat_change hstep c (fun hcon => hxc hcon.symm)]
+          exact hse)
+  | tabToTab x b =>
+      by_cases hxc : x = c
+      · exfalso
+        rw [hxc] at hstep
+        rw [hxc] at hrev
+        have hR : tabToTabR u c b = true :=
+          (tabToTabR_iff_reversibleAtW hwf c b).mpr hrev
+        obtain ⟨a, hhold, hcp, hcell⟩ := tfc_tabToTabR_inv hR
+        obtain ⟨hhold0, hbelow0⟩ := tfc_seatOf_of_inl hse
+        have ha : a = a0 := by
+          rw [hhold0] at hhold
+          injection hhold with h
+          exact h.symm
+        rw [ha] at hcell
+        rcases hcell with hne | ⟨hbelow, hhid, hk⟩
+        · exact absurd hbelow0 hne
+        · exact hnk hk
+      · have h := tfc_seat_point_edit hwf hstep hrev c
+        rw [ite_eq_right (fun hcon => hxc hcon.symm)] at h
+        exact Or.inl (by rw [h]; exact hse)
+
+/-- The interior (inr-seat) stack arm: under no stack, the card never leaves
+its parent and never gains a floater-spec, contradicting the seat change. -/
+private theorem stack_arm_inr {st w : State} (hwfst : st.WF) {c z0 : Card}
+    (hse : seatOf st c = some (Sum.inr z0))
+    (hnf : ¬ FloaterSpec st c)
+    (hznot : z0.twin ∉ st.found z0.twin.suit)
+    (hchg : seatOf w c ≠ seatOf st c)
+    {play : List Move} (hplay : ShufflePlayW st play w)
+    (hnoStack : ∀ x : Card, SeatMate c x → Move.tabToFound x ∉ play) :
+    False := by
+  have aux : ∀ {a b : State} {ρ : List Move}, ShufflePlayW a ρ b → a.WF →
+      (∀ x : Card, SeatMate c x → Move.tabToFound x ∉ ρ) →
+      seatOf a c = some (Sum.inr z0) → ¬ FloaterSpec a c →
+      z0.twin ∉ a.found z0.twin.suit →
+      seatOf b c = some (Sum.inr z0) ∧ ¬ FloaterSpec b c ∧
+        z0.twin ∉ b.found z0.twin.suit := by
+    intro a b ρ h
+    induction h with
+    | nil s =>
+        intro _ _ hs hf hz
+        exact ⟨hs, hf, hz⟩
+    | @cons u v W m ρ hrev hstep hrest ih =>
+        intro hwf hno hs hf hz
+        have hnoHead : ∀ x : Card, SeatMate c x → m ≠ Move.tabToFound x := by
+          intro x hsx hm
+          exact hno x hsx (by rw [hm]; exact List.mem_cons_self)
+        have hnoTail : ∀ x : Card, SeatMate c x → Move.tabToFound x ∉ ρ := by
+          intro x hsx hmem
+          exact hno x hsx (List.mem_cons_of_mem _ hmem)
+        rcases stack_step hwf hstep hrev hs hf hz hnoHead with hinv | ⟨x, hsx, hm⟩
+        · exact ih (step_wf hwf hstep) hnoTail hinv.1 hinv.2.1 hinv.2.2
+        · exact absurd hm (hnoHead x hsx)
+  have hinv := aux hplay hwfst hnoStack hse hnf hznot
+  exact hchg (hinv.1.trans hse.symm)
+
+/-- The bottom (inl-seat) stack arm: a non-king at the bottom cannot move
+under no stack. -/
+private theorem stack_arm_inl {st w : State} (hwfst : st.WF) {c : Card} {a0 : Anchor}
+    (hnk : c.rank ≠ Rank.king)
+    (hse : seatOf st c = some (Sum.inl a0))
+    (hchg : seatOf w c ≠ seatOf st c)
+    {play : List Move} (hplay : ShufflePlayW st play w)
+    (hnoStack : ∀ x : Card, SeatMate c x → Move.tabToFound x ∉ play) :
+    False := by
+  have aux : ∀ {a b : State} {ρ : List Move}, ShufflePlayW a ρ b → a.WF →
+      (∀ x : Card, SeatMate c x → Move.tabToFound x ∉ ρ) →
+      seatOf a c = some (Sum.inl a0) → seatOf b c = some (Sum.inl a0) := by
+    intro a b ρ h
+    induction h with
+    | nil s =>
+        intro _ _ hs
+        exact hs
+    | @cons u v W m ρ hrev hstep hrest ih =>
+        intro hwf hno hs
+        have hnoHead : ∀ x : Card, SeatMate c x → m ≠ Move.tabToFound x := by
+          intro x hsx hm
+          exact hno x hsx (by rw [hm]; exact List.mem_cons_self)
+        have hnoTail : ∀ x : Card, SeatMate c x → Move.tabToFound x ∉ ρ := by
+          intro x hsx hmem
+          exact hno x hsx (List.mem_cons_of_mem _ hmem)
+        rcases bottom_seat_step hwf hstep hrev hs hnk hnoHead with hs' | ⟨x, hsx, hm⟩
+        · exact ih (step_wf hwf hstep) hnoTail hs'
+        · exact absurd hm (hnoHead x hsx)
+  exact hchg ((aux hplay hwfst hnoStack hse).trans hse.symm)
+
+/-- **The non-king stack arm.**  If the origin parent's twin is not in the
+foundation (so no foundation pull can explain the gain), a seat-mate of `c`
+is raised. -/
+theorem nonFloater_nonKing_change_seatmate_of_not_found
+    {st w : State} (hwfst : st.WF) (_hw : w.WF) {c : Card}
+    (hnk : c.rank ≠ Rank.king)
+    (htab : ∃ b, seatOf st c = some b)
+    (hnf : ¬ FloaterSpec st c)
+    (hchg : seatOf w c ≠ seatOf st c)
+    (hnotfound : ∀ z : Card,
+      seatOf st c = some (Sum.inr z) → z.twin ∉ st.found z.twin.suit) :
+    ∀ play : List Move, ShufflePlayW st play w →
+      ∃ x : Card, SeatMate c x ∧ Move.tabToFound x ∈ play := by
+  intro play hplay
+  by_cases hs : hasStack c play = true
+  · exact (hasStack_iff c play).mp hs
+  · exfalso
+    have hnoStack : ∀ x : Card, SeatMate c x → Move.tabToFound x ∉ play := by
+      intro x hsx hmem
+      exact hs ((hasStack_iff c play).mpr ⟨x, hsx, hmem⟩)
+    obtain ⟨b, hb⟩ := htab
+    cases b with
+    | inl a0 => exact stack_arm_inl hwfst hnk hb hchg hplay hnoStack
+    | inr z0 => exact stack_arm_inr hwfst hb hnf (hnotfound z0 hb) hchg hplay hnoStack
 
 /-! ## The audit battery -/
 
@@ -2027,3 +2284,4 @@ private theorem stack_step {u v : State} {m : Move} {c z0 : Card}
 #print axioms raise_seat_change_of_seated
 #print axioms tabToFound_of_seat_none
 #print axioms nonFloater_change_found_needs_target_pull
+#print axioms nonFloater_nonKing_change_seatmate_of_not_found
