@@ -37,6 +37,7 @@ import Orig2.TwinBothCovered
 import Orig2.TwinPreludePath
 import Orig2.TwinConcreteSelfSwap
 import Orig2.TwinAbstract5L
+import Orig2.TwinAbstract7L
 import Orig2.DetourKit
 import Orig2.TwinReroute
 import Orig2.TwinRerouteMulti
