@@ -1,15 +1,50 @@
 import Orig2.TwinTransferRiderFree
 import Orig2.TwinEquivariance
 import Orig2.TwinRelabel
+import Orig2.TwinSplice
 
 /-!
 # Orig2.TwinGroupoid — the tableau subgroupoid and its twin flip
 
 The owner sketch: on the subgroupoid of states where both twins are on the
 tableau, the twin flip is an isomorphism, so a swap witness transports
-across the flip.  This card formalizes the **rider-free incarnation** of
-that groupoid isomorphism; the rider-general flip is the run-splice card.
+across the flip.
+
+THE LOCAL FLIP IS A RELATION, not a global card relabeling:
+`LocalTwinFlip x s v := twinPairSwapStrict s v x` — two states differing
+only in the pair's seats (and the fixed board/founds/pool).  The global
+`twinFlip` (card relabeling) is its rider-free implementation; the run
+splice `localTwinFlip` is the rider-general implementation.
 -/
+
+/-- **The local twin flip relation**: `s` and `v` differ by the strict twin
+swap of `⟨x, x.twin⟩`. -/
+def LocalTwinFlip (x : Card) (s v : State) : Prop := twinPairSwapStrict s v x
+
+/-- **The local twin flip function** (rider-general implementation): swap
+the two runs rooted at the twins. -/
+def localTwinFlip (x : Card) (s : State) : State := State.spliceTwinRuns x s
+
+private theorem twinSwapStrict_symm {u v : State} {c : Card}
+    (h : twinPairSwapStrict u v c) : twinPairSwapStrict v u c := by
+  obtain ⟨h1, h2, h3, hb, hf, hs, hw, hc⟩ := h
+  exact ⟨h2.symm, h1.symm, fun y hyz hyt => (h3 y hyz hyt).symm,
+    ⟨fun a => (hb.1 a).symm, hb.2.symm⟩,
+    fun s => (hf s).symm, hs.symm, hw.symm, hc.symm⟩
+
+/-- The local flip relation is symmetric. -/
+theorem LocalTwinFlip_symm {x : Card} {s v : State}
+    (h : LocalTwinFlip x s v) : LocalTwinFlip x v s :=
+  twinSwapStrict_symm h
+
+/-- The run splice realizes the local flip relation (both twins on
+parents). -/
+theorem twinPairSwapStrict_localTwinFlip {s : State} {x : Card}
+    (hwf : s.WF)
+    (hx : ∃ z, seatOf s x = some (Sum.inr z))
+    (hxt : ∃ z : Card, seatOf s x.twin = some (Sum.inr z.twin)) :
+    LocalTwinFlip x s (localTwinFlip x s) :=
+  twinPairSwapStrict_splice hwf hx hxt
 
 /-- **TwinBothSeated s x** — the tableau subgroupoid: both twins are
 face-up on the tableau at `s`. -/
@@ -34,13 +69,6 @@ theorem twinFlip_play_iso {s t : State} {x : Card} {play : List Move}
     (hno : ∀ m ∈ play, NotFoundPair x m) :
     sameOrbitSetoid.r (twinFlip x s) (twinFlip x t) :=
   sameOrbit_relabel_of_play hwf hseated.1 hseated.2 hplay hno
-
-private theorem twinSwapStrict_symm {u v : State} {c : Card}
-    (h : twinPairSwapStrict u v c) : twinPairSwapStrict v u c := by
-  obtain ⟨h1, h2, h3, hb, hf, hs, hw, hc⟩ := h
-  exact ⟨h2.symm, h1.symm, fun y hyz hyt => (h3 y hyz hyt).symm,
-    ⟨fun a => (hb.1 a).symm, hb.2.symm⟩,
-    fun s => (hf s).symm, hs.symm, hw.symm, hc.symm⟩
 
 /-- **The swap transports across the flip.**  If the strict twin swap of
 `⟨x, x.twin⟩` is in-class at a rider-free both-seated `s`, then it is
