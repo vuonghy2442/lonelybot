@@ -796,5 +796,3 @@ theorem kingOrbitDichotomy_of_complete {st : State} (hwf : st.WF)
   ⟨hcomplete, kingAssignmentFixed_of_not_vacant hwf⟩
 
 #print axioms kingOrbitDichotomy_of_complete
-
-

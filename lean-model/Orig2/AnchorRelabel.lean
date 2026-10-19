@@ -135,7 +135,7 @@ theorem State.pileOfTop_permute_option {σ : AnchorPerm} {st : State} (hwf : st.
                 (a := σ.invFun y)).mp hsome
             rw [h] at hy
             exact absurd hy (by simp)
-      simp [h'] 
+      simp [h']
   | some a =>
       have h' : (st.permute σ).pileOfTop z = some (σ.toFun a) :=
         (State.pileOfTop_permute (σ := σ) (z := z) hwf (a := a)).mpr h

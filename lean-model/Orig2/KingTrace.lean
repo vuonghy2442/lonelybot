@@ -1518,4 +1518,3 @@ theorem kingOrbitDichotomy {st : State} (hwf : st.WF) : KingOrbitDichotomy st :=
    kingAssignmentFixed_of_not_vacant hwf⟩
 
 #print axioms kingOrbitDichotomy
-
