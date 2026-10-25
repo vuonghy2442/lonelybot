@@ -35,7 +35,7 @@ private theorem walk_cons_inv_rr {P : State → Move → Prop}
 proof is ported from the private
 `Orig2.TwinRecipeSegment.twinPairSwapStrict_recipe_endpoint`; no
 rider-free hypothesis is used or needed. -/
-private theorem twinPairSwapStrict_recipe_endpoint_riders
+theorem twinPairSwapStrict_recipe_endpoint_riders
     {u w : State} {x z : Card} {a : Anchor}
     (hwfu : u.WF) (hwfw : w.WF)
     (hc : seatOf u x = some (Sum.inr z))
@@ -341,7 +341,7 @@ theorem swappableIn_recipe_segment_riders
 
 /-- `twinPairSwapStrict` is insensitive to naming the pair by the other
 twin. -/
-private theorem twinPairSwapStrict_twin_iff {u v : State} {c : Card} :
+theorem twinPairSwapStrict_twin_iff {u v : State} {c : Card} :
     twinPairSwapStrict u v c ↔ twinPairSwapStrict u v c.twin := by
   constructor
   · rintro ⟨h1, h2, h3, hb, hf, hs, hw, hcut⟩
@@ -397,3 +397,4 @@ theorem swappableIn_recipe_segment_riders_mirror
 #print axioms twinPairSwapStrict_recipe_endpoint_riders
 #print axioms swappableIn_recipe_segment_riders
 #print axioms swappableIn_recipe_segment_riders_mirror
+
