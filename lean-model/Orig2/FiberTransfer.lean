@@ -31,6 +31,9 @@ The owner's last-return route in ONE card.  This is the whole proof:
 * `swappableIn_transfer_of_pairFreePath` /
   `fiber_transfer_corrected_of_pairFreePath` — the pair-free transfer
   (the stepping-stone the reduction consumes).
+* `seat_inr_of_swappable_nonking` — **THE OWNER'S SEAT LEMMA** (§8,
+  fresh 2026-10-25): a swappable non-king pair that is seated at all
+  sits on card parents — the wedge for the OPEN original statement.
 
 The card rides ONLY the certified tracked substrate (the fifteen
 imports above).  Every row restated from the retired dependency cards
@@ -1132,3 +1135,191 @@ theorem fiber_transfer_corrected_of_lastReturn :
 
 #print axioms firstTouchRestart
 #print axioms fiber_transfer_corrected_of_lastReturn
+
+/-! ## §8. The owner's seat lemma (fresh, 2026-10-25)
+
+The wedge for the OPEN original statement (`Orig2/ClaimsScrutiny.lean`):
+a swappable non-king pair that is seated at all sits on card
+parents.  The `.inl` corners are impossible — a non-king at a pile
+bottom cannot reach a DIFFERENT bottom (anchor landings are
+king-gated, `canPlace_inl`), cannot leave the board except upward
+(`tabToFound`), and the two twins cannot share one bottom (the
+bottom seat is unique).  The mixed `.inl`/`.inr` corners die by the
+`.inr` tracker above (`seat_track_play`): a non-king on a card
+parent never lands on an anchor. -/
+
+/-- An empty `below` at a cons pins the head: the search stopped at
+the very first card. -/
+private theorem head_of_below_nil {c y : Card} {t : List Card}
+    (h : below c (y :: t) = []) : y = c := by
+  rw [below_cons] at h
+  by_cases hyc : y = c
+  · exact hyc
+  · rw [if_neg hyc] at h
+    exact absurd h (by simp)
+
+/-- The `.inl` seat is unique: two cards at the same pile bottom are
+the same card (the bottom is one position). -/
+private theorem seat_inl_unique {s : State} {c₁ c₂ : Card} {p : Anchor}
+    (h1 : seatOf s c₁ = some (Sum.inl p)) (h2 : seatOf s c₂ = some (Sum.inl p)) :
+    c₁ = c₂ := by
+  obtain ⟨hh1, hb1⟩ := tfc_seatOf_of_inl h1
+  obtain ⟨hh2, hb2⟩ := tfc_seatOf_of_inl h2
+  have hm1 : c₁ ∈ (s.piles p).faceUp := pileHolding_mem hh1
+  cases hl : (s.piles p).faceUp with
+  | nil => exact absurd hm1 (by rw [hl]; simp)
+  | cons y t =>
+      rw [hl] at hb1 hb2
+      exact (head_of_below_nil hb1).symm.trans (head_of_below_nil hb2)
+
+/-- A non-king seated at a pile bottom keeps that bottom, moves to a
+card parent, or reaches its foundation row — through any reversible
+letter.  The `.inl` anchor is invariant: every other `.inl` landing
+is king-gated (`canPlace_inl`), and no letter unseats a face-up card
+except the raise. -/
+private theorem seat_inl_track_step {u v : State} {m : Move} {c : Card}
+    (hwf : u.WF) (hstep : State.step u m = some v) (hrev : reversibleAtW u m)
+    (hking : c.rank ≠ Rank.king) {p : Anchor}
+    (h : seatOf u c = some (Sum.inl p)) :
+    seatOf v c = some (Sum.inl p) ∨
+      (∃ z, seatOf v c = some (Sum.inr z)) ∨ c ∈ v.found c.suit := by
+  have hcseat : seatOf u c ≠ none := by rw [h]; simp
+  have hcnotfound : c ∉ u.found c.suit := fun hmem =>
+    hcseat (seatOf_none_of_mem_found hwf hmem)
+  cases m with
+  | draw =>
+      have hse := (chart_draw hstep).1
+      exact Or.inl (by rw [hse c]; exact h)
+  | wasteToFound y => exact absurd hrev (wasteToFound_not_reversibleAtW u y)
+  | wasteToTab y b => exact absurd hrev (wasteToTab_not_reversibleAtW u y b)
+  | tabToFound d =>
+      by_cases hcd : c = d
+      · subst hcd
+        refine Or.inr (Or.inr ?_)
+        rw [raise_found_self hstep]
+        exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
+      · refine Or.inl ?_
+        rw [raise_seat_change_of_seated hstep hrev hcseat hcd]
+        exact h
+  | foundToTab y b =>
+      have hcy : c ≠ y := by
+        intro hcy
+        obtain ⟨c', htop, hc'c, -, -⟩ := step_foundToTab_inv hstep
+        rw [hc'c] at htop
+        subst hcy
+        exact hcnotfound (by simpa [State.foundTop] using lastOf_mem htop)
+      refine Or.inl ?_
+      rw [pull_seat_change hstep c hcy]
+      exact h
+  | tabToTab y b =>
+      obtain ⟨-, -, hcp, -, -⟩ := step_tabToTab_inv hstep
+      by_cases hcy : c = y
+      · subst hcy
+        cases b with
+        | inl a' => exact absurd (canPlace_inl hcp).2 hking
+        | inr z' =>
+            refine Or.inr (Or.inl ⟨z', ?_⟩)
+            rw [tfc_seat_point_edit hwf hstep hrev c, if_pos rfl]
+      · refine Or.inl ?_
+        rw [tfc_seat_point_edit hwf hstep hrev c, if_neg hcy]
+        exact h
+
+/-- The play-grade `.inl` tracker: the three-way seat disjunction is
+carried along a whole reversible play (the `.inr`/foundation arms
+ride the existing tracker, the `.inl` arm the step row above). -/
+private theorem seat_track3_play {u v : State} {c : Card} {play : List Move}
+    (hwf : u.WF) (hplay : ShufflePlayW u play v)
+    (hking : c.rank ≠ Rank.king) {p : Anchor}
+    (h : seatOf u c = some (Sum.inl p) ∨
+      (∃ z, seatOf u c = some (Sum.inr z)) ∨ c ∈ u.found c.suit) :
+    seatOf v c = some (Sum.inl p) ∨
+      (∃ z, seatOf v c = some (Sum.inr z)) ∨ c ∈ v.found c.suit := by
+  revert hwf h
+  induction hplay with
+  | nil st =>
+      intro _ h
+      exact h
+  | @cons st s1 W m rest' hrev hstep hrest ih =>
+      intro hwf h
+      rcases h with h0 | h1 | h2
+      · exact ih (step_wf hwf hstep) (seat_inl_track_step hwf hstep hrev hking h0)
+      · exact ih (step_wf hwf hstep)
+          (Or.inr (seat_track_step hwf hstep hrev hking (Or.inl h1)))
+      · exact ih (step_wf hwf hstep)
+          (Or.inr (seat_track_step hwf hstep hrev hking (Or.inr h2)))
+
+/-- **The owner's seat lemma (2026-10-25).**  A swappable non-king
+pair that is seated at all sits on card parents: `SwappableIn` +
+non-king + both twins seated ⟹ both `.inr`-seated.  This is the
+wedge for the OPEN original `fiber_transfer_corrected`
+(`Orig2/ClaimsScrutiny.lean`): it upgrades the original's seat-blind
+`pileHolding` premises to the `.inr` grade the proven transfer
+rides on — the only swappable non-king pair that is not on cards is
+a pair that is not on the board at all (the vacuous case,
+`Orig2/VacuousSwap.lean`). -/
+theorem seat_inr_of_swappable_nonking {s : State} {x : Card}
+    (hwf : s.WF) (hnk : x.rank ≠ Rank.king)
+    (hswap : SwappableIn s x)
+    (hx : seatOf s x ≠ none) (hxt : seatOf s x.twin ≠ none) :
+    (∃ z, seatOf s x = some (Sum.inr z)) ∧
+      (∃ z : Card, seatOf s x.twin = some (Sum.inr z.twin)) := by
+  obtain ⟨v, hrel, horb⟩ := hswap
+  obtain ⟨h1, h2, -, -, -, -, -, -⟩ := hrel
+  have hnkt : x.twin.rank ≠ Rank.king := by
+    have htr : x.twin.rank = x.rank := by cases x; rfl
+    rw [htr]
+    exact hnk
+  obtain ⟨π, hπ, -⟩ := sameOrbitSetoid.iseqv.symm horb
+  have hwfv : v.WF :=
+    run_wf hwf (Walk_run (P := fun st m => reversibleAtW st m) (st := s) (W := v) hπ)
+  -- the seats, extracted without equation-casing a goal-occurring term
+  -- (a `cases h : seatOf s x` would generalize the seat out of the
+  -- goal itself; the have-blocks below keep the conclusion pristine)
+  have hbx : ∃ bx : Base, seatOf s x = some bx := by
+    cases hsx : seatOf s x with
+    | none => exact absurd hsx hx
+    | some bx => exact ⟨bx, rfl⟩
+  obtain ⟨bx, hsx⟩ := hbx
+  have hbt : ∃ bt : Base, seatOf s x.twin = some bt := by
+    cases hstx : seatOf s x.twin with
+    | none => exact absurd hstx hxt
+    | some bt => exact ⟨bt, rfl⟩
+  obtain ⟨bt, hstx⟩ := hbt
+  cases bx with
+  | inl p =>
+      cases bt with
+      | inl q =>
+          exfalso
+          have hpq : p ≠ q := by
+            intro he
+            have hstx' : seatOf s x.twin = some (Sum.inl p) := by rw [he]; exact hstx
+            exact card_twin_ne x (seat_inl_unique hstx' hsx)
+          have h1' : seatOf v x = some (Sum.inl q) := by rw [h1, hstx]
+          rcases seat_track3_play hwf hπ hnk (Or.inl hsx) with hxv | ⟨z, hz⟩ | hmem
+          · rw [hxv] at h1'
+            injection h1' with e1
+            injection e1 with e2
+            exact hpq e2
+          · rw [hz] at h1'; simp at h1'
+          · exact absurd (seatOf_none_of_mem_found hwfv hmem) (by rw [h1']; simp)
+      | inr w =>
+          exfalso
+          have h2' : seatOf v x.twin = some (Sum.inl p) := by rw [h2, hsx]
+          rcases seat_track_play hwf hπ hnkt (Or.inl ⟨w, hstx⟩) with ⟨z, hz⟩ | hmem
+          · rw [hz] at h2'; simp at h2'
+          · exact absurd (seatOf_none_of_mem_found hwfv hmem) (by rw [h2']; simp)
+  | inr z =>
+      cases bt with
+      | inl q =>
+          exfalso
+          have h1' : seatOf v x = some (Sum.inl q) := by rw [h1, hstx]
+          rcases seat_track_play hwf hπ hnk (Or.inl ⟨z, hsx⟩) with ⟨z2, hz⟩ | hmem
+          · rw [hz] at h1'; simp at h1'
+          · exact absurd (seatOf_none_of_mem_found hwfv hmem) (by rw [h1']; simp)
+      | inr w =>
+          have hgoal : seatOf s x.twin = some (Sum.inr w.twin.twin) := by
+            rw [card_twin_twin]
+            exact hstx
+          exact ⟨⟨z, hsx⟩, ⟨w.twin, hgoal⟩⟩
+
+#print axioms seat_inr_of_swappable_nonking
