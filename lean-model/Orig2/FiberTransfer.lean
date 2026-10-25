@@ -7,9 +7,7 @@ import Orig2.Classification
 import Orig2.SeatMateStack
 import Orig2.DetourKit
 import Orig2.TwinEquivariance
-import Orig2.TwinSplicePlay
 import Orig2.TwinSpliceComm
-import Orig2.TwinSpliceUnique
 import Orig2.TwinPointTransfer
 import Orig2.TwinSwapRecipe
 import Orig2.PairClassSeed
