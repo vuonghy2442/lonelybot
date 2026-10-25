@@ -11,6 +11,7 @@ import Orig2.TwinSpliceComm
 import Orig2.TwinPointTransfer
 import Orig2.TwinSwapRecipe
 import Orig2.PairClassSeed
+import Orig2.KingOrbitFull
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
@@ -37,6 +38,11 @@ The owner's last-return route in ONE card.  This is the whole proof:
 * `fiber_transfer_corrected_of_nonKing` — **THE NON-KING WRAPPER**
   (§9, fresh 2026-10-25): the OPEN original statement, proven under
   the single added hypothesis that the pair is non-king.
+* `not_swappableIn_of_frozen` / `seat_inl_of_seated_king` — **THE
+  FROZEN KING** (§10, fresh 2026-10-25, the owner's observation): a
+  seated pair with either twin bottomed over a nonempty hidden deck
+  is never strictly swappable — the king-grade parallel of §8's
+  `.inl` corner; and a seated king always bottoms a pile.
 
 The card rides ONLY the certified tracked substrate (the fifteen
 imports above).  Every row restated from the retired dependency cards
@@ -1564,3 +1570,257 @@ theorem fiber_transfer_corrected_of_nonKing :
         exact hseatx' (seatOf_none_of_mem_found hwf' hfx)
 
 #print axioms fiber_transfer_corrected_of_nonKing
+
+/-! ## §10. The frozen king (the owner's observation, 2026-10-25)
+
+A bottomed card over a nonempty hidden deck can never leave its
+anchor through a reversible play: every exit — the whole-pile slide
+(the run from the bottom) or the raise of that very card (firing
+forces it to be the pile top too, hence a singleton by `WF`'s
+no-duplicate clause) — empties the face-up run and fires the reveal,
+strictly dropping `hiddenTotal`; the certified ratchet
+(`not_W_of_desc`) kills the letter.  This is the king-grade parallel
+of the owner's non-king wedge (§8): a non-king at a pile bottom
+cannot ENTER another anchor; a non-`KingBottom` king cannot LEAVE
+its own.  Either way the strict exchange witness cannot exist. -/
+
+/-- **The frozen-anchor step.**  Through a reversible letter, a card
+bottomed at anchor `a` over a nonempty hidden deck stays there, and
+the hidden deck is untouched. -/
+private theorem frozen_king_step {u v : State} {m : Move} {c : Card} {a : Anchor}
+    (hwf : u.WF) (hstep : State.step u m = some v) (hrev : reversibleAtW u m)
+    (hseat : seatOf u c = some (Sum.inl a)) (hhid : (u.piles a).hidden ≠ []) :
+    seatOf v c = some (Sum.inl a) ∧ (v.piles a).hidden = (u.piles a).hidden := by
+  have hcseat : seatOf u c ≠ none := by rw [hseat]; simp
+  have hhold : u.pileHolding c = some a := (tfc_seatOf_of_inl hseat).1
+  have hbelow : below c (u.piles a).faceUp = [] := (tfc_seatOf_of_inl hseat).2
+  have hmema : c ∈ (u.piles a).faceUp := pileHolding_mem hhold
+  cases m with
+  | draw =>
+      have hse := (chart_draw hstep).1
+      obtain ⟨⟨hhidp, -⟩, -⟩ := (chart_draw hstep).2.2
+      exact ⟨by rw [hse c]; exact hseat, (hhidp a).symm⟩
+  | wasteToFound y => exact absurd hrev (wasteToFound_not_reversibleAtW u y)
+  | wasteToTab y b => exact absurd hrev (wasteToTab_not_reversibleAtW u y b)
+  | tabToFound d =>
+      obtain ⟨-, a₀, hpa, hs⟩ := step_tabToFound_inv hstep
+      by_cases hcd : c = d
+      · -- the raise of the frozen card itself: firing forces it to be the
+        -- pile top; bottoming the pile too, WF's no-duplicate clause makes
+        -- the pile the singleton [c] — the reveal fires — irreversible
+        exfalso
+        have hpa' : u.pileOfTop c = some a₀ := by rw [hcd]; exact hpa
+        have hmem₀ : c ∈ (u.piles a₀).faceUp := by
+          obtain ⟨-, hlast⟩ := tfc_pileOfTop_top hpa'
+          exact lastOf_mem hlast
+        have haa₀ : a = a₀ := by
+          by_cases h : a = a₀
+          · exact h
+          · exact absurd hmem₀ ((mem_faceUp_unique hwf hmema a₀ (fun h' => h h'.symm)).1)
+        have hlasta : lastOf (u.piles a).faceUp = some c := by
+          rw [haa₀]; exact (tfc_pileOfTop_top hpa').2
+        have hnd : (u.piles a).faceUp.Nodup := runOK_nodup (hwf.runOK_of a)
+        have hsingle : (u.piles a).faceUp = [c] :=
+          eq_singleton_of_below_nil_lastOf hnd hbelow hlasta
+        have hdrop : hiddenTotal v + 1 ≤ hiddenTotal u :=
+          hiddenTotal_step_tabToFound_reveal hstep hpa
+            (by rw [← haa₀, hsingle]; rfl) (by rw [← haa₀]; exact hhid)
+        exact absurd hrev (not_W_of_desc hiddenTotal
+          (fun s m s' hst => hiddenTotal_step hst) hstep (Nat.lt_of_succ_le hdrop))
+      · refine ⟨by
+            rw [raise_seat_change_of_seated hstep hrev hcseat hcd]
+            exact hseat, ?_⟩
+        rw [hs]
+        show (if a = a₀ then
+            Pile.afterRunRemoved (u.piles a₀) (chop (u.piles a₀).faceUp)
+          else u.piles a).hidden = (u.piles a).hidden
+        by_cases haa₀ : a = a₀
+        · rw [haa₀, ite_eq_left rfl]
+          rcases afterRunRemoved_hidden (u.piles a₀) (chop (u.piles a₀).faceUp) with
+            ⟨hne, heq⟩ | ⟨-, hhd, -⟩ | ⟨hch, -, -⟩
+          · exact heq
+          · exact absurd (by rw [haa₀]; exact hhd) hhid
+          · exfalso
+            exact absurd hrev (not_W_of_desc hiddenTotal
+              (fun s m s' hst => hiddenTotal_step hst) hstep
+              (Nat.lt_of_succ_le (hiddenTotal_step_tabToFound_reveal hstep hpa hch
+                (by rw [← haa₀]; exact hhid))))
+        · rw [ite_eq_right haa₀]
+  | foundToTab y b =>
+      obtain ⟨c', htop, hc'c, hcp, hs⟩ := step_foundToTab_inv hstep
+      rw [hc'c] at htop
+      have hcy : c ≠ y := by
+        intro hcy
+        rw [← hcy] at htop
+        have hcf : c ∈ u.found c.suit := by
+          simpa [State.foundTop] using lastOf_mem htop
+        exact ((mem_found_unique hwf hcf).1 a).2 hmema
+      refine ⟨by rw [pull_seat_change hstep c hcy]; exact hseat, ?_⟩
+      rw [hs]
+      cases b with
+      | inl t =>
+          have ht : t ≠ a := by
+            intro ht
+            obtain ⟨hemp, -⟩ := canPlace_inl hcp
+            rw [ht] at hemp
+            exact absurd (Pile.isEmpty_eq_false_of_mem hmema) (by rw [hemp]; simp)
+          rw [putCard_piles_inl]
+          show (if a = t then ({ hidden := [], faceUp := [y] } : Pile)
+            else (u.setFound y.suit (chop (u.found y.suit))).piles a).hidden
+            = (u.piles a).hidden
+          rw [ite_eq_right (fun h => ht h.symm)]
+          rfl
+      | inr z =>
+          cases hz : (u.setFound y.suit (chop (u.found y.suit))).pileOfTop z with
+          | none =>
+              have hid : (u.setFound y.suit (chop (u.found y.suit))).putCard y (Sum.inr z)
+                  = u.setFound y.suit (chop (u.found y.suit)) := by
+                simp only [State.putCard, hz]
+              rw [hid]
+              rfl
+          | some k =>
+              rw [putCard_piles_inr _ _ _ _ hz]
+              by_cases hka : a = k
+              · rw [hka]
+                show (if k = k then
+                    { (u.setFound y.suit (chop (u.found y.suit))).piles k with
+                      faceUp := ((u.setFound y.suit (chop (u.found y.suit))).piles k).faceUp ++ [y] }
+                  else (u.setFound y.suit (chop (u.found y.suit))).piles k).hidden
+                  = (u.piles k).hidden
+                rw [ite_eq_left rfl]
+                rfl
+              · show (if a = k then
+                    { (u.setFound y.suit (chop (u.found y.suit))).piles k with
+                      faceUp := ((u.setFound y.suit (chop (u.found y.suit))).piles k).faceUp ++ [y] }
+                  else (u.setFound y.suit (chop (u.found y.suit))).piles a).hidden
+                  = (u.piles a).hidden
+                rw [ite_eq_right hka]
+                rfl
+  | tabToTab y b =>
+      obtain ⟨a₀, hhold₀, hcp, -, hs⟩ := step_tabToTab_inv hstep
+      by_cases hcy : c = y
+      · -- the whole-pile slide of the frozen card: the below-run is
+        -- empty (it bottoms the pile) — the reveal fires — irreversible
+        exfalso
+        rw [← hcy] at hhold₀
+        have haa : a₀ = a := Option.some.inj (hhold₀.symm.trans hhold)
+        rw [haa] at hhold₀
+        have hholdy : u.pileHolding y = some a := by rw [← hcy]; exact hhold₀
+        have hbelowy : below y (u.piles a).faceUp = [] := by
+          rw [← hcy]; exact hbelow
+        have hdrop : hiddenTotal v + 1 ≤ hiddenTotal u :=
+          hiddenTotal_step_tabToTab_reveal hstep hholdy hbelowy hhid
+        exact absurd hrev (not_W_of_desc hiddenTotal
+          (fun s m s' hst => hiddenTotal_step hst) hstep (Nat.lt_of_succ_le hdrop))
+      · refine ⟨by
+            rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_right hcy]
+            exact hseat, ?_⟩
+        have hmemy : y ∈ (u.piles a₀).faceUp := pileHolding_mem hhold₀
+        rw [hs]
+        by_cases haa₀ : a = a₀
+        · -- the source pile is ours: y is not the bottom (c is), so the
+          -- below-run is nonempty — no reveal — hidden preserved
+          rw [haa₀, tabToTab_a_hidden u a₀ y b hmemy hcp]
+          rcases afterRunRemoved_hidden (u.piles a₀) (below y (u.piles a₀).faceUp) with
+            ⟨hne, heq⟩ | ⟨-, hhd, -⟩ | ⟨hbl, -, -⟩
+          · exact heq
+          · exact absurd (by rw [haa₀]; exact hhd) hhid
+          · exfalso
+            have hbc : below c (u.piles a₀).faceUp = [] := by
+              rw [← haa₀]; exact hbelow
+            cases hl : (u.piles a₀).faceUp with
+            | nil => exact absurd hmemy (by rw [hl]; simp)
+            | cons z t =>
+                have h1 : z = y := by
+                  have hb := hbl
+                  rw [hl] at hb
+                  exact head_of_below_nil hb
+                have h2 : z = c := by
+                  have hb := hbc
+                  rw [hl] at hb
+                  exact head_of_below_nil hb
+                exact hcy (h2.symm.trans h1)
+        · -- our pile is not the source: setPile leaves it; the putRun
+          -- destination either is not it, or appends without touching
+          -- the hidden deck (an .inl landing needs the pile empty, and
+          -- c sits there)
+          cases b with
+          | inl t =>
+              have ht : t ≠ a := by
+                intro ht
+                obtain ⟨hemp, -⟩ := canPlace_inl hcp
+                rw [ht] at hemp
+                exact absurd (Pile.isEmpty_eq_false_of_mem hmema)
+                  (by rw [hemp]; simp)
+              rw [putRun_piles_inl_ne _ _ t a (fun h => ht h.symm)]
+              rw [setPile_piles_ne haa₀]
+          | inr z =>
+              cases hz : (u.setPile a₀
+                  (Pile.afterRunRemoved (u.piles a₀)
+                    (below y (u.piles a₀).faceUp))).pileOfTop z with
+              | none =>
+                  have hid : (u.setPile a₀ (Pile.afterRunRemoved (u.piles a₀)
+                      (below y (u.piles a₀).faceUp))).putRun
+                      (fromCard y (u.piles a₀).faceUp) (Sum.inr z)
+                      = u.setPile a₀ (Pile.afterRunRemoved (u.piles a₀)
+                        (below y (u.piles a₀).faceUp)) := by
+                    simp only [State.putRun, hz]
+                  rw [hid, setPile_piles_ne haa₀]
+              | some k =>
+                  by_cases hka : a = k
+                  · rw [hka, putRun_piles_inr_self _ _ _ _ hz]
+                    show ((u.setPile a₀ (Pile.afterRunRemoved (u.piles a₀)
+                      (below y (u.piles a₀).faceUp))).piles k).hidden
+                      = (u.piles k).hidden
+                    rw [setPile_piles_ne (fun h => haa₀ (hka.trans h))]
+                  · rw [putRun_piles_inr_ne _ _ _ _ hz hka, setPile_piles_ne haa₀]
+
+/-- **The frozen-anchor play.**  Along a whole reversible play, a card
+bottomed at anchor `a` over a nonempty hidden deck never leaves it. -/
+private theorem frozen_king_play {u v : State} {c : Card} {a : Anchor} {play : List Move}
+    (hwf : u.WF) (hplay : ShufflePlayW u play v)
+    (hseat : seatOf u c = some (Sum.inl a)) (hhid : (u.piles a).hidden ≠ []) :
+    seatOf v c = some (Sum.inl a) := by
+  revert hwf hseat hhid
+  induction hplay with
+  | nil st => intro _ hseat _; exact hseat
+  | @cons st s1 W m rest' hrev hstep hrest ih =>
+      intro hwf hseat hhid
+      obtain ⟨hseat1, hhid1⟩ := frozen_king_step hwf hstep hrev hseat hhid
+      exact ih (step_wf hwf hstep) hseat1 (fun h => hhid (hhid1.symm.trans h))
+
+/-- **The owner's frozen-king row (2026-10-25).**  A seated pair with
+either twin bottomed over a nonempty hidden deck is never strictly
+swappable — the king-grade parallel of the non-king `.inl` corner
+(§8): a non-king at a pile bottom cannot ENTER another anchor; a
+non-`KingBottom` king cannot LEAVE its own.  Either way the strict
+exchange witness cannot exist. -/
+theorem not_swappableIn_of_frozen {s : State} {x : Card} {a a' : Anchor}
+    (hwf : s.WF)
+    (hx : seatOf s x = some (Sum.inl a)) (hxt : seatOf s x.twin = some (Sum.inl a'))
+    (hne : a ≠ a')
+    (hhid : (s.piles a).hidden ≠ []) :
+    ¬ SwappableIn s x := by
+  rintro ⟨v, hstrict, horb⟩
+  obtain ⟨π, hπ, -⟩ := sameOrbitSetoid.iseqv.symm horb
+  have hfrozen := frozen_king_play hwf hπ hx hhid
+  have h1 : seatOf v x = some (Sum.inl a') := by rw [hstrict.1]; exact hxt
+  exact hne (Sum.inl.inj (Option.some.inj (hfrozen.symm.trans h1)))
+
+/-- **A seated king bottoms a pile** — kings never sit on card
+parents (nothing ranks above a king), so a seated king is always
+`.inl`-seated. -/
+theorem seat_inl_of_seated_king {s : State} {x : Card}
+    (hwf : s.WF) (hking : x.rank = Rank.king) (hx : seatOf s x ≠ none) :
+    ∃ a, seatOf s x = some (Sum.inl a) := by
+  have hbx : ∃ bx : Base, seatOf s x = some bx := by
+    cases hbx' : seatOf s x with
+    | none => exact absurd hbx' hx
+    | some bx => exact ⟨bx, rfl⟩
+  obtain ⟨bx, hbx⟩ := hbx
+  cases bx with
+  | inl a => exact ⟨a, hbx⟩
+  | inr z => exact absurd hking (seated_inr_rank_ne_king hwf hbx)
+
+#print axioms not_swappableIn_of_frozen
+#print axioms seat_inl_of_seated_king
