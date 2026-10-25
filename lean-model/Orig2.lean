@@ -1,13 +1,12 @@
-import Orig2.TwinLastReturn
+import Orig2.FiberTransfer
 
 /-!
-# Orig2 — the minimal proof-commit root
+# Orig2 — the proof root
 
-The trimmed root for the self-contained fiber-transfer commit:
-`TwinLastReturn` alone pulls the proof's full 71-file dependency
-closure (the pair-free transfer, the first-touch reduction, the
-self-arming keystone, the twin-swap recipe, and the certified
-substrate beneath them).  The complete root — the whole rebuild
-library — returns with the campaign-wave commit that immediately
-follows.
+The corrected fiber transfer, consolidated: `FiberTransfer` alone is
+the proof and its full kit (~1.4k lines), riding only the certified
+tracked substrate.  The four-card arc it consolidates and the thirteen
+dependency cards it restates are retired to `Archive/`; the ledger
+doors (`Claims`, `ClaimsScrutiny`, `FlagShip`) remain as the
+statement book.
 -/
