@@ -270,7 +270,18 @@ RECORD NOTE: an earlier edit this day briefly replaced this row
 with the amended statement under this same name, describing it as
 "discharged" — that was wrong (the statements are incomparable),
 and this row was restored verbatim from the pre-session history
-(c71df84). -/
+(c71df84).
+
+UPDATE 2026-10-25, later the same day: the NON-KING case of this
+row is now DISCHARGED — `fiber_transfer_corrected_of_nonKing`
+(`Orig2/FiberTransfer.lean` §9, axiom-clean [propext, Quot.sound])
+proves this statement VERBATIM (every hypothesis above, the
+conclusion verbatim) under the single added hypothesis
+`x.rank ≠ Rank.king` — the owner's seat lemma upgrades the source
+to the `.inr` grade, the unseated corners are vacuous (the founds
+row pins the foundation; no reversible boarding from
+stock/waste/hidden), and the proven transfer finishes.  The
+remaining open content is EXACTLY the king pairs. -/
 theorem fiber_transfer_corrected :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
