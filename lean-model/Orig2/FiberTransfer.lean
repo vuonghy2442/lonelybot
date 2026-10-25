@@ -13,6 +13,7 @@ import Orig2.TwinSwapRecipe
 import Orig2.PairClassSeed
 import Orig2.KingOrbitFull
 import Orig2.KingSwapAssembly
+import Orig2.VacuousSwap
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
@@ -54,6 +55,12 @@ The owner's last-return route in ONE card.  This is the whole proof:
   transport carries `KingBottom` to the far end, the KingBottom-grade
   vacancy arm fires), and the full wrapper — the ORIGINAL statement
   verbatim, no rank split in the statement — is DISCHARGED.
+* `fiber_transfer_corrected_strong` — **THE SEAT-FREE
+  STRENGTHENING** (§13, fresh 2026-10-25, the owner's second
+  observation): the original minus BOTH `pileHolding` premises —
+  they are derivable (the strict letter's `foundsFixed` field kills
+  mixed pairs; the founds row pins the seats both ways; the
+  both-unseated corner is the certified vacuous swap).
 
 The card rides ONLY the certified tracked substrate (the fifteen
 imports above).  Every row restated from the retired dependency cards
@@ -2247,3 +2254,118 @@ theorem fiber_transfer_corrected_full :
 
 #print axioms fiber_transfer_corrected_of_king
 #print axioms fiber_transfer_corrected_full
+
+/-! ## §13. The seat-free strengthening (fresh, 2026-10-25, the
+owner's second observation)
+
+The `pileHolding` premises are REDUNDANT.  The strict letter's own
+`foundsFixed` field kills MIXED pairs at the source (the off-board
+twin must board at the witness; boarding either moves a foundation
+row — the letter pins the rows — or rides an irreversible letter,
+the §9 boarding lemma), so swappability forces both-or-neither.
+Both-seated rides the seated pin (the only exit from the tableau
+is a raise, which lands on the foundation, which the founds row
+pins); both-unseated rides the boarding lemma and the pins — and
+the conclusion is the certified vacuous swap.  The founds row,
+never read by the last-return route, is now LOAD-BEARING. -/
+
+/-- A seated card is held by a pile (the `pileHolding` premise
+grade, from the seat grade). -/
+private theorem pileHolding_of_seatOf_ne_none {s : State} {c : Card}
+    (h : seatOf s c ≠ none) : ∃ a, s.pileHolding c = some a := by
+  cases hph : s.pileHolding c with
+  | none => exact absurd (tfc_seatOf_none hph) h
+  | some a => exact ⟨a, rfl⟩
+
+/-- **The seat dichotomy at the source**: a strictly swappable pair
+is both-seated or both-unseated — never mixed.  A mixed pair's
+off-board twin must board at the witness; boarding either moves a
+foundation row (killed by the letter's own `foundsFixed`) or rides
+an irreversible letter (the §9 boarding lemma). -/
+theorem seats_both_or_neither_of_swappable {s : State} {x : Card}
+    (hwf : s.WF) (hswap : SwappableIn s x) :
+    (seatOf s x ≠ none ∧ seatOf s x.twin ≠ none) ∨
+      (seatOf s x = none ∧ seatOf s x.twin = none) := by
+  by_cases hx : seatOf s x = none
+  · by_cases hxt : seatOf s x.twin = none
+    · exact Or.inr ⟨hx, hxt⟩
+    · exfalso
+      obtain ⟨v, hstrict, horb⟩ := hswap
+      obtain ⟨-, -, ρ, hback⟩ := horb
+      have hwfv : v.WF :=
+        run_wf hwf (Walk_run (P := fun st m => reversibleAtW st m)
+          (st := s) (W := v) hback)
+      obtain ⟨h1, -, -, -, hff, -, -, -⟩ := hstrict
+      have hxv : seatOf v x ≠ none := by rw [h1]; exact hxt
+      by_cases hmem : x ∈ s.found x.suit
+      · exact hxv (seatOf_none_of_mem_found hwfv
+          (by rw [← hff x.suit]; exact hmem))
+      · obtain ⟨hseatv, -⟩ := unseated_track_play hwf hback hx hmem
+        exact hxv hseatv
+  · by_cases hxt : seatOf s x.twin = none
+    · exfalso
+      obtain ⟨v, hstrict, horb⟩ := hswap
+      obtain ⟨-, -, ρ, hback⟩ := horb
+      have hwfv : v.WF :=
+        run_wf hwf (Walk_run (P := fun st m => reversibleAtW st m)
+          (st := s) (W := v) hback)
+      obtain ⟨-, h2, -, -, hff, -, -, -⟩ := hstrict
+      have hxtv : seatOf v x.twin ≠ none := by rw [h2]; exact hx
+      by_cases hmemt : x.twin ∈ s.found x.twin.suit
+      · exact hxtv (seatOf_none_of_mem_found hwfv
+          (by rw [← hff x.twin.suit]; exact hmemt))
+      · obtain ⟨hseattv, -⟩ := unseated_track_play hwf hback hxt hmemt
+        exact hxtv hseattv
+    · exact Or.inl ⟨hx, hxt⟩
+
+/-- **The seated pin**: a seated card stays seated across the class
+journey — the only exit from the tableau is a raise, which lands
+on the foundation, which the founds row pins. -/
+theorem seated_of_orbit {s s' : State} {x : Card}
+    (hwf : s.WF) (hwf' : s'.WF) (hclass : sameOrbitSetoid.r s s')
+    (hfounds : s.found = s'.found)
+    (hx : seatOf s x ≠ none) : seatOf s' x ≠ none := by
+  intro hnone
+  by_cases hmem : x ∈ s'.found x.suit
+  · exact hx (seatOf_none_of_mem_found hwf (by rw [hfounds]; exact hmem))
+  · obtain ⟨ρ, hfor, -⟩ := hclass
+    obtain ⟨hseats, -⟩ := unseated_track_play hwf' hfor hnone hmem
+    exact hx hseats
+
+/-- **The unseated pin**: an off-board card stays off-board across
+the class journey — the foundation row is pinned by the founds row,
+and stock/waste/hidden boarding is irreversible (§9). -/
+theorem unseated_of_orbit {s s' : State} {x : Card}
+    (hwf : s.WF) (hwf' : s'.WF) (hclass : sameOrbitSetoid.r s s')
+    (hfounds : s.found = s'.found)
+    (hx : seatOf s x = none) : seatOf s' x = none := by
+  by_cases hmem : x ∈ s.found x.suit
+  · exact seatOf_none_of_mem_found hwf' (by rw [← hfounds]; exact hmem)
+  · obtain ⟨π, hπ, -⟩ := sameOrbitSetoid.iseqv.symm hclass
+    obtain ⟨hseat', -⟩ := unseated_track_play hwf hπ hx hmem
+    exact hseat'
+
+/-- **THE SEAT-FREE STRENGTHENING** — the original statement minus
+BOTH `pileHolding` premises (the owner's second observation,
+2026-10-25): the premises are derivable.  The founds row, never
+read by the last-return route, is load-bearing here. -/
+theorem fiber_transfer_corrected_strong :
+    ∀ (s s' : State) (x : Card), s.WF → s'.WF →
+      sameOrbitSetoid.r s s' → s.found = s'.found →
+      (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
+      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
+  intro s s' x hwf hwf' hclass hfounds hswap
+  rcases seats_both_or_neither_of_swappable hwf hswap with ⟨hxs, hxts⟩ | ⟨hxs, hxts⟩
+  · refine fiber_transfer_corrected_full s s' x hwf hwf' hclass hfounds hswap ?_ ?_
+    · exact pileHolding_of_seatOf_ne_none
+        (seated_of_orbit hwf hwf' hclass hfounds hxs)
+    · exact pileHolding_of_seatOf_ne_none
+        (seated_of_orbit hwf hwf' hclass hfounds hxts)
+  · exact swappableIn_of_both_unseated
+      (unseated_of_orbit hwf hwf' hclass hfounds hxs)
+      (unseated_of_orbit hwf hwf' hclass hfounds hxts)
+
+#print axioms seats_both_or_neither_of_swappable
+#print axioms seated_of_orbit
+#print axioms unseated_of_orbit
+#print axioms fiber_transfer_corrected_strong

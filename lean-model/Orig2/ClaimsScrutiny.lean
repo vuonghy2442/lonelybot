@@ -296,7 +296,15 @@ hypotheses were unused by the certified proof — fires, and the
 class-vacancy is derived constructively from the premise itself by
 `sameOrbitVacant_of_swappableIn_king`, the first-seat-change
 extraction).  The original statement, restored verbatim at the
-honesty fix, is now DISCHARGED IN FULL. -/
+honesty fix, is now DISCHARGED IN FULL.
+
+AND STRONGER (the owner's second observation, same day): the two
+`pileHolding` premises are DERIVABLE —
+`fiber_transfer_corrected_strong` (`Orig2/FiberTransfer.lean` §13,
+axiom-clean [propext, Quot.sound]) proves this statement with BOTH
+seat premises dropped: the strict letter's own `foundsFixed` field
+kills mixed pairs, and the founds row pins the seats both ways (the
+both-unseated corner is the certified vacuous swap). -/
 theorem fiber_transfer_corrected :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
