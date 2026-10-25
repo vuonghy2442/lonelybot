@@ -1,7 +1,6 @@
 import Orig2.Vocab
 import Orig2.RevSteps
 import Orig2.FloatFiber
-import Orig2.FiberTransfer
 
 set_option warn.sorry false
 
@@ -246,32 +245,40 @@ materialize at any probed world.  PRICE (promotion): the
 addendum-#8 reduction rides (transfer + the 3-line induction ⇒
 closure), so this row firms together with the torseur
 formalization of §S4. -/
+/- **`fiber_transfer_corrected`** — THE ORIGINAL STATEMENT, verbatim,
+at the original `pileHolding` seat grade with the `s.found = s'.found`
+row.
+
+STATUS 2026-10-25: **OPEN** — no proof, no counterexample.  What IS
+proven is a different statement: the `.inr`-seat amendment at
+`Orig2/FiberTransfer.lean` (`fiber_transfer_corrected_of_lastReturn`,
+axiom-clean [propext, Quot.sound]) — incomparable with this one:
+stronger in that it drops the founds row no known route reads,
+weaker in that it requires `.inr` card-parent seat witnesses at
+both ends where this row asks only `pileHolding` at `s'` (and
+nothing at `s`).
+
+The open content of THIS row is the `.inl` corners — a twin seated
+at a pile bottom on an anchor, where the splice machinery goes
+blind (non-kings cannot legally move onto an anchor, so a `.inl`
+twin at `s'` traces to the initial deal; whether the premises are
+then satisfiable in a failing configuration is exactly the open
+question; the king corner was the landed king arm's shape, but at
+a different grade).
+
+RECORD NOTE: an earlier edit this day briefly replaced this row
+with the amended statement under this same name, describing it as
+"discharged" — that was wrong (the statements are incomparable),
+and this row was restored verbatim from the pre-session history
+(c71df84). -/
 theorem fiber_transfer_corrected :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
-      sameOrbitSetoid.r s s' →
-      (∃ z, seatOf s x = some (Sum.inr z)) →
-      (∃ z : Card, seatOf s x.twin = some (Sum.inr z.twin)) →
-      (∃ z, seatOf s' x = some (Sum.inr z)) →
-      (∃ z : Card, seatOf s' x.twin = some (Sum.inr z.twin)) →
+      sameOrbitSetoid.r s s' → s.found = s'.found →
       (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
-      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') :=
-  fun _ _ _ hwf hwf' hclass hxs hxts hxt hxtt hswap =>
-    fiber_transfer_corrected_of_lastReturn _ _ _ hwf hwf' hclass hxs hxts hxt hxtt hswap
-
-/- AMENDED AND DISCHARGED 2026-10-25.  The original stub carried
-`pileHolding`-grade seat witnesses at `s'`, which the campaign's own
-deviation note 4 recorded as insufficient (`pileHolding` identifies
-neither the seat shape (`.inl` vs `.inr`), anchor-distinctness, nor
-bareness — the `.inl` corners are where the splice machinery goes
-blind), and a `s.found = s'.found` hypothesis that the proof turns
-out never to read (the last-return route is board-only — the
-amended statement is strictly stronger).  Discharged by the
-consolidated last-return proof: `Orig2/FiberTransfer.lean`,
-`fiber_transfer_corrected_of_lastReturn` — axiom-clean
-[propext, Quot.sound]. -/
-
-/-! The amendment record ends here; the file's original battery
-`#print axioms fiber_transfer_corrected` below now prints clean. -/
+      (∃ seatA, s'.pileHolding x = some seatA) →
+      (∃ seatA', s'.pileHolding x.twin = some seatA') →
+      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
+  sorry
 
 /- §S5. The keystone reference (ALREADY CERTIFIED — the license
 every spine/fiber row rides) -/
