@@ -11,24 +11,33 @@ any mix), `SwappableIn` holds TRIVIALLY: the seat-exchange fields of
 swap state is `s` itself, with every "fixed" field reflexive.
 
 This is NOT a real exchange — it is the letter of the definition,
-which was designed for seated pairs.  The observation matters twice:
+which was designed for seated pairs.  What the observation certifies:
 
-1. it is the hinge of the proposed refutation of the original
-   `fiber_transfer_corrected` (ClaimsScrutiny.lean:249): the premise
-   holds vacuously where the twins are off the board (e.g. dealt
-   hidden), while the conclusion — at a state where the twins are
-   revealed `.inl` pile-bottoms — fails by the anchor-invariance
-   argument (a non-king seated at a pile bottom never moves to a
-   DIFFERENT bottom: re-entering an anchor is king-gated);
-2. it locates the repair: the `.inr`-seat amendment to the transfer
-   statement exists precisely to keep this vacuous case out of the
-   premise (the amended version requires both twins seated on card
-   parents at both ends).
+1. CORRECTION 2026-10-25 (owner: "revealed is not reversible"): an
+   earlier draft of this docstring offered the vacuous case as the
+   hinge of a refutation of the original `fiber_transfer_corrected`
+   (ClaimsScrutiny.lean:249) — twins dealt hidden (premise vacuous),
+   revealed to `.inl` pile-bottoms (conclusion failing by anchor
+   invariance).  That channel is DEAD: the hidden deck only ever
+   shrinks (`revealTop` is its only writer, Orig/State.lean:277),
+   a reveal is never exactly undone, and no `sameOrbit` journey
+   contains one — the hidden-twins construction cannot satisfy the
+   `sameOrbit` premise at all.
+2. What the vacuous case actually certifies: `SwappableIn` at a
+   both-unseated pair is EMPTY evidence — the witness is `s` itself,
+   nothing is exchanged.  In the transfer statement's picture this
+   is the both-off-board corner: the premise holds for free there,
+   but no reversible journey can seat the pair (a foundation twin
+   is pinned by the founds-equality row; stock/waste/hidden
+   boarding requires an irreversible step) — the corner is
+   vacuous, not failing.
+3. It locates the repair: the `.inr`-seat amendment to the transfer
+   statement keeps this vacuous case out of the premise by
+   demanding seated card-parent witnesses at both ends.
 
-Whether the vacuous case is read as a refutation of the statement
-(the definition is the library's ground truth) or as a definition
-bug (`SwappableIn` was meant for seated pairs) is an owner decision;
-this card certifies the mechanism either way.
+Whether `SwappableIn` itself should ask for seats (a definitional
+patch) remains an owner decision; what is off the table, by the
+reveal ratchet, is the refutation reading.
 -/
 
 open State
