@@ -2633,3 +2633,14 @@ theorem raise_none_of_chop_ne {u v : State} {d y : Card} {a : Anchor}
 #print axioms nonFloater_change_needs_seatmate_stack
 #print axioms pileOfTop_setPile_ne
 #print axioms raise_none_of_chop_ne
+
+/-- **Public port of the private ledger row** (`ka_hidden_eq_of_rev_step`
+above, section 2 - the house norm: consumed rows are promoted by name):
+every reversible step keeps every hidden deck.  The transport card
+(`Orig2/FiberTransfer.lean` section 11) consumes this by name. -/
+theorem rev_step_hidden_eq {u v : State} {m : Move}
+    (hwf : u.WF) (hstep : State.step u m = some v) (hrev : reversibleAtW u m) :
+    ∀ a : Anchor, (v.piles a).hidden = (u.piles a).hidden :=
+  ka_hidden_eq_of_rev_step hwf hstep hrev
+
+#print axioms rev_step_hidden_eq

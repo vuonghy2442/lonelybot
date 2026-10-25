@@ -1824,3 +1824,173 @@ theorem seat_inl_of_seated_king {s : State} {x : Card}
 
 #print axioms not_swappableIn_of_frozen
 #print axioms seat_inl_of_seated_king
+
+/-! ## §11. The hidden transport (fresh, 2026-10-25)
+
+Reversible plays never touch a hidden deck (the certified ledger
+row `rev_step_hidden_eq`, promoted at `Orig2/SeatMateStack.lean` for
+consumption by name), and a king only takes a tableau seat by an
+`.inl` landing on an EMPTY pile (nothing sits on a king), where the
+landing letter itself writes `hidden := []`.  So the `KingBottom`
+property rides along the class: a king that bottoms a `hidden = []`
+pile at the start of a reversible journey — or takes seat afresh
+along it — ends (if seated at all) bottomed over an empty hidden
+deck.  This is the row the run-topped king arm consumes: it makes
+the twins' piles `KingBottom` at the far end of the class. -/
+
+/-- The transport step, seated case: a king bottomed over an empty
+hidden deck ends (if seated) over an empty hidden deck — the seat is
+preserved (and the reversible letter keeps every hidden deck) or
+re-taken by an `.inl` landing (which writes `hidden := []`). -/
+private theorem king_hidden_step_seated {u v : State} {m : Move} {c : Card}
+    (hwf : u.WF) (hstep : State.step u m = some v) (hrev : reversibleAtW u m)
+    (hking : c.rank = Rank.king) {a : Anchor}
+    (hseat : seatOf u c = some (Sum.inl a)) (hhid : (u.piles a).hidden = [])
+    (hseated : seatOf v c ≠ none) :
+    ∃ â, seatOf v c = some (Sum.inl â) ∧ (v.piles â).hidden = [] := by
+  cases m with
+  | draw =>
+      have hse := (chart_draw hstep).1
+      exact ⟨a, by rw [hse c]; exact hseat,
+        by rw [rev_step_hidden_eq hwf hstep hrev a]; exact hhid⟩
+  | wasteToFound y => exact absurd hrev (wasteToFound_not_reversibleAtW u y)
+  | wasteToTab y b => exact absurd hrev (wasteToTab_not_reversibleAtW u y b)
+  | tabToFound d =>
+      by_cases hcd : c = d
+      · -- the raise of the king itself: it leaves the board
+        exfalso
+        subst hcd
+        have hmem : c ∈ v.found c.suit := by
+          rw [raise_found_self hstep]
+          exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
+        exact hseated (seatOf_none_of_mem_found (step_wf hwf hstep) hmem)
+      · exact ⟨a, by
+            rw [raise_seat_change_of_seated hstep hrev (by rw [hseat]; simp) hcd]
+            exact hseat,
+          by rw [rev_step_hidden_eq hwf hstep hrev a]; exact hhid⟩
+  | foundToTab y b =>
+      -- a seated card is not on its foundation row: the pull of c
+      -- itself cannot fire
+      have hcy : c ≠ y := by
+        intro hcy
+        subst hcy
+        obtain ⟨c', htop, hc'c, -, -⟩ := step_foundToTab_inv hstep
+        rw [hc'c] at htop
+        have hmem : c ∈ u.found c.suit := by
+          simpa [State.foundTop] using lastOf_mem htop
+        exact ((mem_found_unique hwf hmem).1 a).2
+          (pileHolding_mem (tfc_seatOf_of_inl hseat).1)
+      exact ⟨a, by rw [pull_seat_change hstep c hcy]; exact hseat,
+        by rw [rev_step_hidden_eq hwf hstep hrev a]; exact hhid⟩
+  | tabToTab y b =>
+      by_cases hcy : c = y
+      · subst hcy
+        obtain ⟨a₀, hhold₀, hcp, hrun, hs⟩ := step_tabToTab_inv hstep
+        cases b with
+        | inl t =>
+            refine ⟨t, by rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_left rfl], ?_⟩
+            rw [hs, putRun_piles_inl_self]
+        | inr z =>
+            exfalso
+            obtain ⟨-, -, hfit⟩ := canPlace_inr hcp
+            rw [canSitOn_king_false hking] at hfit
+            exact Bool.noConfusion hfit
+      · exact ⟨a, by
+            rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_right hcy]
+            exact hseat,
+          by rw [rev_step_hidden_eq hwf hstep hrev a]; exact hhid⟩
+
+/-- The transport step, off-board case: a king off the board only
+re-lands by the pull of itself onto an empty anchor, whose pile the
+letter writes `hidden := []`. -/
+private theorem king_hidden_step_off {u v : State} {m : Move} {c : Card}
+    (hwf : u.WF) (hstep : State.step u m = some v) (hrev : reversibleAtW u m)
+    (hking : c.rank = Rank.king) (hnone : seatOf u c = none)
+    (hseated : seatOf v c ≠ none) :
+    ∃ â, seatOf v c = some (Sum.inl â) ∧ (v.piles â).hidden = [] := by
+  by_cases hnf : c ∈ u.found c.suit
+  · cases m with
+    | draw =>
+        exfalso
+        have hfo := (chart_draw hstep).2.1
+        exact hseated (seatOf_none_of_mem_found (step_wf hwf hstep)
+          (by rw [← hfo c.suit]; exact hnf))
+    | wasteToFound y => exact absurd hrev (wasteToFound_not_reversibleAtW u y)
+    | wasteToTab y b => exact absurd hrev (wasteToTab_not_reversibleAtW u y b)
+    | tabToFound d =>
+        exfalso
+        have hmem : c ∈ v.found c.suit :=
+          found_mem_step hstep hnf (fun b' hb' => Move.noConfusion hb')
+        exact hseated (seatOf_none_of_mem_found (step_wf hwf hstep) hmem)
+    | foundToTab y b =>
+        by_cases hcy : c = y
+        · subst hcy
+          obtain ⟨-, -, -, hcp, hs⟩ := step_foundToTab_inv hstep
+          cases b with
+          | inl t =>
+              refine ⟨t, ?_, ?_⟩
+              · have hface : (v.piles t).faceUp = [c] ∧ (v.piles t).hidden = [] := by
+                  rw [hs, putCard_piles_inl]
+                  show (if t = t then ({ hidden := [], faceUp := [c] } : Pile)
+                    else (u.setFound c.suit (chop (u.found c.suit))).piles t).faceUp = [c] ∧
+                    (if t = t then ({ hidden := [], faceUp := [c] } : Pile)
+                    else (u.setFound c.suit (chop (u.found c.suit))).piles t).hidden = []
+                  rw [ite_eq_left rfl]
+                  exact ⟨rfl, rfl⟩
+                have hmemb : c ∈ (v.piles t).faceUp := by
+                  rw [hface.1]; exact List.mem_singleton.mpr rfl
+                have hbelow : below c (v.piles t).faceUp = [] := by
+                  rw [hface.1, below_cons, ite_eq_left rfl]
+                have hhold : v.pileHolding c = some t :=
+                  tfc_pileHolding_pin hmemb
+                    (fun j hj => (mem_faceUp_unique (step_wf hwf hstep) hmemb j hj).1)
+                exact tfc_seatOf_inl_intro hhold hbelow
+              · rw [hs, putCard_piles_inl]
+                show (if t = t then ({ hidden := [], faceUp := [c] } : Pile)
+                  else (u.setFound c.suit (chop (u.found c.suit))).piles t).hidden = []
+                rw [ite_eq_left rfl]
+          | inr z =>
+              exfalso
+              obtain ⟨-, -, hfit⟩ := canPlace_inr hcp
+              rw [canSitOn_king_false hking] at hfit
+              exact Bool.noConfusion hfit
+        · exfalso
+          have hmem : c ∈ v.found c.suit :=
+            found_mem_step hstep hnf
+              (fun b' hb' => hcy (Move.foundToTab.inj hb').1.symm)
+          exact hseated (seatOf_none_of_mem_found (step_wf hwf hstep) hmem)
+    | tabToTab y b =>
+        exfalso
+        have hmem : c ∈ v.found c.suit :=
+          found_mem_step hstep hnf (fun b' hb' => Move.noConfusion hb')
+        exact hseated (seatOf_none_of_mem_found (step_wf hwf hstep) hmem)
+  · exfalso
+    obtain ⟨hseat', -⟩ := unseated_track_step hwf hstep hrev hnone hnf
+    exact hseated hseat'
+
+/-- **The hidden transport.**  Along a whole reversible play, a king
+ends (if seated at all) bottomed over an empty hidden deck, provided
+it started so — or started off-board (re-landings write
+`hidden := []` themselves). -/
+theorem king_pile_hidden_empty_play {u v : State} {c : Card} {play : List Move}
+    (hwf : u.WF) (hplay : ShufflePlayW u play v) (hking : c.rank = Rank.king)
+    (hbase : seatOf u c ≠ none → ∃ a, seatOf u c = some (Sum.inl a) ∧
+      (u.piles a).hidden = []) :
+    seatOf v c ≠ none → ∃ â, seatOf v c = some (Sum.inl â) ∧ (v.piles â).hidden = [] := by
+  revert hwf hbase
+  induction hplay with
+  | nil st =>
+      intro _ hbase hseated
+      exact hbase hseated
+  | @cons st s1 W m rest' hrev hstep hrest ih =>
+      intro hwf hbase hseated
+      refine ih (step_wf hwf hstep) ?_ hseated
+      intro hs1seated
+      cases hst : seatOf st c with
+      | none =>
+          exact king_hidden_step_off hwf hstep hrev hking hst hs1seated
+      | some bx =>
+          obtain ⟨a, hseat, hhid⟩ := hbase (by rw [hst]; simp)
+          exact king_hidden_step_seated hwf hstep hrev hking hseat hhid hs1seated
+
+#print axioms king_pile_hidden_empty_play
