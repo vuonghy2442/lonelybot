@@ -9,9 +9,9 @@ import Orig2.DetourKit
 import Orig2.TwinEquivariance
 import Orig2.TwinSplicePlay
 import Orig2.TwinSpliceComm
+import Orig2.TwinSpliceUnique
 import Orig2.TwinPointTransfer
 import Orig2.TwinSwapRecipe
-import Orig2.TwinBothCovered
 import Orig2.PairClassSeed
 
 set_option linter.unusedSectionVars false
@@ -331,7 +331,30 @@ private theorem reversibleAtW_tabToFound_of_foundToTab {u s : State} {c : Card} 
 #print axioms reversibleAtW_tabToFound_of_foundToTab
 
 /-! ## §4. The pair-free transfer (restated from
-`Orig2/TwinPairFreeTransfer.lean` — the per-file kit norm) -/
+`Orig2/TwinPairFreeTransfer.lean` — the per-file kit norm;
+`swappableIn_transfer_point_pairFree` rides `TwinPointTransfer`
+directly, and the twin-comm row below is restated from
+`Orig2/TwinBothCovered.lean:249`). -/
+
+/-- `SwappableIn` is symmetric in the two members of the pair
+(restated from `Orig2/TwinBothCovered.lean:249` — the per-file kit norm). -/
+theorem swappableIn_twin_comm {s : State} {x : Card} :
+    SwappableIn s x ↔ SwappableIn s x.twin := by
+  constructor
+  · rintro ⟨v, h, horb⟩
+    obtain ⟨h1, h2, h3, hb, hf, hs, hw, hc⟩ := h
+    refine ⟨v, ⟨?_, ?_, ?_, hb, hf, hs, hw, hc⟩, horb⟩
+    · simpa [card_twin_twin] using h2
+    · simpa [card_twin_twin] using h1
+    · intro y hy1 hy2
+      exact h3 y (by simpa [card_twin_twin] using hy2) hy1
+  · rintro ⟨v, h, horb⟩
+    obtain ⟨h1, h2, h3, hb, hf, hs, hw, hc⟩ := h
+    refine ⟨v, ⟨?_, ?_, ?_, hb, hf, hs, hw, hc⟩, horb⟩
+    · simpa [card_twin_twin] using h2
+    · simpa [card_twin_twin] using h1
+    · intro y hy1 hy2
+      exact h3 y hy2 (by simpa [card_twin_twin] using hy1)
 
 /-- **The pair-free transfer, discharged (the owner's stepping-stone).**
 If the twins are seated on `.inr` parents at both ends of a `NotFoundPair`
@@ -1015,7 +1038,7 @@ private theorem firstTouchRestart_aux {w w' v : State} {x T : Card}
                 (fun n hn => notFoundPair_twin' (hpost' n hn)) hswapO
             rcases hpair with rfl | rfl
             · rw [← card_twin_twin T]
-              exact TwinBothCovered.swappableIn_twin_comm.mp hswapv
+              exact swappableIn_twin_comm.mp hswapv
             · exact hswapv
           · exfalso
             have hxtstay : x.twin ∈ v.found x.twin.suit :=
@@ -1059,7 +1082,7 @@ private theorem firstTouchRestart_aux {w w' v : State} {x T : Card}
                 ⟨z2, hct⟩ hxv hxtvT hpostw hpost' hswapO
             rcases hpair with rfl | rfl
             · exact hswapv
-            · exact TwinBothCovered.swappableIn_twin_comm.mp hswapv
+            · exact swappableIn_twin_comm.mp hswapv
           · exfalso
             have hxstay : x ∈ v.found x.suit :=
               found_mem_play_of_not_pull hpostw hxfound
@@ -1088,7 +1111,7 @@ theorem firstTouchRestart : FirstTouchRestart := by
   · exact firstTouchRestart_aux hwf hvf (Or.inl rfl) hsx' hstx' htx' httx'
       hrev hstep hrest
   · rw [← card_twin_twin x]
-    exact TwinBothCovered.swappableIn_twin_comm.mp (firstTouchRestart_aux hwf hvf (Or.inr rfl)
+    exact swappableIn_twin_comm.mp (firstTouchRestart_aux hwf hvf (Or.inr rfl)
       hstx' (by obtain ⟨z, hz⟩ := hsx'; exact ⟨z, by rw [card_twin_twin]; exact hz⟩)
       httx' (by obtain ⟨z, hz⟩ := htx'; exact ⟨z, by rw [card_twin_twin]; exact hz⟩)
       hrev hstep hrest)
