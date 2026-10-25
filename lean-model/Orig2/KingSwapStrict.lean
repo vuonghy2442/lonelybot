@@ -1,6 +1,6 @@
 import Orig2.KingTrace
 import Orig2.KingOrbitFull
-import Orig2.TwinPointFunctor
+import Orig2.TwinPointTransfer
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
