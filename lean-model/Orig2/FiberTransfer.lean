@@ -61,6 +61,11 @@ The owner's last-return route in ONE card.  This is the whole proof:
   they are derivable (the strict letter's `foundsFixed` field kills
   mixed pairs; the founds row pins the seats both ways; the
   both-unseated corner is the certified vacuous swap).
+* `fiber_transfer_corrected_noFounds_false` — **THE FOUNDS ROW IS
+  NECESSARY** (§14, fresh 2026-10-25, the owner's challenge): the
+  founds-free statement is FALSE, refuted by the twin-kings witness
+  world (both kings on full foundations; one reversible pull onto
+  the empty anchor strands a mixed pair at the far end).
 
 The card rides ONLY the certified tracked substrate (the fifteen
 imports above).  Every row restated from the retired dependency cards
@@ -2369,3 +2374,122 @@ theorem fiber_transfer_corrected_strong :
 #print axioms seated_of_orbit
 #print axioms unseated_of_orbit
 #print axioms fiber_transfer_corrected_strong
+
+/-! ## §14. The founds row is necessary — the refutation witness
+(fresh, 2026-10-25, the owner's challenge)
+
+The founds-free strengthening of §13 is FALSE, machine-checked.
+Witness world: both twin kings on FULL foundations (hearts and
+diamonds rows complete), all piles empty, the 26 black cards in
+stock.  The swap premise holds VACUOUSLY (both twins off-board —
+the certified `swappableIn_of_both_unseated`).  The class journey
+is ONE reversible letter — pull the heart king onto the empty
+anchor (the king-gated `.inl` landing), whose undo is the
+re-armed raise (§3's self-arming row).  At the far end the pair
+is MIXED — the heart king seated at the anchor, the diamond king
+still on its foundation — and the §13 dichotomy kills the
+conclusion there.  The journey moves the hearts row, so the
+founds premise is exactly what forbids it. -/
+
+/-- The mover: the heart king (twin: the diamond king). -/
+private def refK : Card := Card.mk Suit.heart Rank.king
+
+/-- The witness world: both twin kings on full foundations, all
+piles empty, the black cards in stock. -/
+private def kworld : State :=
+  { found := fun su => match su with
+      | .heart => Suit.upCards .heart
+      | .diamond => Suit.upCards .diamond
+      | .spade => []
+      | .club => [],
+    piles := fun _ => ⟨[], []⟩,
+    stock := Suit.upCards .spade ++ Suit.upCards .club,
+    waste := [],
+    drawStep := 1 }
+
+private theorem kworld_wf : kworld.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro su
+    cases su with
+    | spade => exact ⟨0, rfl⟩
+    | heart => exact ⟨13, rfl⟩
+    | diamond => exact ⟨13, rfl⟩
+    | club => exact ⟨0, rfl⟩
+  · intro a
+    rfl
+  · intro c hc
+    rcases c with ⟨su, r⟩
+    cases su <;> cases r <;> decide
+  · decide
+
+/-- The far end: one reversible pull of the heart king onto the
+empty anchor. -/
+private def kworld' : State :=
+  (kworld.setFound Suit.heart (chop (kworld.found Suit.heart))).putCard refK
+    (Sum.inl Anchor.p0)
+
+private theorem step_pull :
+    State.step kworld (Move.foundToTab refK (Sum.inl Anchor.p0)) = some kworld' := rfl
+
+private theorem step_raise :
+    State.step kworld' (Move.tabToFound refK) = some kworld := by
+  have hrw : State.step kworld' (Move.tabToFound refK) =
+      some { kworld'.setFound refK.suit (kworld'.found refK.suit ++ [refK]) with
+        piles := fun a' =>
+          if a' = Anchor.p0 then Pile.afterRunRemoved (kworld'.piles Anchor.p0)
+              (chop (kworld'.piles Anchor.p0).faceUp)
+          else kworld'.piles a' } := rfl
+  rw [hrw]
+  refine congrArg some (State.ext ?_ ?_ rfl rfl rfl)
+  · funext su
+    cases su <;> rfl
+  · funext a'
+    by_cases ha' : a' = Anchor.p0
+    · rw [ha']
+      rfl
+    · simp only []
+      rw [if_neg ha']
+      have hk : kworld'.piles a' =
+          if a' = Anchor.p0 then (⟨[], [refK]⟩ : Pile) else kworld.piles a' := rfl
+      rw [hk, if_neg ha']
+
+/-- **THE FOUNDS ROW IS NECESSARY** — the statement without it is
+FALSE.  Witness: the twin kings on full foundations; one reversible
+pull strands the heart king at the anchor while the diamond king
+stays upstairs — a mixed pair at the far end, never strictly
+swappable (the §13 dichotomy); every premise except the founds row
+holds at the pair. -/
+theorem fiber_transfer_corrected_noFounds_false :
+    ¬ (∀ (s s' : State) (x : Card), s.WF → s'.WF →
+        sameOrbitSetoid.r s s' →
+        (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
+        (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v')) := by
+  intro h
+  have hwf' : kworld'.WF := step_wf kworld_wf step_pull
+  have hrev_raise : reversibleAtW kworld' (Move.tabToFound refK) :=
+    reversibleAtW_tabToFound_of_foundToTab kworld_wf step_pull
+  have hrev_pull : reversibleAtW kworld (Move.foundToTab refK (Sum.inl Anchor.p0)) :=
+    ⟨kworld', [Move.tabToFound refK], step_pull,
+      Walk_run (P := fun st m => reversibleAtW st m) (st := kworld')
+        (W := kworld) (Walk.cons hrev_raise step_raise (Walk.nil kworld))⟩
+  have horb : sameOrbitSetoid.r kworld kworld' :=
+    ⟨[Move.tabToFound refK], Walk.cons hrev_raise step_raise (Walk.nil kworld),
+      [Move.foundToTab refK (Sum.inl Anchor.p0)],
+      Walk.cons hrev_pull step_pull (Walk.nil kworld')⟩
+  have hseatK : seatOf kworld refK = none := tfc_seatOf_none (by decide)
+  have hseatKT : seatOf kworld refK.twin = none := tfc_seatOf_none (by decide)
+  have hswap : (∃ v, twinPairSwapStrict kworld v refK ∧ sameOrbitSetoid.r kworld v) :=
+    swappableIn_of_both_unseated hseatK hseatKT
+  have hconcl := h kworld kworld' refK kworld_wf hwf' horb hswap
+  -- the far end is mixed: the dichotomy kills the conclusion
+  have hseatKT' : seatOf kworld' refK.twin = none := tfc_seatOf_none (by decide)
+  have hseatK' : seatOf kworld' refK ≠ none := by
+    have hhold : kworld'.pileHolding refK = some Anchor.p0 := by decide
+    rw [tfc_seatOf_inl_intro hhold
+      (rfl : below refK (kworld'.piles Anchor.p0).faceUp = [])]
+    simp
+  rcases seats_both_or_neither_of_swappable hwf' hconcl with ⟨-, h2⟩ | ⟨h1, -⟩
+  · exact h2 hseatKT'
+  · exact hseatK' h1
+
+#print axioms fiber_transfer_corrected_noFounds_false

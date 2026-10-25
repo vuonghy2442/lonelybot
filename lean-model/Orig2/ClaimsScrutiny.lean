@@ -304,7 +304,18 @@ AND STRONGER (the owner's second observation, same day): the two
 axiom-clean [propext, Quot.sound]) proves this statement with BOTH
 seat premises dropped: the strict letter's own `foundsFixed` field
 kills mixed pairs, and the founds row pins the seats both ways (the
-both-unseated corner is the certified vacuous swap). -/
+both-unseated corner is the certified vacuous swap).
+
+AND THE FLOOR (the owner's challenge, same day): the founds row is
+NECESSARY - `fiber_transfer_corrected_noFounds_false`
+(`Orig2/FiberTransfer.lean` §14, axiom-clean [propext,
+Quot.sound]) REFUTES the further drop, machine-checked: witness
+the twin-kings world (both kings on full foundations, all piles
+empty, the 26 black cards in stock - the swap premise holds
+vacuously; ONE reversible pull of the heart king onto the empty
+anchor strands a mixed pair at the far end, and the seat dichotomy
+kills the conclusion there).  The premise set has reached its
+floor - the seats were derivable, the founds row is not. -/
 theorem fiber_transfer_corrected :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
