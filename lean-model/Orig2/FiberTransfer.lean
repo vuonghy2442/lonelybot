@@ -66,6 +66,12 @@ The owner's last-return route in ONE card.  This is the whole proof:
   founds-free statement is FALSE, refuted by the twin-kings witness
   world (both kings on full foundations; one reversible pull onto
   the empty anchor strands a mixed pair at the far end).
+* `fiber_transfer_corrected_strong_twinMem` — **THE TWIN-MEMBERSHIP
+  WEAKENING** (§15, fresh 2026-10-25, the owner's third
+  observation): the founds row collapses to twin-membership
+  preservation — every read in the certified stack is a per-card
+  membership transfer of the two twins, so the other fifty cards'
+  foundation traffic is unconstrained.
 
 The card rides ONLY the certified tracked substrate (the fifteen
 imports above).  Every row restated from the retired dependency cards
@@ -1532,24 +1538,27 @@ private theorem unseated_track_play {u v : State} {c : Card} {play : List Move}
       exact ih (step_wf hwf hstep) hseat1 hnotfound1
 
 /-- **THE NON-KING WRAPPER.**  The OPEN original statement
-(`Orig2/ClaimsScrutiny.lean` — the `pileHolding`-grade seats, the
-founds row, verbatim) under the single added hypothesis that the
+(`Orig2/ClaimsScrutiny.lean` — the `pileHolding`-grade seats,
+verbatim except the founds row WEAKENED to twin-membership
+preservation, §15) under the single added hypothesis that the
 pair is non-king.  Route: the owner's seat lemma (§8) upgrades the
 source to the `.inr` grade; the existing tracker carries both twins
 to `.inr`-or-foundation at `s'`, where `pileHolding` kills the
 foundation arm; the unseated corners are vacuous (a foundation twin
-is pinned by the founds-equality row; stock/waste/hidden twins can
-never board reversibly — §9's boarding lemma); the proven
+is pinned by the forward membership arrow; stock/waste/hidden twins
+can never board reversibly — §9's boarding lemma); the proven
 `.inr`-grade transfer finishes.  Kings remain the open corner. -/
 theorem fiber_transfer_corrected_of_nonKing :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
-      sameOrbitSetoid.r s s' → s.found = s'.found →
+      sameOrbitSetoid.r s s' →
+      (x ∈ s.found x.suit → x ∈ s'.found x.suit) →
+      (x.twin ∈ s.found x.twin.suit → x.twin ∈ s'.found x.twin.suit) →
       x.rank ≠ Rank.king →
       (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
       (∃ seatA, s'.pileHolding x = some seatA) →
       (∃ seatA', s'.pileHolding x.twin = some seatA') →
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
-  intro s s' x hwf hwf' hclass hfounds hnk hswap hholdx hholdxt
+  intro s s' x hwf hwf' hclass hxw hxtw hnk hswap hholdx hholdxt
   obtain ⟨seatA, hseatA⟩ := hholdx
   obtain ⟨seatA', hseatA'⟩ := hholdxt
   have hseatx' : seatOf s' x ≠ none := seatOf_ne_none_of_pileHolding hseatA
@@ -1562,15 +1571,13 @@ theorem fiber_transfer_corrected_of_nonKing :
   by_cases hseats : seatOf s x = none
   · exfalso
     by_cases hnotf : x ∈ s.found x.suit
-    · exact hseatx' (seatOf_none_of_mem_found hwf'
-        (by rw [← hfounds]; exact hnotf))
+    · exact hseatx' (seatOf_none_of_mem_found hwf' (hxw hnotf))
     · obtain ⟨hseat', -⟩ := unseated_track_play hwf hπ hseats hnotf
       exact hseatx' hseat'
   · by_cases hseatst : seatOf s x.twin = none
     · exfalso
       by_cases hnotft : x.twin ∈ s.found x.twin.suit
-      · exact hseatxt' (seatOf_none_of_mem_found hwf'
-          (by rw [← hfounds]; exact hnotft))
+      · exact hseatxt' (seatOf_none_of_mem_found hwf' (hxtw hnotft))
       · obtain ⟨hseatt', -⟩ := unseated_track_play hwf hπ hseatst hnotft
         exact hseatxt' hseatt'
     · obtain ⟨hsx, hstx⟩ :=
@@ -2167,16 +2174,20 @@ theorem sameOrbitVacant_of_swappableIn_king {s : State} {x : Card} {a a' : Ancho
           exact huseat) hu'seat
 
 /-- **THE KING WRAPPER.**  The original statement's shape under the
-added hypothesis that the pair is a king pair. -/
+added hypothesis that the pair is a king pair, with the founds row
+WEAKENED to twin-membership preservation (§15 — the only founds
+fact the route reads). -/
 theorem fiber_transfer_corrected_of_king :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
-      sameOrbitSetoid.r s s' → s.found = s'.found →
+      sameOrbitSetoid.r s s' →
+      (x ∈ s.found x.suit → x ∈ s'.found x.suit) →
+      (x.twin ∈ s.found x.twin.suit → x.twin ∈ s'.found x.twin.suit) →
       x.rank = Rank.king →
       (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
       (∃ seatA, s'.pileHolding x = some seatA) →
       (∃ seatA', s'.pileHolding x.twin = some seatA') →
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
-  intro s s' x hwf hwf' hclass hfounds hking hswap hholdx hholdxt
+  intro s s' x hwf hwf' hclass hxw hxtw hking hswap hholdx hholdxt
   obtain ⟨seatA, hseatA⟩ := hholdx
   obtain ⟨seatA', hseatA'⟩ := hholdxt
   have hseatx' : seatOf s' x ≠ none := seatOf_ne_none_of_pileHolding hseatA
@@ -2185,13 +2196,13 @@ theorem fiber_transfer_corrected_of_king :
   by_cases hseats : seatOf s x = none
   · exfalso
     by_cases hnotf : x ∈ s.found x.suit
-    · exact hseatx' (seatOf_none_of_mem_found hwf' (by rw [← hfounds]; exact hnotf))
+    · exact hseatx' (seatOf_none_of_mem_found hwf' (hxw hnotf))
     · obtain ⟨hseat', -⟩ := unseated_track_play hwf hπ hseats hnotf
       exact hseatx' hseat'
   · by_cases hseatst : seatOf s x.twin = none
     · exfalso
       by_cases hnotft : x.twin ∈ s.found x.twin.suit
-      · exact hseatxt' (seatOf_none_of_mem_found hwf' (by rw [← hfounds]; exact hnotft))
+      · exact hseatxt' (seatOf_none_of_mem_found hwf' (hxtw hnotft))
       · obtain ⟨hseatt', -⟩ := unseated_track_play hwf hπ hseatst hnotft
         exact hseatxt' hseatt'
     · obtain ⟨a, hx⟩ := seat_inl_of_seated_king hwf hking hseats
@@ -2251,10 +2262,15 @@ theorem fiber_transfer_corrected_full :
       (∃ seatA', s'.pileHolding x.twin = some seatA') →
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
   intro s s' x hwf hwf' hclass hfounds hswap hholdx hholdxt
+  have hxw : x ∈ s.found x.suit → x ∈ s'.found x.suit :=
+    fun h => by rw [← hfounds]; exact h
+  have hxtw : x.twin ∈ s.found x.twin.suit →
+      x.twin ∈ s'.found x.twin.suit :=
+    fun h => by rw [← hfounds]; exact h
   by_cases hking : x.rank = Rank.king
-  · exact fiber_transfer_corrected_of_king s s' x hwf hwf' hclass hfounds hking hswap
+  · exact fiber_transfer_corrected_of_king s s' x hwf hwf' hclass hxw hxtw hking hswap
       hholdx hholdxt
-  · exact fiber_transfer_corrected_of_nonKing s s' x hwf hwf' hclass hfounds hking
+  · exact fiber_transfer_corrected_of_nonKing s s' x hwf hwf' hclass hxw hxtw hking
       hswap hholdx hholdxt
 
 #print axioms fiber_transfer_corrected_of_king
@@ -2325,27 +2341,28 @@ theorem seats_both_or_neither_of_swappable {s : State} {x : Card}
 
 /-- **The seated pin**: a seated card stays seated across the class
 journey — the only exit from the tableau is a raise, which lands
-on the foundation, which the founds row pins. -/
+on the foundation, pinned by the backward membership arrow. -/
 theorem seated_of_orbit {s s' : State} {x : Card}
     (hwf : s.WF) (hwf' : s'.WF) (hclass : sameOrbitSetoid.r s s')
-    (hfounds : s.found = s'.found)
+    (hxb : x ∈ s'.found x.suit → x ∈ s.found x.suit)
     (hx : seatOf s x ≠ none) : seatOf s' x ≠ none := by
   intro hnone
   by_cases hmem : x ∈ s'.found x.suit
-  · exact hx (seatOf_none_of_mem_found hwf (by rw [hfounds]; exact hmem))
+  · exact hx (seatOf_none_of_mem_found hwf (hxb hmem))
   · obtain ⟨ρ, hfor, -⟩ := hclass
     obtain ⟨hseats, -⟩ := unseated_track_play hwf' hfor hnone hmem
     exact hx hseats
 
 /-- **The unseated pin**: an off-board card stays off-board across
-the class journey — the foundation row is pinned by the founds row,
-and stock/waste/hidden boarding is irreversible (§9). -/
+the class journey — the foundation row is pinned by the forward
+membership arrow, and stock/waste/hidden boarding is irreversible
+(§9). -/
 theorem unseated_of_orbit {s s' : State} {x : Card}
     (hwf : s.WF) (hwf' : s'.WF) (hclass : sameOrbitSetoid.r s s')
-    (hfounds : s.found = s'.found)
+    (hxf : x ∈ s.found x.suit → x ∈ s'.found x.suit)
     (hx : seatOf s x = none) : seatOf s' x = none := by
   by_cases hmem : x ∈ s.found x.suit
-  · exact seatOf_none_of_mem_found hwf' (by rw [← hfounds]; exact hmem)
+  · exact seatOf_none_of_mem_found hwf' (hxf hmem)
   · obtain ⟨π, hπ, -⟩ := sameOrbitSetoid.iseqv.symm hclass
     obtain ⟨hseat', -⟩ := unseated_track_play hwf hπ hx hmem
     exact hseat'
@@ -2363,12 +2380,16 @@ theorem fiber_transfer_corrected_strong :
   rcases seats_both_or_neither_of_swappable hwf hswap with ⟨hxs, hxts⟩ | ⟨hxs, hxts⟩
   · refine fiber_transfer_corrected_full s s' x hwf hwf' hclass hfounds hswap ?_ ?_
     · exact pileHolding_of_seatOf_ne_none
-        (seated_of_orbit hwf hwf' hclass hfounds hxs)
+        (seated_of_orbit hwf hwf' hclass
+          (fun h => by rw [hfounds]; exact h) hxs)
     · exact pileHolding_of_seatOf_ne_none
-        (seated_of_orbit hwf hwf' hclass hfounds hxts)
+        (seated_of_orbit hwf hwf' hclass
+          (fun h => by rw [hfounds]; exact h) hxts)
   · exact swappableIn_of_both_unseated
-      (unseated_of_orbit hwf hwf' hclass hfounds hxs)
-      (unseated_of_orbit hwf hwf' hclass hfounds hxts)
+      (unseated_of_orbit hwf hwf' hclass
+        (fun h => by rw [← hfounds]; exact h) hxs)
+      (unseated_of_orbit hwf hwf' hclass
+        (fun h => by rw [← hfounds]; exact h) hxts)
 
 #print axioms seats_both_or_neither_of_swappable
 #print axioms seated_of_orbit
@@ -2493,3 +2514,54 @@ theorem fiber_transfer_corrected_noFounds_false :
   · exact hseatK' h1
 
 #print axioms fiber_transfer_corrected_noFounds_false
+
+/-! ## §15. The twin-membership weakening (fresh, 2026-10-25, the
+owner's third observation)
+
+The founds row is READ only as per-card membership transfer of the
+two twins: every use in the whole certified stack — the §9 and §12
+corner-kills, the §13 pins — is an implication `x ∈ s.found x.suit
+→ x ∈ s'.found x.suit` or its converse, for `x` or `x.twin`.  So
+the row can be WEAKENED to exactly that: TWIN-MEMBERSHIP
+PRESERVATION, with no constraint at all on the other fifty cards'
+foundation positions.  Each direction of the iff kills one
+counterexample family — the forward arrow forbids pulling a twin
+DOWN (the §14 witness: the pulled king leaves the hearts row), the
+backward arrow forbids net-raising a twin (the stranded-raiser
+world).  With the seat premises kept, the backward direction is
+vacuous (a seated card is on no foundation row), so the
+original-shaped statement needs only the forward pair. -/
+
+/-- **THE TWIN-MEMBERSHIP WEAKENING** — the seat-free statement with
+the founds row collapsed to twin-membership preservation: each twin
+is on its foundation row at `s` iff it is at `s'`.  Strictly
+stronger than §13's `fiber_transfer_corrected_strong` (founds
+equality implies both iffs) and consistent with §14's refutation
+(the twin-kings witness violates the heart king's iff). -/
+theorem fiber_transfer_corrected_strong_twinMem :
+    ∀ (s s' : State) (x : Card), s.WF → s'.WF →
+      sameOrbitSetoid.r s s' →
+      (x ∈ s.found x.suit ↔ x ∈ s'.found x.suit) →
+      (x.twin ∈ s.found x.twin.suit ↔ x.twin ∈ s'.found x.twin.suit) →
+      (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
+      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
+  intro s s' x hwf hwf' hclass hxw hxtw hswap
+  rcases seats_both_or_neither_of_swappable hwf hswap with ⟨hxs, hxts⟩ | ⟨hxs, hxts⟩
+  · have hseatx' : seatOf s' x ≠ none :=
+      seated_of_orbit hwf hwf' hclass hxw.mpr hxs
+    have hseatt' : seatOf s' x.twin ≠ none :=
+      seated_of_orbit hwf hwf' hclass hxtw.mpr hxts
+    by_cases hking : x.rank = Rank.king
+    · exact fiber_transfer_corrected_of_king s s' x hwf hwf' hclass
+        hxw.mp hxtw.mp hking hswap
+        (pileHolding_of_seatOf_ne_none hseatx')
+        (pileHolding_of_seatOf_ne_none hseatt')
+    · exact fiber_transfer_corrected_of_nonKing s s' x hwf hwf' hclass
+        hxw.mp hxtw.mp hking hswap
+        (pileHolding_of_seatOf_ne_none hseatx')
+        (pileHolding_of_seatOf_ne_none hseatt')
+  · exact swappableIn_of_both_unseated
+      (unseated_of_orbit hwf hwf' hclass hxw.mp hxs)
+      (unseated_of_orbit hwf hwf' hclass hxtw.mp hxts)
+
+#print axioms fiber_transfer_corrected_strong_twinMem

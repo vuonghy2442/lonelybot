@@ -315,7 +315,20 @@ empty, the 26 black cards in stock - the swap premise holds
 vacuously; ONE reversible pull of the heart king onto the empty
 anchor strands a mixed pair at the far end, and the seat dichotomy
 kills the conclusion there).  The premise set has reached its
-floor - the seats were derivable, the founds row is not. -/
+floor - the seats were derivable, the founds row is not.
+
+AND WEAKER STILL (the owner's third observation, same day): the
+founds row is READ only as twin-membership transfer -
+`fiber_transfer_corrected_strong_twinMem`
+(`Orig2/FiberTransfer.lean` §15, axiom-clean [propext,
+Quot.sound]) replaces the row with TWIN-MEMBERSHIP PRESERVATION
+(each twin on its row at s iff at s'), leaving the other fifty
+cards' foundation traffic unconstrained.  Each direction kills one
+counterexample family: forward forbids pulling a twin down (the
+§14 witness), backward forbids net-raising one.  With the seats
+kept, the backward direction is vacuous (a seated card is on no
+foundation row), so the original-shaped statement needs only the
+forward pair. -/
 theorem fiber_transfer_corrected :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
