@@ -613,3 +613,356 @@ theorem not_swappableIn_king_of_not_vacant
   exact hne hcontra.symm
 
 #print axioms not_swappableIn_king_of_not_vacant
+
+/-! ## §5. The KingBottom-grade generalizations (fresh, 2026-10-25)
+
+The owner''s completion of the king dichotomy: the bare hypotheses of
+the section-3 rows are UNUSED by their proofs (the singleton face-up
+clauses never appear - only the hidden = [] parts feed KingBottom and
+the injection), so the same proofs realize the strict letter at the
+KingBottom grade - runs on top of the kings are allowed.  With
+not_swappableIn_king_of_not_vacant (already hidden-only), the king
+dichotomy reads: a KingBottom king pair is strictly swappable iff
+the class carries a vacancy. -/
+
+/-- **The anchor-permutation form of the king swap, KingBottom grade**
+(the run-topped generalization - the verbatim proof of the bare
+original with the unused singleton hypotheses dropped). -/theorem twinPairSwapStrict_permute_of_anchorSwap'
+    {u : State} {x : Card} {a a' : Anchor} (σ : AnchorPerm)
+    (hwf : u.WF) (hking : x.rank = Rank.king)
+    (hx : seatOf u x = some (Sum.inl a))
+    (hxt : seatOf u x.twin = some (Sum.inl a'))
+    (hne : a ≠ a')
+    (hhidA : (u.piles a).hidden = [])
+    (hhidB : (u.piles a').hidden = [])
+    (hσa : σ.toFun a = a') (hσa' : σ.toFun a' = a)
+    (hσKB : ∀ b, KingBottom u b → b ≠ a → b ≠ a' → σ.toFun b = b)
+    (hσfix : ∀ j, ¬ VKSet u j → σ.toFun j = j) :
+    twinPairSwapStrict u (u.permute σ) x := by
+  have hkingt : x.twin.rank = Rank.king := by
+    simpa [Card.twin] using hking
+  have hKB_a : KingBottom u a := ⟨x, hx, hking, hhidA⟩
+  have hKB_a' : KingBottom u a' := ⟨x.twin, hxt, hkingt, hhidB⟩
+  have hσK : ∀ b, KingBottom u b → KingBottom u (σ.toFun b) := by
+    intro b hb
+    by_cases hba : b = a
+    · rw [hba, hσa]; exact hKB_a'
+    · by_cases hba' : b = a'
+      · rw [hba', hσa']; exact hKB_a
+      · rw [hσKB b hb hba hba']; exact hb
+  have hσ_inj : Function.Injective σ.toFun := by
+    intro p q hpq
+    have h := congrArg σ.invFun hpq
+    rwa [σ.left_inv p, σ.left_inv q] at h
+  have hnotKB_of_vacant : ∀ j, VacantSpot u j → ¬ KingBottom u j := by
+    intro j hvacj hkb
+    obtain ⟨c, hse, -, -⟩ := hkb
+    have hmem : c ∈ (u.piles j).faceUp :=
+      pileHolding_mem (tfc_seatOf_of_inl hse).1
+    have hface : (u.piles j).faceUp = [] := ((Pile.isEmpty_eq (u.piles j)).mp hvacj).2
+    rw [hface] at hmem
+    exact absurd hmem (by simp)
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [State.seatOf_permute (σ := σ) (st := u) hwf x, hx]
+    simp [Base.permute, hσa, hxt]
+  · rw [State.seatOf_permute (σ := σ) (st := u) hwf x.twin, hxt]
+    simp [Base.permute, hσa', hx]
+  · intro y hyx hyt
+    rw [State.seatOf_permute (σ := σ) (st := u) hwf y]
+    cases hse : seatOf u y with
+    | none => rfl
+    | some b =>
+        cases b with
+        | inr z => simp [Base.permute]
+        | inl c =>
+            have hσc : σ.toFun c = c := by
+              by_cases hkbB : kingBottomB u c = true
+              · have hkb : KingBottom u c := kingBottomB_eq_true.mp hkbB
+                have hca : c ≠ a := by
+                  intro h
+                  exact hyx (king_seat_injective hse (by rw [h]; exact hx))
+                have hca' : c ≠ a' := by
+                  intro h
+                  exact hyt (king_seat_injective hse (by rw [h]; exact hxt))
+                exact hσKB c hkb hca hca'
+              · have hnotKB : ¬ KingBottom u c :=
+                  fun h => hkbB (kingBottomB_eq_true.mpr h)
+                have hnotvac : ¬ VacantSpot u c := by
+                  intro hemp
+                  have hmem : y ∈ (u.piles c).faceUp :=
+                    pileHolding_mem (tfc_seatOf_of_inl hse).1
+                  have hface : (u.piles c).faceUp = [] :=
+                    ((Pile.isEmpty_eq (u.piles c)).mp hemp).2
+                  rw [hface] at hmem
+                  exact absurd hmem (by simp)
+                exact hσfix c (fun hv => hv.elim hnotvac hnotKB)
+            simp [Base.permute, hσc]
+  · constructor
+    · intro j
+      show (u.piles j).hidden = (u.piles (σ.invFun j)).hidden
+      by_cases hvacj : VacantSpot u j
+      · have hiVac : VacantSpot u (σ.invFun j) := by
+          by_cases hkbiB : kingBottomB u (σ.invFun j) = true
+          · exfalso
+            have hkbj : KingBottom u j := by
+              have h := hσK (σ.invFun j) (kingBottomB_eq_true.mp hkbiB)
+              rwa [σ.right_inv j] at h
+            exact hnotKB_of_vacant j hvacj hkbj
+          · have hkbi : ¬ KingBottom u (σ.invFun j) :=
+              fun h => hkbiB (kingBottomB_eq_true.mpr h)
+            by_cases hvkiB : vkSetB u (σ.invFun j) = true
+            · have hvki : VKSet u (σ.invFun j) := vkSetB_eq_true.mp hvkiB
+              exact hvki.resolve_right hkbi
+            · exfalso
+              have hvki : ¬ VKSet u (σ.invFun j) :=
+                fun h => hvkiB (vkSetB_eq_true.mpr h)
+              have hfixi : σ.toFun (σ.invFun j) = σ.invFun j :=
+                hσfix (σ.invFun j) hvki
+              rw [σ.right_inv j] at hfixi
+              exact hvki (hfixi ▸ (Or.inl hvacj : VKSet u j))
+        rw [((Pile.isEmpty_eq (u.piles j)).mp hvacj).1,
+          ((Pile.isEmpty_eq (u.piles (σ.invFun j))).mp hiVac).1]
+      · by_cases hkbjB : kingBottomB u j = true
+        · have hkbj : KingBottom u j := kingBottomB_eq_true.mp hkbjB
+          let b0 : Anchor := if j = a then a' else if j = a' then a else j
+          have hb0_KB : KingBottom u b0 := by
+            by_cases hja : j = a
+            · have hb0 : b0 = a' := by
+                show (if j = a then a' else if j = a' then a else j) = a'
+                rw [ite_eq_left hja]
+              rw [hb0]; exact hKB_a'
+            · by_cases hja' : j = a'
+              · have hb0 : b0 = a := by
+                  show (if j = a then a' else if j = a' then a else j) = a
+                  rw [ite_eq_right hja, ite_eq_left hja']
+                rw [hb0]; exact hKB_a
+              · have hb0 : b0 = j := by
+                  show (if j = a then a' else if j = a' then a else j) = j
+                  rw [ite_eq_right hja, ite_eq_right hja']
+                rw [hb0]; exact hkbj
+          have hσb0 : σ.toFun b0 = j := by
+            by_cases hja : j = a
+            · have hb0 : b0 = a' := by
+                show (if j = a then a' else if j = a' then a else j) = a'
+                rw [ite_eq_left hja]
+              rw [hb0, hσa', hja]
+            · by_cases hja' : j = a'
+              · have hb0 : b0 = a := by
+                  show (if j = a then a' else if j = a' then a else j) = a
+                  rw [ite_eq_right hja, ite_eq_left hja']
+                rw [hb0, hσa, hja']
+              · have hb0 : b0 = j := by
+                  show (if j = a then a' else if j = a' then a else j) = j
+                  rw [ite_eq_right hja, ite_eq_right hja']
+                rw [hb0, hσKB j hkbj hja hja']
+          have hi : σ.invFun j = b0 := by
+            have h := congrArg σ.invFun hσb0
+            rw [σ.left_inv b0] at h
+            exact h.symm
+          rw [hi]
+          obtain ⟨-, -, -, hhid0⟩ := hb0_KB
+          obtain ⟨-, -, -, hhidj⟩ := hkbj
+          rw [hhidj, hhid0]
+        · have hkbj : ¬ KingBottom u j :=
+            fun h => hkbjB (kingBottomB_eq_true.mpr h)
+          have hvkj : ¬ VKSet u j := fun hv => hv.elim hvacj hkbj
+          have hfixj : σ.toFun j = j := hσfix j hvkj
+          have hi : σ.invFun j = j := by
+            have h := congrArg σ.invFun hfixj
+            rw [σ.left_inv j] at h
+            exact h.symm
+          rw [hi]
+    · rfl
+  · intro su
+    rfl
+  · rfl
+  · rfl
+  · rfl
+
+#print axioms twinPairSwapStrict_permute_of_anchorSwap'
+/-- **The king-pair vacancy arm, KingBottom grade** (the run-topped
+generalization - the verbatim proof with the unused singleton
+hypotheses dropped). -/theorem exists_permute_of_kingPair_vacant'
+    {s : State} {x : Card} {a a' : Anchor}
+    (hwf : s.WF) (hking : x.rank = Rank.king)
+    (hx : seatOf s x = some (Sum.inl a))
+    (hxt : seatOf s x.twin = some (Sum.inl a'))
+    (hne : a ≠ a')
+    (hhidA : (s.piles a).hidden = [])
+    (hhidB : (s.piles a').hidden = [])
+    (hvac : SameOrbitVacant s) :
+    ∃ π : AnchorPerm,
+      π.toFun a = a' ∧ π.toFun a' = a ∧
+      (∀ b, KingBottom s b → b ≠ a → b ≠ a' → π.toFun b = b) ∧
+      (∀ j, ¬ VKSet s j → π.toFun j = j) ∧
+      sameOrbitSetoid.r s (s.permute π) := by
+  have hkingt : x.twin.rank = Rank.king := by
+    simpa [Card.twin] using hking
+  have hKB_a : KingBottom s a := ⟨x, hx, hking, hhidA⟩
+  have hKB_a' : KingBottom s a' := ⟨x.twin, hxt, hkingt, hhidB⟩
+  let τ := kingSwapAnchor s x a a'
+  have hτ : KingInjection s τ :=
+    kingSwapAnchor_kingInjection hking hx hxt hne hhidA hhidB
+  have hτx : τ x = a' := kingSwapAnchor_self s x a a'
+  have hτt : τ x.twin = a := kingSwapAnchor_twin s x a a'
+  have hτo : ∀ c, c ≠ x → c ≠ x.twin → τ c = anchorOf s c :=
+    fun c hcx hct => kingSwapAnchor_other hcx hct
+  by_cases hb : hasVacancyB s = true
+  · -- the reference state itself carries a vacancy
+    have hHvac : HasVacancy s := hasVacancyB_eq_true.mp hb
+    have hcs : ∀ c, c ∈ kingsOf s ↔ KingBottomCard s c :=
+      fun c => mem_kingsOf hwf
+    obtain ⟨w', hks, hseat⟩ :=
+      king_assignment_reachable hwf hHvac τ (kingsOf s)
+        (fun c hc => (hcs c).mp hc)
+        (fun c hc => hτ.1 c ((hcs c).mp hc))
+        (kingsOf_nodup s)
+        (fun c hc c' hc' heq =>
+          hτ.2 c c' ((hcs c).mp hc) ((hcs c').mp hc') heq)
+    obtain ⟨π, hw', -, hπfix⟩ := KingShuffle.is_permute_vk hks hwf
+    have hx_card : KingBottomCard s x := ⟨a, hKB_a, hx⟩
+    have hxt_card : KingBottomCard s x.twin := ⟨a', hKB_a', hxt⟩
+    have hx_mem : x ∈ kingsOf s := (hcs x).mpr hx_card
+    have hxt_mem : x.twin ∈ kingsOf s := (hcs x.twin).mpr hxt_card
+    have hπa : π.toFun a = a' := by
+      have h1 : seatOf (s.permute π) x = some (Sum.inl (π.toFun a)) := by
+        rw [State.seatOf_permute (σ := π) (st := s) hwf x, hx]
+        rfl
+      have h2 : seatOf (s.permute π) x = some (Sum.inl a') := by
+        rw [← hw', hseat x hx_mem, hτx]
+      exact Sum.inl.inj (Option.some.inj (h1.symm.trans h2))
+    have hπa' : π.toFun a' = a := by
+      have h1 : seatOf (s.permute π) x.twin = some (Sum.inl (π.toFun a')) := by
+        rw [State.seatOf_permute (σ := π) (st := s) hwf x.twin, hxt]
+        rfl
+      have h2 : seatOf (s.permute π) x.twin = some (Sum.inl a) := by
+        rw [← hw', hseat x.twin hxt_mem, hτt]
+      exact Sum.inl.inj (Option.some.inj (h1.symm.trans h2))
+    have hπKB : ∀ b, KingBottom s b → b ≠ a → b ≠ a' → π.toFun b = b := by
+      intro b hkb hba hba'
+      obtain ⟨c, hse, hkc, hhid⟩ := hkb
+      have hc_card : KingBottomCard s c := ⟨b, ⟨c, hse, hkc, hhid⟩, hse⟩
+      have hc_mem : c ∈ kingsOf s := (hcs c).mpr hc_card
+      have hcx : c ≠ x := by
+        intro hcx
+        apply hba
+        rw [hcx] at hse
+        exact Sum.inl.inj (Option.some.inj (hse.symm.trans hx))
+      have hct : c ≠ x.twin := by
+        intro hct
+        apply hba'
+        rw [hct] at hse
+        exact Sum.inl.inj (Option.some.inj (hse.symm.trans hxt))
+      have hτc : τ c = anchorOf s c := hτo c hcx hct
+      have hao : anchorOf s c = b := by simp [anchorOf, hse]
+      have h1 : seatOf (s.permute π) c = some (Sum.inl (π.toFun b)) := by
+        rw [State.seatOf_permute (σ := π) (st := s) hwf c, hse]
+        rfl
+      have h2 : seatOf (s.permute π) c = some (Sum.inl b) := by
+        rw [← hw', hseat c hc_mem, hτc, hao]
+      exact Sum.inl.inj (Option.some.inj (h1.symm.trans h2))
+    have hbc : BareCargoEquiv s (s.permute π) := by
+      rw [← hw']
+      exact king_shuffle_closure hwf hks
+    exact ⟨π, hπa, hπa', hπKB, hπfix, bareCargo_sameOrbit hbc⟩
+  · -- no vacancy at the reference state: split at the first vacancy
+    have hno : NoVacancy s :=
+      (noVacancy_iff_not_hasVacancy s).mpr
+        (fun h => hb (hasVacancyB_eq_true.mpr h))
+    obtain ⟨u, hsu, hvacu⟩ := hvac
+    obtain ⟨ρu, hu_s, σs, hs_u⟩ := hsu
+    obtain ⟨pre, x0, e0, s0, s1, suffix, hpre, hstep, hp, hno0, hvac_s1,
+      hrev_raise, hsuffix⟩ := first_vacancy_split hwf hs_u hno hvacu
+    have hwfs0 : s0.WF := NVWalk_wf hpre hwf
+    have hwfs1 : s1.WF := step_wf hwfs0 hstep
+    have hraise_sh : ShufflePlayW s0 [Move.tabToFound x0] s1 :=
+      Walk.cons hrev_raise hstep (Walk.nil s1)
+    have hfwd : ShufflePlayW s (pre ++ [Move.tabToFound x0]) s1 :=
+      ShufflePlayW_append hpre.to_shuffle hraise_sh
+    have hback : ShufflePlayW s1 (suffix ++ ρu) s :=
+      ShufflePlayW_append hsuffix hu_s
+    have hclass_s1 : sameOrbitSetoid.r s s1 :=
+      ⟨suffix ++ ρu, hback, pre ++ [Move.tabToFound x0], hfwd⟩
+    have huniq_s1 : ∀ a' b, (s1.piles a').isEmpty = true →
+        (s1.piles b).isEmpty = true → a' = b := by
+      obtain ⟨hn, e, hp0, hvals⟩ := step_tabToFound_inv hstep
+      have he : e = e0 := by
+        rw [hp] at hp0
+        exact (Option.some.inj hp0).symm
+      rw [he] at hvals
+      intro a' b ha' hb'
+      by_cases hba : b = e0
+      · rw [hba] at hb'
+        by_cases ha'e : a' = e0
+        · exact ha'e.trans hba.symm
+        · exfalso
+          have hs1a' : s1.piles a' = s0.piles a' := by
+            rw [hvals]
+            dsimp only
+            rw [ite_eq_right ha'e]
+          rw [hs1a'] at ha'
+          exact hno0 a' ha'
+      · exfalso
+        have hs1b : s1.piles b = s0.piles b := by
+          rw [hvals]
+          dsimp only
+          rw [ite_eq_right hba]
+        rw [hs1b] at hb'
+        exact hno0 b hb'
+    let σ : AnchorPerm := AnchorPerm.swap a a'
+    have hσa : σ.toFun a = a' := AnchorPerm.swap_apply_a a a'
+    have hσa' : σ.toFun a' = a := AnchorPerm.swap_apply_e a a'
+    have hσKB : ∀ b, KingBottom s b → b ≠ a → b ≠ a' → σ.toFun b = b :=
+      fun _ _ hba hba' => AnchorPerm.swap_apply_of_ne hba hba'
+    have hσfix : ∀ j, ¬ VKSet s j → σ.toFun j = j := by
+      intro j hj
+      exact AnchorPerm.swap_apply_of_ne
+        (fun h => hj (by rw [h]; exact Or.inr hKB_a))
+        (fun h => hj (by rw [h]; exact Or.inr hKB_a'))
+    have hσVK : ∀ j, VKSet s j ↔ VKSet s (σ.toFun j) := by
+      intro j
+      exact (vk_swap_iff (P := fun j => VKSet s j)
+        (Or.inr hKB_a) (Or.inr hKB_a') j).symm
+    have hvk : ∀ j, VKSet s j ↔ VKSet s1 j :=
+      vk_sameOrbit_invariant hwf hclass_s1
+    have hσVK1 : ∀ j, VKSet s1 j ↔ VKSet s1 (σ.toFun j) := by
+      intro j
+      exact (hvk j).symm.trans ((hσVK j).trans (hvk (σ.toFun j)))
+    have hσfix1 : ∀ j, ¬ VKSet s1 j → σ.toFun j = j := by
+      intro j hnot
+      exact hσfix j (fun hj => hnot ((hvk j).mp hj))
+    obtain ⟨v_s, hks, hv_s⟩ :=
+      KingShuffle.realize_perm hwfs1 ⟨e0, hvac_s1⟩ huniq_s1 σ hσVK1 hσfix1
+    have h_s1_vs : sameOrbitSetoid.r s1 v_s :=
+      bareCargo_sameOrbit (king_shuffle_closure hwfs1 hks)
+    have h_vs_perm : sameOrbitSetoid.r v_s (s.permute σ) := by
+      have h3 : sameOrbitSetoid.r (s1.permute σ) (s.permute σ) :=
+        sameOrbitSetoid.iseqv.symm (sameOrbit_permute (σ := σ) hclass_s1 hwf)
+      rwa [← hv_s] at h3
+    have horb : sameOrbitSetoid.r s (s.permute σ) :=
+      sameOrbitSetoid.iseqv.trans hclass_s1
+        (sameOrbitSetoid.iseqv.trans h_s1_vs h_vs_perm)
+    exact ⟨σ, hσa, hσa', hσKB, hσfix, horb⟩
+
+#print axioms exists_permute_of_kingPair_vacant'
+/-- **The vacancy arm, KingBottom grade - the owner''s dichotomy
+completed**: a KingBottom king pair at distinct anchors (runs on top
+allowed) is strictly swappable in any class that carries a vacancy. -/
+theorem swappableIn_king_of_vacancy'
+    {s : State} {x : Card} {a a' : Anchor}
+    (hwf : s.WF) (hking : x.rank = Rank.king)
+    (hx : seatOf s x = some (Sum.inl a))
+    (hxt : seatOf s x.twin = some (Sum.inl a'))
+    (hne : a ≠ a')
+    (hhidA : (s.piles a).hidden = [])
+    (hhidB : (s.piles a').hidden = [])
+    (hvac : SameOrbitVacant s) :
+    SwappableIn s x := by
+  obtain ⟨π, hπa, hπa', hπKB, hπfix, horb⟩ :=
+    exists_permute_of_kingPair_vacant' hwf hking hx hxt hne hhidA hhidB hvac
+  exact ⟨s.permute π,
+    twinPairSwapStrict_permute_of_anchorSwap' π hwf hking hx hxt hne hhidA hhidB
+      hπa hπa' hπKB hπfix,
+    horb⟩
+
+#print axioms swappableIn_king_of_vacancy'

@@ -12,6 +12,7 @@ import Orig2.TwinPointTransfer
 import Orig2.TwinSwapRecipe
 import Orig2.PairClassSeed
 import Orig2.KingOrbitFull
+import Orig2.KingSwapAssembly
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
@@ -43,6 +44,16 @@ The owner's last-return route in ONE card.  This is the whole proof:
   seated pair with either twin bottomed over a nonempty hidden deck
   is never strictly swappable — the king-grade parallel of §8's
   `.inl` corner; and a seated king always bottoms a pile.
+* `sameOrbitVacant_of_swappableIn_king` — **THE CONSTRUCTIVE VACANCY
+  SOURCE** (§12, fresh 2026-10-25): a swappable king pair forces the
+  class to carry a vacancy — the first-seat-change extraction, the
+  classical-free route the wrapper rides.
+* `fiber_transfer_corrected_of_king` / `fiber_transfer_corrected_full`
+  — **THE KING WRAPPER and THE FULL DISCHARGE** (§12, fresh
+  2026-10-25): the king case closes (frozen corners vacuous, the
+  transport carries `KingBottom` to the far end, the KingBottom-grade
+  vacancy arm fires), and the full wrapper — the ORIGINAL statement
+  verbatim, no rank split in the statement — is DISCHARGED.
 
 The card rides ONLY the certified tracked substrate (the fifteen
 imports above).  Every row restated from the retired dependency cards
@@ -172,12 +183,9 @@ private theorem pairFreeOrbit_splice_of_pairFree {x : Card} {s t : State} {play 
       exact PairFreeOrbit.trans hsingle htail
 
 /-! ## §2. Foundation arithmetic (restated from
-`Orig2/TwinPairFreeRev.lean:43–133` — the per-file kit norm) -/
-
-/-- The build-order list is nodup.
-(restated from `Orig2/TwinPairFreeRev.lean:43` — the per-file kit norm) -/
-private theorem upCards_nodup (s : Suit) : s.upCards.Nodup := by
-  cases s <;> decide
+`Orig2/TwinPairFreeRev.lean:43–133` — the per-file kit norm; the
+`upCards_nodup` restatement retired 2026-10-25 — the public row
+arrives by the `Orig2.KingSwapAssembly` import's transitive closure) -/
 
 /-- The first-occurrence position of a member is unchanged by taking a
 prefix that still contains it.
@@ -1994,3 +2002,248 @@ theorem king_pile_hidden_empty_play {u v : State} {c : Card} {play : List Move}
           exact king_hidden_step_seated hwf hstep hrev hking hseat hhid hs1seated
 
 #print axioms king_pile_hidden_empty_play
+
+/-! ## §12. The king wrapper and the full discharge (fresh, 2026-10-25)
+
+With §8-§11 and the KingBottom-grade vacancy arm
+(`swappableIn_king_of_vacancy'`, `Orig2/KingSwapAssembly.lean` §5 —
+the owner's dichotomy completed: the arm's bare hypotheses were
+unused by the certified proof), the king case closes.  The unseated
+corners are vacuous (§9), the frozen corners are vacuous (§10), and
+the live case — both twins `KingBottom` at distinct anchors in a
+class carrying a vacancy — follows at `s'`: the negative arm gives
+class-vacancy from the premise, the §11 transport makes the twins'
+`s'`-piles `KingBottom`, and the arm fires.  The full wrapper splits
+on the rank and discharges the ORIGINAL statement verbatim. -/
+
+/-- Reversible plays keep every hidden deck (the play-grade ledger,
+riding `rev_step_hidden_eq` per letter). -/
+private theorem rev_play_hidden_eq {u w : State} {play : List Move}
+    (hwf : u.WF) (hplay : ShufflePlayW u play w) :
+    ∀ a, (w.piles a).hidden = (u.piles a).hidden := by
+  revert hwf
+  induction hplay with
+  | nil st => intro _ a; rfl
+  | @cons st s1 W m rest' hrev hstep hrest ih =>
+      intro hwf a
+      rw [ih (step_wf hwf hstep) a]
+      exact rev_step_hidden_eq hwf hstep hrev a
+
+/-- The first seat-change split: a play along which x's seat leaves
+`.inl a` has a first letter where it does so (the §6/§7 split
+pattern, at the anchor grade). -/
+private theorem exists_seatChange_split (x : Card) (a : Anchor) :
+    ∀ {s w : State} {play : List Move}, ShufflePlayW s play w →
+      seatOf s x = some (Sum.inl a) → seatOf w x ≠ some (Sum.inl a) →
+      ∃ pre m post u u', play = pre ++ m :: post ∧ ShufflePlayW s pre u ∧
+        reversibleAtW u m ∧ State.step u m = some u' ∧
+        ShufflePlayW u' post w ∧
+        seatOf u x = some (Sum.inl a) ∧ seatOf u' x ≠ some (Sum.inl a) := by
+  intro s w play hplay
+  induction hplay with
+  | nil st =>
+      intro hseat hne
+      exact absurd hseat hne
+  | @cons st s1 W m rest' hrev hstep hrest ih =>
+      intro hseat hne
+      by_cases hc : seatOf s1 x = some (Sum.inl a)
+      · obtain ⟨pre, m₀, post, u, u', hspl, hpre, hrev₀, hstep₀, hpost, huseat, hu'seat⟩ :=
+          ih hc hne
+        exact ⟨m :: pre, m₀, post, u, u', by rw [hspl]; rfl,
+          Walk.cons hrev hstep hpre, hrev₀, hstep₀, hpost, huseat, hu'seat⟩
+      · exact ⟨[], m, rest', st, s1, rfl, Walk.nil st, hrev, hstep, hrest, hseat, hc⟩
+
+/-- **The constructive vacancy source** (the wrapper's classical-free
+route): a swappable king pair forces the class to carry a vacancy.
+The premise's witness play exchanges the twins, so x's seat changes;
+at the FIRST change, either x's whole pile slides onto an EMPTY
+anchor (the `.inl` gate — a vacancy right there), or x itself is
+raised — and a raised king was necessarily alone (top and bottom),
+so its anchor empties behind it. -/
+theorem sameOrbitVacant_of_swappableIn_king {s : State} {x : Card} {a a' : Anchor}
+    (hwf : s.WF) (hking : x.rank = Rank.king)
+    (hx : seatOf s x = some (Sum.inl a)) (hxt : seatOf s x.twin = some (Sum.inl a'))
+    (hne : a ≠ a') (hhidA : (s.piles a).hidden = [])
+    (hswap : SwappableIn s x) : SameOrbitVacant s := by
+  obtain ⟨v, hstrict, horb⟩ := hswap
+  obtain ⟨-, -, ρ', hback⟩ := horb
+  have hxdiff : seatOf v x ≠ some (Sum.inl a) := by
+    intro hc
+    have h1 : seatOf v x = some (Sum.inl a') := by rw [hstrict.1]; exact hxt
+    exact hne (Sum.inl.inj (Option.some.inj (hc.symm.trans h1)))
+  obtain ⟨pre, m, post, u, u', hspl, hpre, hrev, hstep, hpost, huseat, hu'seat⟩ :=
+    exists_seatChange_split x a hback hx hxdiff
+  have hwfu : u.WF := run_wf hwf
+    (Walk_run (P := fun st m => reversibleAtW st m) (st := s) (W := u) hpre)
+  have hhidu : (u.piles a).hidden = [] := by
+    rw [rev_play_hidden_eq hwf hpre a]; exact hhidA
+  have hru : sameOrbitSetoid.r s u := RevEqW_symm (shufflePlayW_revEqW hpre)
+  cases m with
+  | draw =>
+      have hse := (chart_draw hstep).1
+      exact absurd (show seatOf u' x = some (Sum.inl a) from by
+        rw [hse x]; exact huseat) hu'seat
+  | wasteToFound y => exact absurd hrev (wasteToFound_not_reversibleAtW u y)
+  | wasteToTab y b => exact absurd hrev (wasteToTab_not_reversibleAtW u y b)
+  | tabToFound d =>
+      by_cases hcd : x = d
+      · -- x raised: it was necessarily alone (top and bottom), so its
+        -- anchor empties behind it — a vacancy at u'
+        subst hcd
+        obtain ⟨-, a₀, hpa, hs⟩ := step_tabToFound_inv hstep
+        have hmem₀ : x ∈ (u.piles a₀).faceUp := by
+          obtain ⟨-, hlast⟩ := tfc_pileOfTop_top hpa
+          exact lastOf_mem hlast
+        have hmema : x ∈ (u.piles a).faceUp := pileHolding_mem (tfc_seatOf_of_inl huseat).1
+        have haa₀ : a = a₀ := by
+          by_cases h : a = a₀
+          · exact h
+          · exact absurd hmem₀
+              ((mem_faceUp_unique hwfu hmema a₀ (fun h' => h h'.symm)).1)
+        have hlasta : lastOf (u.piles a).faceUp = some x := by
+          rw [haa₀]; exact (tfc_pileOfTop_top hpa).2
+        have hbelow : below x (u.piles a).faceUp = [] := (tfc_seatOf_of_inl huseat).2
+        have hnd : (u.piles a).faceUp.Nodup := runOK_nodup (hwfu.runOK_of a)
+        have hsingle : (u.piles a).faceUp = [x] :=
+          eq_singleton_of_below_nil_lastOf hnd hbelow hlasta
+        have hhid₀ : (u.piles a₀).hidden = [] := by rw [← haa₀]; exact hhidu
+        rw [haa₀] at hsingle
+        have hface' : (u'.piles a).faceUp = [] := by
+          rw [hs, haa₀]
+          show (if a₀ = a₀ then Pile.afterRunRemoved (u.piles a₀)
+              (chop (u.piles a₀).faceUp) else u.piles a₀).faceUp = []
+          rw [ite_eq_left rfl, hsingle]
+          show (Pile.revealTop
+            { hidden := (u.piles a₀).hidden, faceUp := ([] : List Card) }).faceUp = []
+          rw [hhid₀]
+          rfl
+        have hhidden' : (u'.piles a).hidden = [] := by
+          rw [rev_step_hidden_eq hwfu hstep hrev a]; exact hhidu
+        exact ⟨u', RevEqW_symm (shufflePlayW_revEqW
+            (ShufflePlayW_append hpre (Walk.cons hrev hstep (Walk.nil u')))),
+          ⟨a, (Pile.isEmpty_eq _).mpr ⟨hhidden', hface'⟩⟩⟩
+      · exact absurd (show seatOf u' x = some (Sum.inl a) from by
+          rw [raise_seat_change_of_seated hstep hrev (by rw [huseat]; simp) hcd]
+          exact huseat) hu'seat
+  | foundToTab y b =>
+      obtain ⟨c', htop, hc'c, -, -⟩ := step_foundToTab_inv hstep
+      rw [hc'c] at htop
+      have hcy : x ≠ y := by
+        intro hxy
+        rw [← hxy] at htop
+        have hxmem : x ∈ u.found x.suit := by
+          simpa [State.foundTop] using lastOf_mem htop
+        exact ((mem_found_unique hwfu hxmem).1 a).2
+          (pileHolding_mem (tfc_seatOf_of_inl huseat).1)
+      exact absurd (show seatOf u' x = some (Sum.inl a) from by
+        rw [pull_seat_change hstep x hcy]; exact huseat) hu'seat
+  | tabToTab y b =>
+      by_cases hcy : x = y
+      · subst hcy
+        obtain ⟨a₀, hhold₀, hcp, -, -⟩ := step_tabToTab_inv hstep
+        cases b with
+        | inl e =>
+            obtain ⟨hemp, -⟩ := canPlace_inl hcp
+            exact ⟨u, hru, ⟨e, hemp⟩⟩
+        | inr z =>
+            exfalso
+            obtain ⟨-, -, hfit⟩ := canPlace_inr hcp
+            rw [canSitOn_king_false hking] at hfit
+            exact Bool.noConfusion hfit
+      · exact absurd (show seatOf u' x = some (Sum.inl a) from by
+          rw [tfc_seat_point_edit hwfu hstep hrev x, ite_eq_right hcy]
+          exact huseat) hu'seat
+
+/-- **THE KING WRAPPER.**  The original statement's shape under the
+added hypothesis that the pair is a king pair. -/
+theorem fiber_transfer_corrected_of_king :
+    ∀ (s s' : State) (x : Card), s.WF → s'.WF →
+      sameOrbitSetoid.r s s' → s.found = s'.found →
+      x.rank = Rank.king →
+      (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
+      (∃ seatA, s'.pileHolding x = some seatA) →
+      (∃ seatA', s'.pileHolding x.twin = some seatA') →
+      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
+  intro s s' x hwf hwf' hclass hfounds hking hswap hholdx hholdxt
+  obtain ⟨seatA, hseatA⟩ := hholdx
+  obtain ⟨seatA', hseatA'⟩ := hholdxt
+  have hseatx' : seatOf s' x ≠ none := seatOf_ne_none_of_pileHolding hseatA
+  have hseatxt' : seatOf s' x.twin ≠ none := seatOf_ne_none_of_pileHolding hseatA'
+  obtain ⟨π, hπ, -⟩ := sameOrbitSetoid.iseqv.symm hclass
+  by_cases hseats : seatOf s x = none
+  · exfalso
+    by_cases hnotf : x ∈ s.found x.suit
+    · exact hseatx' (seatOf_none_of_mem_found hwf' (by rw [← hfounds]; exact hnotf))
+    · obtain ⟨hseat', -⟩ := unseated_track_play hwf hπ hseats hnotf
+      exact hseatx' hseat'
+  · by_cases hseatst : seatOf s x.twin = none
+    · exfalso
+      by_cases hnotft : x.twin ∈ s.found x.twin.suit
+      · exact hseatxt' (seatOf_none_of_mem_found hwf' (by rw [← hfounds]; exact hnotft))
+      · obtain ⟨hseatt', -⟩ := unseated_track_play hwf hπ hseatst hnotft
+        exact hseatxt' hseatt'
+    · obtain ⟨a, hx⟩ := seat_inl_of_seated_king hwf hking hseats
+      have hnkt : x.twin.rank = Rank.king := by
+        have htr : x.twin.rank = x.rank := by cases x; rfl
+        rw [htr]
+        exact hking
+      obtain ⟨a', hxt⟩ := seat_inl_of_seated_king hwf hnkt hseatst
+      have hne : a ≠ a' := by
+        intro h
+        rw [show a' = a from h.symm] at hxt
+        exact card_twin_ne x (seat_inl_unique hxt hx)
+      by_cases hhidA : (s.piles a).hidden = []
+      · by_cases hhidB : (s.piles a').hidden = []
+        · -- the live case: class-vacancy from the premise (the negative
+          -- arm), the transport makes the twins' s'-piles KingBottom,
+          -- the KingBottom-grade arm fires at s'
+          have hvac : SameOrbitVacant s :=
+            sameOrbitVacant_of_swappableIn_king hwf hking hx hxt hne hhidA hswap
+          have hvac' : SameOrbitVacant s' := (sameOrbitVacant_iff hclass).mp hvac
+          obtain ⟨â, hx'⟩ := seat_inl_of_seated_king hwf' hking hseatx'
+          obtain ⟨â', hxt'⟩ := seat_inl_of_seated_king hwf' hnkt hseatxt'
+          have hne' : â ≠ â' := by
+            intro h
+            rw [show â' = â from h.symm] at hxt'
+            exact card_twin_ne x (seat_inl_unique hxt' hx')
+          have hbase : seatOf s x ≠ none → ∃ a, seatOf s x = some (Sum.inl a) ∧
+              (s.piles a).hidden = [] := fun _ => ⟨a, hx, hhidA⟩
+          obtain ⟨â₀, hx₀, hhidâ⟩ :=
+            king_pile_hidden_empty_play hwf hπ hking hbase hseatx'
+          have hâ : â₀ = â := Sum.inl.inj (Option.some.inj (hx₀.symm.trans hx'))
+          rw [hâ] at hhidâ
+          have hbaseT : seatOf s x.twin ≠ none → ∃ a, seatOf s x.twin = some (Sum.inl a) ∧
+              (s.piles a).hidden = [] := fun _ => ⟨a', hxt, hhidB⟩
+          obtain ⟨â₁, hxt₁, hhidâ'⟩ :=
+            king_pile_hidden_empty_play hwf hπ hnkt hbaseT hseatxt'
+          have hâ' : â₁ = â' := Sum.inl.inj (Option.some.inj (hxt₁.symm.trans hxt'))
+          rw [hâ'] at hhidâ'
+          exact swappableIn_king_of_vacancy' hwf' hking hx' hxt' hne' hhidâ hhidâ' hvac'
+        · exact absurd (swappableIn_twin_comm.mp hswap)
+            (not_swappableIn_of_frozen hwf hxt
+              (show seatOf s x.twin.twin = some (Sum.inl a) from by
+                rw [card_twin_twin]; exact hx)
+              hne.symm hhidB)
+      · exact absurd hswap (not_swappableIn_of_frozen hwf hx hxt hne hhidA)
+
+/-- **THE ORIGINAL `fiber_transfer_corrected`, DISCHARGED.**  The
+ledger stub's statement VERBATIM — every hypothesis, the conclusion
+verbatim, no rank split in the statement — proven by splitting on the
+rank in the proof: the non-king case rides §9, the king case rides
+§12. -/
+theorem fiber_transfer_corrected_full :
+    ∀ (s s' : State) (x : Card), s.WF → s'.WF →
+      sameOrbitSetoid.r s s' → s.found = s'.found →
+      (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
+      (∃ seatA, s'.pileHolding x = some seatA) →
+      (∃ seatA', s'.pileHolding x.twin = some seatA') →
+      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
+  intro s s' x hwf hwf' hclass hfounds hswap hholdx hholdxt
+  by_cases hking : x.rank = Rank.king
+  · exact fiber_transfer_corrected_of_king s s' x hwf hwf' hclass hfounds hking hswap
+      hholdx hholdxt
+  · exact fiber_transfer_corrected_of_nonKing s s' x hwf hwf' hclass hfounds hking
+      hswap hholdx hholdxt
+
+#print axioms fiber_transfer_corrected_of_king
+#print axioms fiber_transfer_corrected_full

@@ -1,6 +1,7 @@
 import Orig2.Vocab
 import Orig2.RevSteps
 import Orig2.FloatFiber
+import Orig2.FiberTransfer
 
 set_option warn.sorry false
 
@@ -281,7 +282,21 @@ conclusion verbatim) under the single added hypothesis
 to the `.inr` grade, the unseated corners are vacuous (the founds
 row pins the foundation; no reversible boarding from
 stock/waste/hidden), and the proven transfer finishes.  The
-remaining open content is EXACTLY the king pairs. -/
+remaining open content is EXACTLY the king pairs.
+
+FINAL UPDATE 2026-10-25 (still the same day): the KING case is
+discharged too, and this row is CLOSED.  `fiber_transfer_corrected_full`
+(`Orig2/FiberTransfer.lean` §12, axiom-clean [propext, Quot.sound])
+proves THIS statement verbatim — no rank split in the statement,
+only in the proof: non-king rides §9, king rides §12 (the
+frozen-king row §10 kills the hidden corners, the hidden transport
+§11 carries `KingBottom` to the far end, the KingBottom-grade
+vacancy arm — `swappableIn_king_of_vacancy'`, whose bare
+hypotheses were unused by the certified proof — fires, and the
+class-vacancy is derived constructively from the premise itself by
+`sameOrbitVacant_of_swappableIn_king`, the first-seat-change
+extraction).  The original statement, restored verbatim at the
+honesty fix, is now DISCHARGED IN FULL. -/
 theorem fiber_transfer_corrected :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
@@ -289,7 +304,7 @@ theorem fiber_transfer_corrected :
       (∃ seatA, s'.pileHolding x = some seatA) →
       (∃ seatA', s'.pileHolding x.twin = some seatA') →
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
-  sorry
+  exact fiber_transfer_corrected_full
 
 /- §S5. The keystone reference (ALREADY CERTIFIED — the license
 every spine/fiber row rides) -/
