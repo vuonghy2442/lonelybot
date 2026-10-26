@@ -74,12 +74,14 @@ The owner's last-return route in ONE card.  This is the whole proof:
   foundation traffic is unconstrained.
 * `swappableIn_iff_raise_reachable` — **THE REACHABLE-LICENSE
   CHARACTERIZATION** (§16, fresh 2026-10-26, the owner's ask): at
-  the `.inr` twin-parent seats, for a non-king pair, swappability
-  is EXACTLY the reachable raise license — either twin, at some
-  class-mate that has not disturbed the twins. Left is the recipe
+  the `.inr` twin-parent seats, swappability is EXACTLY the
+  reachable raise license — either twin, at some class-mate where
+  the twins sit (together) on twin parents. Left is the recipe
   plus the transfer home; right is the first-seat-change argument
   (the fitting class is the two buried parents,
-  `tfc_seat_parent`).
+  `tfc_seat_parent`). No rank restriction — a king cannot sit on
+  a parent (`seated_inr_rank_ne_king`), so the non-king premise
+  was always derivable from the seats.
 
 The card rides ONLY the certified tracked substrate (the fifteen
 imports above).  Every row restated from the retired dependency cards
@@ -2742,18 +2744,20 @@ theorem fiber_transfer_twin_membership :
 /-! ## §16. The reachable-license characterization (fresh, 2026-10-26,
 the owner's ask)
 
-THE IFF the recipe buys: at the `.inr` twin-parent seats, for a
-NON-KING pair, `SwappableIn` is exactly the REACHABLE license - a
-raise of either twin, at some class-mate that has not disturbed
-the twins.  The restriction is honest: kings have the scratch route
-(an empty anchor exchanges them by pure slides, no foundation
-involved), and the raw at-`s` license is refuted by the dance (the
-witness can ARM the license mid-journey - the RHS demands nothing
-at `s` itself, which is exactly what makes the dance captured).
+THE IFF the recipe buys: at the `.inr` twin-parent seats,
+`SwappableIn` is exactly the REACHABLE license - a raise of either
+twin, at some class-mate where the twins sit (together) on twin
+parents.  NO rank restriction: a king cannot sit on a parent at
+all (`seated_inr_rank_ne_king` - the king's fit equation `12 + 1 =
+13` has no solution), so the non-king premise was always derivable
+from the seat hypotheses.  The raw at-`s` license is refuted by
+the dance (the witness can ARM the license mid-journey - the RHS
+demands nothing at `s` itself, which is exactly what makes the
+dance captured).
 
 The proof: ⇐ is the recipe at the armed state plus the transfer
 home (`fiber_transfer_twin_membership`); ⇒ is the first-seat-change
-argument - a non-king twin's only exits are a raise or a slide onto
+argument - a twin's only exits are a raise or a slide onto
 an exposed fitting top, and the fitting class is exactly the two
 parents, each buried under its twin (`tfc_seat_parent`: the card
 you sit on is not a pile top).  This closes the depth-0 rung of the
@@ -2823,10 +2827,11 @@ landing needs an exposed fitting top - but the only two fitting
 cards are the twins' own parents, each buried under its twin
 (`tfc_seat_parent`). -/
 private theorem no_twin_slide {u u' : State} {x z : Card} {b : Base}
-    (hwf : u.WF) (hnk : x.rank ≠ Rank.king)
+    (hwf : u.WF)
     (hx : seatOf u x = some (Sum.inr z))
     (hxt : seatOf u x.twin = some (Sum.inr z.twin))
     (hstep : State.step u (Move.tabToTab x b) = some u') : False := by
+  have hnk : x.rank ≠ Rank.king := seated_inr_rank_ne_king hwf hx
   obtain ⟨-, -, hcp, -, -⟩ := step_tabToTab_inv hstep
   cases b with
   | inl a =>
@@ -2843,12 +2848,15 @@ private theorem no_twin_slide {u u' : State} {x z : Card} {b : Base}
         simp [hburialt] at hptop
 
 /-- **THE REACHABLE-LICENSE CHARACTERIZATION**: at the `.inr`
-twin-parent seats, for a non-king pair, the pair is swappable
-exactly when the raise license is reachable at some class-mate
-where the twins sit (together) on twin parents - possibly the
-SWAPPED pair, since the fitting class is exactly two cards. -/
+twin-parent seats, the pair is swappable exactly when the raise
+license is reachable at some class-mate where the twins sit
+(together) on twin parents - possibly the SWAPPED pair, since the
+fitting class is exactly two cards.  No rank restriction: a king
+cannot sit on a parent at all (`seated_inr_rank_ne_king` - the
+king's fit equation `12 + 1 = 13` has no solution), so the non-king
+premise was always derivable from the seat hypotheses. -/
 theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
-    (hwf : s.WF) (hnk : x.rank ≠ Rank.king)
+    (hwf : s.WF)
     (hx : seatOf s x = some (Sum.inr z))
     (hxt : seatOf s x.twin = some (Sum.inr z.twin)) :
     SwappableIn s x ↔
@@ -2859,6 +2867,7 @@ theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
           reversibleAtW u (Move.tabToFound x.twin)) := by
   constructor
   · rintro ⟨v, hstrict, horb⟩
+    have hnk : x.rank ≠ Rank.king := seated_inr_rank_ne_king hwf hx
     obtain ⟨-, -, ρ, hback⟩ := horb
     have hne : seatOf v x ≠ some (Sum.inr z) := by
       rw [hstrict.1, hxt]
@@ -2918,14 +2927,11 @@ theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
         by_cases hcx : c = x
         · exfalso
           rw [hcx] at hstep
-          exact no_twin_slide hwfu hnk hu1 hu2 hstep
+          exact no_twin_slide hwfu hu1 hu2 hstep
         · by_cases hct : c = x.twin
           · exfalso
             rw [hct] at hstep
-            have hnkt : x.twin.rank ≠ Rank.king := by
-              have htr : x.twin.rank = x.rank := by cases x; rfl
-              rw [htr]; exact hnk
-            exact no_twin_slide hwfu hnkt hu2
+            exact no_twin_slide hwfu hu2
               (show seatOf u x.twin.twin = some (Sum.inr z.twin.twin) from by
                 rw [card_twin_twin, card_twin_twin]; exact hu1)
               hstep
