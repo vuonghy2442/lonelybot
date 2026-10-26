@@ -2202,6 +2202,88 @@ theorem swappableIn_king_iff_vacant {s : State} {x : Card}
 
 #print axioms swappableIn_king_iff_vacant
 
+/-! ### The one-bare refutation (the owner's question, 2026-10-26)
+
+Both `KingBottomCard` premises are tight.  The NECESSITY direction
+of the iff is one-sided (the vacancy is derived from `x`'s own
+pile — `sameOrbitVacant_of_swappableIn_king` reads only `x`'s
+bareness), but the SUFFICIENCY direction genuinely needs both twins
+bare: the letter is an exchange, both kings must travel, and a
+bottomed king over a hidden deck provably cannot leave (`frozen_king`,
+§10).  Witness world: the heart king bare at the first anchor, the
+diamond king FROZEN at the second (over a hidden deuce of spades),
+a third anchor empty — so the class is trivially vacant (the empty
+anchor at `s` itself), the heart king satisfies `KingBottomCard`,
+and the pair is not swappable (the frozen twin can never reach the
+heart king's anchor). -/
+
+/-- The mover: the heart king (twin: the diamond king). -/
+private def hK : Card := Card.mk Suit.heart Rank.king
+
+/-- The frozen deck's hidden card. -/
+private def fHidden : Card := Card.mk Suit.spade Rank.two
+
+/-- The witness world: the heart king bare at `Anchor.p0`, the
+diamond king frozen (bottomed over the hidden deuce) at `Anchor.p1`,
+a third anchor empty, the red rows at `A-Q`, the remaining
+twenty-five cards in stock. -/
+private def fworld : State :=
+  { found := fun su => match su with
+      | .heart => (Suit.upCards .heart).take 12
+      | .diamond => (Suit.upCards .diamond).take 12
+      | .spade => []
+      | .club => [],
+    piles := fun a => match a with
+      | .p0 => ⟨[], [hK]⟩
+      | .p1 => ⟨[fHidden], [hK.twin]⟩
+      | _ => ⟨[], []⟩,
+    stock := Suit.upCards .club ++
+      (Suit.upCards .spade).filter (fun c => decide (c ≠ fHidden)),
+    waste := [],
+    drawStep := 1 }
+
+private theorem fworld_wf : fworld.WF := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro su
+    cases su with
+    | spade => exact ⟨0, rfl⟩
+    | heart => exact ⟨12, rfl⟩
+    | diamond => exact ⟨12, rfl⟩
+    | club => exact ⟨0, rfl⟩
+  · intro a
+    cases a <;> rfl
+  · intro c _
+    rcases c with ⟨su, r⟩
+    cases su <;> cases r <;> decide
+  · decide
+
+/-- **BOTH BARE PREMISES ARE NECESSARY** — the one-`KingBottomCard`
+form of the king characterization is FALSE, machine-checked. -/
+theorem king_iff_vacant_needs_both_bare :
+    ¬ (∀ (s : State) (x : Card), s.WF → KingBottomCard s x →
+        (SwappableIn s x ↔ SameOrbitVacant s)) := by
+  intro h
+  have hholdK : fworld.pileHolding hK = some Anchor.p0 := by decide
+  have hseatK : seatOf fworld hK = some (Sum.inl Anchor.p0) :=
+    tfc_seatOf_inl_intro hholdK
+      (rfl : below hK (fworld.piles Anchor.p0).faceUp = [])
+  have hkb : KingBottomCard fworld hK :=
+    ⟨Anchor.p0, ⟨hK, hseatK, rfl, rfl⟩, hseatK⟩
+  have hvac : SameOrbitVacant fworld :=
+    ⟨fworld, sameOrbitSetoid.iseqv.refl fworld, ⟨Anchor.p2, rfl⟩⟩
+  have hswap : SwappableIn fworld hK := (h fworld hK fworld_wf hkb).mpr hvac
+  have hholdT : fworld.pileHolding hK.twin = some Anchor.p1 := by decide
+  have hseatT : seatOf fworld hK.twin = some (Sum.inl Anchor.p1) :=
+    tfc_seatOf_inl_intro hholdT
+      (rfl : below hK.twin (fworld.piles Anchor.p1).faceUp = [])
+  exact absurd (swappableIn_twin_comm.mp hswap)
+    (not_swappableIn_of_frozen fworld_wf hseatT
+      (show seatOf fworld hK.twin.twin = some (Sum.inl Anchor.p0) from by
+        rw [card_twin_twin]; exact hseatK)
+      (by decide) (by decide))
+
+#print axioms king_iff_vacant_needs_both_bare
+
 /-- **THE KING WRAPPER.**  The original statement's shape under the
 added hypothesis that the pair is a king pair, with the founds row
 WEAKENED to twin-membership preservation (§15 — the only founds
