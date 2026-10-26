@@ -80,7 +80,7 @@ carries its source citation, per the per-file private-kit norm:
 * §1 — `PairFreeOrbit` and its kit (restated from
   `Orig2/TwinPairFreeClass.lean`), the splice functor
   `pairFreeOrbit_splice_of_pairFree` and `notFoundPair_relabelMover`
-  (restated from `Orig2/TwinLastPull.lean:75,201`).
+  (restated from `Archive/TwinLastPull.lean:75,201`).
 * §2 — the foundation arithmetic `upCards_nodup`,
   `posOf_take_of_mem`, `posOf_last_eq_length_sub_one`,
   `found_chop_length_eq_rank` (restated from
@@ -108,23 +108,23 @@ Zero `sorry`, zero `Classical.choice`, no new axioms.
 
 open State
 
-/-! ## §1. Pair-free kit (restated from `Orig2/TwinPairFreeClass.lean`
+/-! ## §1. Pair-free kit (restated from `Archive/TwinPairFreeClass.lean`
 and `Orig2/TwinLastPull.lean` — the per-file kit norm) -/
 
 /-- **`PairFreeOrbit x u v`** — `v` is reachable from `u` by a witness
 shuffle that never raises or pulls either twin.
-(restated from `Orig2/TwinPairFreeClass.lean:55` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeClass.lean:55` — the per-file kit norm) -/
 private def PairFreeOrbit (x : Card) (u v : State) : Prop :=
   ∃ play : List Move, ShufflePlayW u play v ∧ ∀ m ∈ play, NotFoundPair x m
 
 /-- The empty play is pair-free.
-(restated from `Orig2/TwinPairFreeClass.lean:60` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeClass.lean:60` — the per-file kit norm) -/
 private theorem pairFreeOrbit_refl (x : Card) (u : State) :
     PairFreeOrbit x u u :=
   ⟨[], Walk.nil u, by simp⟩
 
 /-- Pair-free orbits compose by concatenating the plays.
-(restated from `Orig2/TwinPairFreeClass.lean:65` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeClass.lean:65` — the per-file kit norm) -/
 private theorem PairFreeOrbit.trans {x : Card} {u v w : State}
     (h₁ : PairFreeOrbit x u v) (h₂ : PairFreeOrbit x v w) :
     PairFreeOrbit x u w := by
@@ -137,7 +137,7 @@ private theorem PairFreeOrbit.trans {x : Card} {u v w : State}
     · exact hnq m hm⟩
 
 /-- A concrete pair-free shuffle is a `PairFreeOrbit` row.
-(restated from `Orig2/TwinPairFreeClass.lean:77` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeClass.lean:77` — the per-file kit norm) -/
 private theorem pairFreeOrbit_of_play {x : Card} {u v : State} {play : List Move}
     (hplay : ShufflePlayW u play v)
     (hno : ∀ m ∈ play, NotFoundPair x m) :
@@ -145,7 +145,7 @@ private theorem pairFreeOrbit_of_play {x : Card} {u v : State} {play : List Move
   ⟨play, hplay, hno⟩
 
 /-- A pair-free move stays pair-free after relabelling its mover.
-(restated from `Orig2/TwinLastPull.lean:75` — the per-file kit norm) -/
+(restated from `Archive/TwinLastPull.lean:75` — the per-file kit norm) -/
 private theorem notFoundPair_relabelMover {x : Card} {m : Move}
     (h : NotFoundPair x m) : NotFoundPair x (Move.relabelMover x m) := by
   obtain ⟨h1, h2, h3, h4⟩ := h
@@ -168,7 +168,7 @@ private theorem notFoundPair_relabelMover {x : Card} {m : Move}
 
 /-- **The splice functor on pair-free plays.**  A pair-free witness
 shuffle `s → t` maps to a pair-free witness shuffle of the run splices.
-(restated from `Orig2/TwinLastPull.lean:201` — the per-file kit norm) -/
+(restated from `Archive/TwinLastPull.lean:201` — the per-file kit norm) -/
 private theorem pairFreeOrbit_splice_of_pairFree {x : Card} {s t : State} {play : List Move}
     (hwf : s.WF) (hx : ∃ z, seatOf s x = some (Sum.inr z))
     (hxt : ∃ z : Card, seatOf s x.twin = some (Sum.inr z.twin))
@@ -207,7 +207,7 @@ arrives by the `Orig2.KingSwapAssembly` import's transitive closure) -/
 
 /-- The first-occurrence position of a member is unchanged by taking a
 prefix that still contains it.
-(restated from `Orig2/TwinPairFreeRev.lean:48` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeRev.lean:48` — the per-file kit norm) -/
 private theorem posOf_take_of_mem {α : Type} [DecidableEq α] :
     ∀ (l : List α) (x : α), x ∈ l → ∀ n, x ∈ l.take n →
       FoundKit.posOf x (l.take n) = FoundKit.posOf x l := by
@@ -238,7 +238,7 @@ private theorem posOf_take_of_mem {α : Type} [DecidableEq α] :
                 ih x hxt' m hxt]
 
 /-- In a nodup list, the last element sits at the final index.
-(restated from `Orig2/TwinPairFreeRev.lean:78` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeRev.lean:78` — the per-file kit norm) -/
 private theorem posOf_last_eq_length_sub_one {l : List Card} {c : Card}
     (hnd : l.Nodup) (hlast : lastOf l = some c) :
     FoundKit.posOf c l = l.length - 1 := by
@@ -266,7 +266,7 @@ private theorem posOf_last_eq_length_sub_one {l : List Card} {c : Card}
           rfl
 
 /-- A `WF` foundation's chop length is the rank index of its top card.
-(restated from `Orig2/TwinPairFreeRev.lean:105` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeRev.lean:105` — the per-file kit norm) -/
 private theorem found_chop_length_eq_rank {st : State} {s : Suit} {c : Card}
     (hwf : st.WF) (htop : st.foundTop s = some c) :
     (chop (st.found s)).length = c.rank.toIdx := by
@@ -304,7 +304,7 @@ private theorem found_chop_length_eq_rank {st : State} {s : Suit} {c : Card}
 
 /-- **The self-arming law.**  A successful `foundToTab c b` leaves the
 post-state next-up for `c`: the chop re-arms the raise.
-(restated from `Orig2/TwinSelfArm.lean:30` — the per-file kit norm) -/
+(restated from `Archive/TwinSelfArm.lean:30` — the per-file kit norm) -/
 private theorem nextUp_of_foundToTab {u s : State} {c : Card} {b : Base}
     (hwf : u.WF) (hstep : State.step u (Move.foundToTab c b) = some s) :
     s.nextUp c = true := by
@@ -325,7 +325,7 @@ always has a giveback seat — the card beneath it (the chop-cons
 cell), or the king's vacate (the anchor landing, kings only).
 This is the `hraise` cell the twin-swap recipe consumes, satisfied
 by the return itself.
-(restated from `Orig2/TwinSelfArm.lean:50` — the per-file kit norm) -/
+(restated from `Archive/TwinSelfArm.lean:50` — the per-file kit norm) -/
 private theorem reversibleAtW_tabToFound_of_foundToTab {u s : State} {c : Card} {b : Base}
     (hwf : u.WF) (hstep : State.step u (Move.foundToTab c b) = some s) :
     reversibleAtW s (Move.tabToFound c) := by
@@ -373,7 +373,7 @@ directly, and the twin-comm row below is restated from
 `Orig2/TwinBothCovered.lean:249`). -/
 
 /-- `SwappableIn` is symmetric in the two members of the pair
-(restated from `Orig2/TwinBothCovered.lean:249` — the per-file kit norm). -/
+(restated from `Archive/TwinBothCovered.lean:249` — the per-file kit norm). -/
 theorem swappableIn_twin_comm {s : State} {x : Card} :
     SwappableIn s x ↔ SwappableIn s x.twin := by
   constructor
@@ -397,7 +397,7 @@ If the twins are seated on `.inr` parents at both ends of a `NotFoundPair`
 witness play `s → t`, then `SwappableIn` transfers — the point-hom
 square of `swappableIn_transfer_point_pairFree` follows from the play by
 the splice functor.
-(restated from `Orig2/TwinPairFreeTransfer.lean:60` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeTransfer.lean:60` — the per-file kit norm) -/
 theorem swappableIn_transfer_of_pairFreePath
     {s t : State} {x : Card} {play : List Move}
     (hwf : s.WF) (hwf' : t.WF)
@@ -423,7 +423,7 @@ twin); the founds row is dropped — the proof does not read it, so the
 journey may change founds via other cards' letters.  `SwappableIn` is
 definitionally the stub's existential shape (`Orig2/Vocab.lean`), so the
 conclusion is the stub's verbatim.
-(restated from `Orig2/TwinPairFreeTransfer.lean:85` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeTransfer.lean:85` — the per-file kit norm) -/
 theorem fiber_transfer_of_pair_free_path :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       PairFreeOrbit x s s' →
@@ -440,12 +440,12 @@ theorem fiber_transfer_of_pair_free_path :
 
 #print axioms fiber_transfer_of_pair_free_path
 
-/-! ## §5. Seat & parent kit (restated from `Orig2/TwinForcedCancel.lean`,
+/-! ## §5. Seat & parent kit (restated from `Archive/TwinForcedCancel.lean`,
 `Orig2/TwinFoundationRow.lean`, `Orig2/TwinPreludeFunctor.lean` — the
 per-file kit norm) -/
 
 /-- Expose the first letter of a witness walk.
-(restated from `Orig2/TwinForcedCancel.lean:81` — the per-file kit norm) -/
+(restated from `Archive/TwinForcedCancel.lean:81` — the per-file kit norm) -/
 private theorem walk_cons_inv {P : State → Move → Prop} {st s' : State}
     {m : Move} {ρ : List Move} (h : Walk P st (m :: ρ) s') :
     ∃ s1, P st m ∧ State.step st m = some s1 ∧ Walk P s1 ρ s' := by
@@ -453,7 +453,7 @@ private theorem walk_cons_inv {P : State → Move → Prop} {st s' : State}
   | cons hlet hstep hrest => exact ⟨_, hlet, hstep, hrest⟩
 
 /-- A foundation card is off the tableau, hence unseated.
-(restated from `Orig2/TwinForcedCancel.lean:90` — the per-file kit norm) -/
+(restated from `Archive/TwinForcedCancel.lean:90` — the per-file kit norm) -/
 private theorem seatOf_none_of_mem_found {s : State} (hwf : s.WF) {c : Card}
     (h : c ∈ s.found c.suit) : seatOf s c = none := by
   apply tfc_seatOf_none
@@ -462,7 +462,7 @@ private theorem seatOf_none_of_mem_found {s : State} (hwf : s.WF) {c : Card}
   exact ((mem_found_unique hwf h).1 a).2 hmem
 
 /-- A successful raise appends the raised card to its foundation row.
-(restated from `Orig2/TwinFoundationRow.lean:107` — the per-file kit norm) -/
+(restated from `Archive/TwinFoundationRow.lean:107` — the per-file kit norm) -/
 private theorem raise_found_self {s s1 : State} {c : Card}
     (hraise : State.step s (Move.tabToFound c) = some s1) :
     s1.found c.suit = s.found c.suit ++ [c] := by
@@ -471,7 +471,7 @@ private theorem raise_found_self {s s1 : State} {c : Card}
   exact setFound_found_self
 
 /-- A card seated `.inr` on a card parent is not a king.
-(restated from `Orig2/TwinFoundationRow.lean:180` — the per-file kit norm) -/
+(restated from `Archive/TwinFoundationRow.lean:180` — the per-file kit norm) -/
 private theorem seated_inr_rank_ne_king {s : State} {c r : Card}
     (hwf : s.WF) (hseat : seatOf s c = some (Sum.inr r)) :
     c.rank ≠ Rank.king := by
@@ -485,7 +485,7 @@ private theorem seated_inr_rank_ne_king {s : State} {c r : Card}
 
 /-- The twin-left fitting law, copied from the seam-private rows: the
 mover's suit twin does not change the pile-fit predicate.
-(restated from `Orig2/TwinPreludeFunctor.lean:433` — the per-file kit norm) -/
+(restated from `Archive/TwinPreludeFunctor.lean:433` — the per-file kit norm) -/
 private theorem canSitOn_twin_left' (c b : Card) :
     canSitOn c.twin b = canSitOn c b := by
   rcases c with ⟨s, r⟩
@@ -495,7 +495,7 @@ private theorem canSitOn_twin_left' (c b : Card) :
 /-- Two distinct twins cannot share the same direct parent: both would sit
 at the same successor position in one legal run, contradicting the strict
 rank descent.
-(restated from `Orig2/TwinPreludeFunctor.lean:442` — the per-file kit norm) -/
+(restated from `Archive/TwinPreludeFunctor.lean:442` — the per-file kit norm) -/
 private theorem not_twin_same_parent {u : State} {x z : Card}
     (hwf : u.WF)
     (hx : seatOf u x = some (Sum.inr z))
@@ -519,7 +519,7 @@ private theorem not_twin_same_parent {u : State} {x z : Card}
 /-- **The two parent witnesses align.**  If `x` is on `z` and `x.twin` is
 on `zt.twin`, then `zt = z`: the only other fitting parent is the twin of
 the first, and the same-parent alternative is impossible.
-(restated from `Orig2/TwinPreludeFunctor.lean:465` — the per-file kit norm) -/
+(restated from `Archive/TwinPreludeFunctor.lean:465` — the per-file kit norm) -/
 private theorem twin_parent_eq_of_seats {u : State} {x z zt : Card}
     (hwf : u.WF)
     (hx : seatOf u x = some (Sum.inr z))
@@ -544,7 +544,7 @@ private theorem twin_parent_eq_of_seats {u : State} {x z zt : Card}
 /-! ### Kit — splitting a walk over an appended list -/
 
 /-- Split a witness walk over an appended list.
-(restated from `Orig2/TwinFirstTouchReduction.lean:58` — the per-file
+(restated from `Archive/TwinFirstTouchReduction.lean:58` — the per-file
 kit norm) -/
 private theorem walk_append_split {P : State → Move → Prop}
     {a c : State} {l1 l2 : List Move} (h : Walk P a (l1 ++ l2) c) :
@@ -588,7 +588,7 @@ private theorem not_notFoundPair_of_isPairFound {x : Card} {m : Move}
 that fires is necessarily a RAISE of a twin: the pull shapes
 (`foundToTab x b` / `foundToTab x.twin b`) cannot fire, because a
 seated card is not on the foundation.
-(restated from `Orig2/TwinFirstTouchReduction.lean:100` — the per-file
+(restated from `Archive/TwinFirstTouchReduction.lean:100` — the per-file
 kit norm) -/
 private theorem firstTouch_is_raise {w w' : State} {x : Card} {m : Move}
     (hwf : w.WF)
@@ -624,7 +624,7 @@ transfer with the FIRST touching move made explicit.  The swap is
 already available at the pre-touch state `w` (provided by the pair-free
 prefix in the reduction); one reversible touching move fires; the
 suffix to the seated end `v` is arbitrary.
-(restated from `Orig2/TwinFirstTouchReduction.lean:134` — the per-file
+(restated from `Archive/TwinFirstTouchReduction.lean:134` — the per-file
 kit norm) -/
 def FirstTouchRestart : Prop :=
   ∀ (w w' v : State) (x : Card) (rest : List Move),
@@ -643,7 +643,7 @@ from seated, swap-available `s` to seated `t` either never touches the
 twin — the landed pair-free card — or its first touching move is
 reached with availability already transferred to the pre-touch state;
 `FirstTouchRestart` finishes.
-(restated from `Orig2/TwinFirstTouchReduction.lean:151` — the per-file
+(restated from `Archive/TwinFirstTouchReduction.lean:151` — the per-file
 kit norm) -/
 private theorem swappableIn_transfer_of_firstTouchRestart
     (hR : FirstTouchRestart)
@@ -674,7 +674,7 @@ private theorem swappableIn_transfer_of_firstTouchRestart
 
 /-- **THE REDUCTION (class form).**  The campaign's rigidity row at the
 `BitWellDefined` grade: availability transfers along the class.
-(restated from `Orig2/TwinFirstTouchReduction.lean:180` — the per-file
+(restated from `Archive/TwinFirstTouchReduction.lean:180` — the per-file
 kit norm) -/
 private theorem swappableIn_transfer_class_of_firstTouchRestart
     (hR : FirstTouchRestart)
@@ -1130,7 +1130,7 @@ private theorem firstTouchRestart_aux {w w' v : State} {x T : Card}
 /-- **`FirstTouchRestart` proved: the last-return route.**  The owner's
 route, completed: the transfer is NOT carried through the excursion — it
 is RECONSTRUCTED at the last return.
-(restated from `Orig2/TwinLastReturn.lean:487` — the per-file kit norm) -/
+(restated from `Archive/TwinLastReturn.lean:487` — the per-file kit norm) -/
 theorem firstTouchRestart : FirstTouchRestart := by
   intro w w' v x rest hwf hvf hsx hstx htx httx hswap htouch
   obtain ⟨m, hm, hrev, hstep, hrest⟩ := htouch
@@ -1154,7 +1154,7 @@ theorem firstTouchRestart : FirstTouchRestart := by
 
 /-- **THE CORRECTED FIBER TRANSFER** (the `.inr`-seat grade): swap
 availability transfers along the class.
-(restated from `Orig2/TwinLastReturn.lean:510` — the per-file kit norm) -/
+(restated from `Archive/TwinLastReturn.lean:510` — the per-file kit norm) -/
 theorem fiber_transfer_of_last_return :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' →
@@ -2249,6 +2249,12 @@ theorem fiber_transfer_of_king :
               hne.symm hhidB)
       · exact absurd hswap (not_swappableIn_of_frozen hwf hx hxt hne hhidA)
 
+/-- The per-card membership iff implied by full founds equality
+(the §15 insight, packaged): the row's only content, per card. -/
+private theorem mem_found_of_eq {s s' : State} (hfounds : s.found = s'.found)
+    (c : Card) : c ∈ s.found c.suit ↔ c ∈ s'.found c.suit :=
+  ⟨fun h => by rw [← hfounds]; exact h, fun h => by rw [hfounds]; exact h⟩
+
 /-- **THE ORIGINAL `fiber_transfer`, DISCHARGED.**  The
 ledger stub's statement VERBATIM — every hypothesis, the conclusion
 verbatim, no rank split in the statement — proven by splitting on the
@@ -2263,10 +2269,10 @@ theorem fiber_transfer_full :
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
   intro s s' x hwf hwf' hclass hfounds hswap hholdx hholdxt
   have hxw : x ∈ s.found x.suit → x ∈ s'.found x.suit :=
-    fun h => by rw [← hfounds]; exact h
+    (mem_found_of_eq hfounds x).mp
   have hxtw : x.twin ∈ s.found x.twin.suit →
       x.twin ∈ s'.found x.twin.suit :=
-    fun h => by rw [← hfounds]; exact h
+    (mem_found_of_eq hfounds x.twin).mp
   by_cases hking : x.rank = Rank.king
   · exact fiber_transfer_of_king s s' x hwf hwf' hclass hxw hxtw hking hswap
       hholdx hholdxt
@@ -2367,6 +2373,33 @@ theorem unseated_of_orbit {s s' : State} {x : Card}
     obtain ⟨hseat', -⟩ := unseated_track_play hwf hπ hx hmem
     exact hseat'
 
+/-- **The shared arrows route**: the dichotomy at the source, the
+pins to the far end, then the rank-split wrappers or the vacuous
+swap — the single home of the §13/§15 skeleton. -/
+private theorem fiber_transfer_of_arrows {s s' : State} {x : Card}
+    (hwf : s.WF) (hwf' : s'.WF) (hclass : sameOrbitSetoid.r s s')
+    (hxw : x ∈ s.found x.suit ↔ x ∈ s'.found x.suit)
+    (hxtw : x.twin ∈ s.found x.twin.suit ↔ x.twin ∈ s'.found x.twin.suit)
+    (hswap : ∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) :
+    ∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v' := by
+  rcases seats_both_or_neither_of_swappable hwf hswap with ⟨hxs, hxts⟩ | ⟨hxs, hxts⟩
+  · have hseatx' : seatOf s' x ≠ none :=
+      seated_of_orbit hwf hwf' hclass hxw.mpr hxs
+    have hseatt' : seatOf s' x.twin ≠ none :=
+      seated_of_orbit hwf hwf' hclass hxtw.mpr hxts
+    by_cases hking : x.rank = Rank.king
+    · exact fiber_transfer_of_king s s' x hwf hwf' hclass
+        hxw.mp hxtw.mp hking hswap
+        (pileHolding_of_seatOf_ne_none hseatx')
+        (pileHolding_of_seatOf_ne_none hseatt')
+    · exact fiber_transfer_of_nonking s s' x hwf hwf' hclass
+        hxw.mp hxtw.mp hking hswap
+        (pileHolding_of_seatOf_ne_none hseatx')
+        (pileHolding_of_seatOf_ne_none hseatt')
+  · exact swappableIn_of_both_unseated
+      (unseated_of_orbit hwf hwf' hclass hxw.mp hxs)
+      (unseated_of_orbit hwf hwf' hclass hxtw.mp hxts)
+
 /-- **THE SEAT-FREE STRENGTHENING** — the original statement minus
 BOTH `pileHolding` premises (the owner's second observation,
 2026-10-25): the premises are derivable.  The founds row, never
@@ -2377,19 +2410,8 @@ theorem fiber_transfer_seat_free :
       (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
   intro s s' x hwf hwf' hclass hfounds hswap
-  rcases seats_both_or_neither_of_swappable hwf hswap with ⟨hxs, hxts⟩ | ⟨hxs, hxts⟩
-  · refine fiber_transfer_full s s' x hwf hwf' hclass hfounds hswap ?_ ?_
-    · exact pileHolding_of_seatOf_ne_none
-        (seated_of_orbit hwf hwf' hclass
-          (fun h => by rw [hfounds]; exact h) hxs)
-    · exact pileHolding_of_seatOf_ne_none
-        (seated_of_orbit hwf hwf' hclass
-          (fun h => by rw [hfounds]; exact h) hxts)
-  · exact swappableIn_of_both_unseated
-      (unseated_of_orbit hwf hwf' hclass
-        (fun h => by rw [← hfounds]; exact h) hxs)
-      (unseated_of_orbit hwf hwf' hclass
-        (fun h => by rw [← hfounds]; exact h) hxts)
+  exact fiber_transfer_of_arrows hwf hwf' hclass
+    (mem_found_of_eq hfounds x) (mem_found_of_eq hfounds x.twin) hswap
 
 #print axioms seats_both_or_neither_of_swappable
 #print axioms seated_of_orbit
@@ -2546,22 +2568,6 @@ theorem fiber_transfer_twin_membership :
       (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
   intro s s' x hwf hwf' hclass hxw hxtw hswap
-  rcases seats_both_or_neither_of_swappable hwf hswap with ⟨hxs, hxts⟩ | ⟨hxs, hxts⟩
-  · have hseatx' : seatOf s' x ≠ none :=
-      seated_of_orbit hwf hwf' hclass hxw.mpr hxs
-    have hseatt' : seatOf s' x.twin ≠ none :=
-      seated_of_orbit hwf hwf' hclass hxtw.mpr hxts
-    by_cases hking : x.rank = Rank.king
-    · exact fiber_transfer_of_king s s' x hwf hwf' hclass
-        hxw.mp hxtw.mp hking hswap
-        (pileHolding_of_seatOf_ne_none hseatx')
-        (pileHolding_of_seatOf_ne_none hseatt')
-    · exact fiber_transfer_of_nonking s s' x hwf hwf' hclass
-        hxw.mp hxtw.mp hking hswap
-        (pileHolding_of_seatOf_ne_none hseatx')
-        (pileHolding_of_seatOf_ne_none hseatt')
-  · exact swappableIn_of_both_unseated
-      (unseated_of_orbit hwf hwf' hclass hxw.mp hxs)
-      (unseated_of_orbit hwf hwf' hclass hxtw.mp hxts)
+  exact fiber_transfer_of_arrows hwf hwf' hclass hxw hxtw hswap
 
 #print axioms fiber_transfer_twin_membership
