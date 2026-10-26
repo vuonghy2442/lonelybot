@@ -12,3 +12,4 @@ lean-verify
 target_*
 Temp
 .kilo/
+THEOREM_INDEX.txt
