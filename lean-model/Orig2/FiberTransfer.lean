@@ -2173,6 +2173,32 @@ theorem sameOrbitVacant_of_swappableIn_king {s : State} {x : Card} {a a' : Ancho
           rw [tfc_seat_point_edit hwfu hstep hrev x, ite_eq_right hcy]
           exact huseat) hu'seat
 
+/-- **THE KING CHARACTERIZATION**: for a WF pair of twin kings seated
+at distinct BARE anchors (empty hidden decks), the pair is strictly
+swappable exactly when the reversible class carries a vacant anchor.
+The two halves were certified separately — the necessity here (which
+needs only `x`'s anchor bare), the sufficiency in
+`Orig2/KingSwapAssembly.lean` (`swappableIn_king_of_vacancy'`, which
+needs both) — this row only assembles them.  Since `SameOrbitVacant`
+is class-invariant (`sameOrbitVacant_iff`,
+`Orig2/KingOrbitFull.lean`), the characterization reads one level up:
+a bare king pair's swappability is a property of the whole reversible
+class.  (The seats are essential — a foundation pair satisfies the
+strict letter vacuously with `v = s`, the campaign's own warning on
+`not_swappableIn_king_of_not_vacant`.) -/
+theorem swappableIn_king_iff_vacant {s : State} {x : Card} {a a' : Anchor}
+    (hwf : s.WF) (hking : x.rank = Rank.king)
+    (hx : seatOf s x = some (Sum.inl a))
+    (hxt : seatOf s x.twin = some (Sum.inl a'))
+    (hne : a ≠ a')
+    (hhidA : (s.piles a).hidden = [])
+    (hhidB : (s.piles a').hidden = []) :
+    SwappableIn s x ↔ SameOrbitVacant s :=
+  ⟨sameOrbitVacant_of_swappableIn_king hwf hking hx hxt hne hhidA,
+    swappableIn_king_of_vacancy' hwf hking hx hxt hne hhidA hhidB⟩
+
+#print axioms swappableIn_king_iff_vacant
+
 /-- **THE KING WRAPPER.**  The original statement's shape under the
 added hypothesis that the pair is a king pair, with the founds row
 WEAKENED to twin-membership preservation (§15 — the only founds
