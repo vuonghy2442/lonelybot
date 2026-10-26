@@ -66,7 +66,7 @@ The owner's last-return route in ONE card.  This is the whole proof:
   founds-free statement is FALSE, refuted by the twin-kings witness
   world (both kings on full foundations; one reversible pull onto
   the empty anchor strands a mixed pair at the far end).
-* `fiber_transfer_corrected_strong_twinMem` — **THE TWIN-MEMBERSHIP
+* `fiber_transfer_corrected_twin_membership` — **THE TWIN-MEMBERSHIP
   WEAKENING** (§15, fresh 2026-10-25, the owner's third
   observation): the founds row collapses to twin-membership
   preservation — every read in the certified stack is a per-card
@@ -2538,7 +2538,7 @@ is on its foundation row at `s` iff it is at `s'`.  Strictly
 stronger than §13's `fiber_transfer_corrected_strong` (founds
 equality implies both iffs) and consistent with §14's refutation
 (the twin-kings witness violates the heart king's iff). -/
-theorem fiber_transfer_corrected_strong_twinMem :
+theorem fiber_transfer_corrected_twin_membership :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' →
       (x ∈ s.found x.suit ↔ x ∈ s'.found x.suit) →
@@ -2564,4 +2564,4 @@ theorem fiber_transfer_corrected_strong_twinMem :
       (unseated_of_orbit hwf hwf' hclass hxw.mp hxs)
       (unseated_of_orbit hwf hwf' hclass hxtw.mp hxts)
 
-#print axioms fiber_transfer_corrected_strong_twinMem
+#print axioms fiber_transfer_corrected_twin_membership

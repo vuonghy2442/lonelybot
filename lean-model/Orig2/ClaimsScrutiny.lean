@@ -319,7 +319,7 @@ floor - the seats were derivable, the founds row is not.
 
 AND WEAKER STILL (the owner's third observation, same day): the
 founds row is READ only as twin-membership transfer -
-`fiber_transfer_corrected_strong_twinMem`
+`fiber_transfer_corrected_twin_membership`
 (`Orig2/FiberTransfer.lean` §15, axiom-clean [propext,
 Quot.sound]) replaces the row with TWIN-MEMBERSHIP PRESERVATION
 (each twin on its row at s iff at s'), leaving the other fifty
