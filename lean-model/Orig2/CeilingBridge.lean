@@ -1,4 +1,5 @@
 import Orig2.PairClassSeed
+import Orig2.Classification
 
 /-!
 # Orig2.CeilingBridge — THE FORKLESS-CEILING REDUCTION CARD
@@ -27,6 +28,13 @@ proof needs is certified below:
   differing rungs already name the differing card — founded at the
   deep endpoint, at-rung and missing at the shallow one — the
   split the dip argument starts from.
+* **§4 THE ATTACK'S LEDGER** — the witness-journey machinery:
+  `shuffle_rung_census` (the additive rung ledger — every suit's
+  rung moves by exactly its raises minus its pulls), its
+  net-pull read `shuffle_rung_fall_pulls`, and `found_exodus`
+  (the card's own pull is the only removal letter).  These three
+  rows are WF-free and ride the classification card's letter
+  exclusions (the waste letters never ride a witness journey).
 
 THE RESIDUE'S ROUTE (priced; the full route lives on the registry
 def's own docstring): the witness-journey dip — the rung ledger
@@ -36,8 +44,9 @@ raise, and the `SSaturated` endpoints' two bars (cargo above
 frontier; twin tops no pile) confining the dip's live set to the
 pair.
 
-House compliance: additive leaf (`Orig2.PairClassSeed` only — the
-seed kit plus the certified seam); per-row provenance docstrings;
+House compliance: additive leaf (`Orig2.PairClassSeed` +
+`Orig2.Classification` — the seed kit, plus the classification
+card's waste-letter exclusions); per-row provenance docstrings;
 zero `sorry`, zero `Classical.choice`; the battery at the tail.
 -/
 
@@ -144,7 +153,161 @@ theorem rung_diff_exhibit {u v : State} (hu : u.WF) (hv : v.WF)
       FoundKit.Rk_toIdx _ hk] at hlt'
     exact Nat.lt_irrefl _ hlt'
 
-/-! ## §4. The battery -/
+/-! ## §4. The attack's ledger (the witness-journey machinery) -/
+
+/-- **THE RUNG CENSUS** — along any witness shuffle, every suit's
+rung changes by exactly its raise letters minus its pull letters:
+the additive ledger the dip argument nets (the differing card's
+exodus is a net pull, the twin's raise is a net raise).  The waste
+letters never ride a witness journey (each is irreversible — the
+classification card's exclusion rows), so the four reversible
+letters are the whole story.  WF-free.  (The frozen precedent
+`witness_rung_census`, `Orig/BracketDecomp.lean:511`.) -/
+theorem shuffle_rung_census {st w : State} {ρ : List Move}
+    (h : ShufflePlayW st ρ w) : ∀ σ : Suit,
+    rungAt w σ + pullsOf ρ σ = rungAt st σ + raisesOf ρ σ := by
+  induction h with
+  | nil st => intro σ; rfl
+  | @cons st s₁ W m ρ hleg hstep hrest ih =>
+    intro σ
+    rcases m with _ | c | ⟨c, b⟩ | c | ⟨c, b⟩ | ⟨c, b⟩
+    · -- draw: foundations untouched
+      have hd : st.stepDraw = some s₁ := hstep
+      have hr : rungAt s₁ σ = rungAt st σ := by
+        show (s₁.found σ).length = (st.found σ).length
+        rw [stepDraw_found hd]
+      have ihσ := ih σ
+      show rungAt W σ + pullsOf ρ σ = rungAt st σ + raisesOf ρ σ
+      omega
+    · exact absurd hleg (wasteToFound_not_reversibleAtW st c)
+    · exact absurd hleg (wasteToTab_not_reversibleAtW st c b)
+    · -- tabToFound: the rung climbs exactly one on the raised suit
+      have hraise : raisesOf (Move.tabToFound c :: ρ) σ
+          = (if c.suit = σ then 1 else 0) + raisesOf ρ σ := rfl
+      have hpull : pullsOf (Move.tabToFound c :: ρ) σ = pullsOf ρ σ := rfl
+      obtain ⟨-, a, -, hs₁⟩ := step_tabToFound_inv hstep
+      obtain ⟨hF1, hF2, -⟩ := tabToFound_found_trio hs₁
+      have ihσ := ih σ
+      rw [hraise, hpull]
+      by_cases hσ : c.suit = σ
+      · rw [ite_eq_left hσ]
+        have hr : rungAt s₁ σ = rungAt st σ + 1 := by
+          show (s₁.found σ).length = (st.found σ).length + 1
+          rw [← hσ, hF1, List.length_append, List.length_singleton]
+        omega
+      · rw [ite_eq_right hσ]
+        have hr : rungAt s₁ σ = rungAt st σ := by
+          show (s₁.found σ).length = (st.found σ).length
+          rw [hF2 σ (Ne.symm hσ)]
+        omega
+    · -- foundToTab: the rung falls exactly one on the pulled suit
+      have hraise : raisesOf (Move.foundToTab c b :: ρ) σ
+          = raisesOf ρ σ := rfl
+      have hpull : pullsOf (Move.foundToTab c b :: ρ) σ
+          = (if c.suit = σ then 1 else 0) + pullsOf ρ σ := rfl
+      obtain ⟨c', htop, hc', -, hs₁⟩ := step_foundToTab_inv hstep
+      have hlast : st.foundTop c.suit = some c := by rw [htop, hc']
+      have hsnoc : st.found c.suit = chop (st.found c.suit) ++ [c] :=
+        lastOf_chop hlast
+      have hlen := congrArg List.length hsnoc
+      rw [List.length_append, List.length_singleton] at hlen
+      have ihσ := ih σ
+      rw [hraise, hpull]
+      by_cases hσ : c.suit = σ
+      · rw [ite_eq_left hσ]
+        have hr : rungAt s₁ σ + 1 = rungAt st σ := by
+          rw [← hσ]
+          show (s₁.found c.suit).length + 1 = (st.found c.suit).length
+          rw [hs₁, putCard_found, setFound_found_self]
+          omega
+        omega
+      · rw [ite_eq_right hσ]
+        have hr : rungAt s₁ σ = rungAt st σ := by
+          show (s₁.found σ).length = (st.found σ).length
+          rw [hs₁, putCard_found, setFound_found_ne (Ne.symm hσ)]
+        omega
+    · -- tabToTab: foundations untouched
+      obtain ⟨a, hh, hcp, hne, hs₁⟩ := step_tabToTab_inv hstep
+      have hr : rungAt s₁ σ = rungAt st σ := by
+        show (s₁.found σ).length = (st.found σ).length
+        rw [hs₁, putRun_found, setPile_found]
+      have ihσ := ih σ
+      show rungAt W σ + pullsOf ρ σ = rungAt st σ + raisesOf ρ σ
+      omega
+
+/-- The census's imbalance read: a suit whose rung FALLS along a
+witness journey has strictly more pull letters than raise letters —
+the dip argument's net-pull leg (the differing card's exodus
+certifies the σ-pull; the letters name it). -/
+theorem shuffle_rung_fall_pulls {st w : State} {ρ : List Move}
+    (h : ShufflePlayW st ρ w) {σ : Suit}
+    (hlt : rungAt w σ < rungAt st σ) : raisesOf ρ σ < pullsOf ρ σ := by
+  have hc := shuffle_rung_census h σ
+  omega
+
+/-- **THE FOUND-EXODUS LAW** — a card foundation-resident at a
+witness journey's start and absent at its end has passed a literal
+pull of itself: `foundToTab` is the only letter that ever removes
+a card from its foundation (and on a witness journey the waste
+letters never ride).  (The frozen precedent `cross_found_exodus`,
+`Orig/CrossFamily.lean:502`.) -/
+theorem found_exodus {st w : State} {ρ : List Move}
+    (h : ShufflePlayW st ρ w) : ∀ {c : Card},
+    c ∈ st.found c.suit → c ∉ w.found c.suit →
+    ∃ b, Move.foundToTab c b ∈ ρ := by
+  induction h with
+  | nil st => intro c hmem hnmem; exact absurd hmem hnmem
+  | @cons st s₁ W m ρ hleg hstep hrest ih =>
+    intro c hmem hnmem
+    rcases m with _ | c' | ⟨c', b⟩ | c' | ⟨c', b⟩ | ⟨c', b⟩
+    · -- draw: foundations untouched
+      have hd : st.stepDraw = some s₁ := hstep
+      obtain ⟨bb, hb⟩ := ih (by rw [stepDraw_found hd]; exact hmem) hnmem
+      exact ⟨bb, List.mem_cons.mpr (Or.inr hb)⟩
+    · exact absurd hleg (wasteToFound_not_reversibleAtW st c')
+    · exact absurd hleg (wasteToTab_not_reversibleAtW st c' b)
+    · -- tabToFound: membership only ever gained
+      obtain ⟨-, a, -, hs₁⟩ := step_tabToFound_inv hstep
+      obtain ⟨hF1, hF2, -⟩ := tabToFound_found_trio hs₁
+      have hmem' : c ∈ s₁.found c.suit := by
+        by_cases hσ : c'.suit = c.suit
+        · rw [← hσ] at hmem
+          rw [← hσ, hF1]
+          exact List.mem_append.mpr (Or.inl hmem)
+        · rw [hF2 c.suit (Ne.symm hσ)]; exact hmem
+      obtain ⟨bb, hb⟩ := ih hmem' hnmem
+      exact ⟨bb, List.mem_cons.mpr (Or.inr hb)⟩
+    · -- foundToTab: the ONLY removal letter
+      obtain ⟨c'', htop, hc'', -, hs₁⟩ := step_foundToTab_inv hstep
+      by_cases hcc : c' = c
+      · subst hcc
+        exact ⟨b, List.mem_cons_self⟩
+      · have hmem' : c ∈ s₁.found c.suit := by
+          by_cases hσ : c'.suit = c.suit
+          · -- same suit, different card: the pulled card was the top
+            have hlast : st.foundTop c.suit = some c' := by
+              rw [← hσ, htop, hc'']
+            have hsnoc : st.found c.suit = chop (st.found c.suit) ++ [c'] :=
+              lastOf_chop hlast
+            have hchop : c ∈ chop (st.found c.suit) := by
+              rcases List.mem_append.mp (by rw [← hsnoc]; exact hmem) with h | h
+              · exact h
+              · exact absurd (List.mem_singleton.mp h).symm hcc
+            have hE : s₁.found c.suit = chop (st.found c.suit) := by
+              rw [hs₁, putCard_found, hσ, setFound_found_self]
+            rw [hE]; exact hchop
+          · have hE : s₁.found c.suit = st.found c.suit := by
+              rw [hs₁, putCard_found, setFound_found_ne (Ne.symm hσ)]
+            rw [hE]; exact hmem
+        obtain ⟨bb, hb⟩ := ih hmem' hnmem
+        exact ⟨bb, List.mem_cons.mpr (Or.inr hb)⟩
+    · -- tabToTab: foundations untouched
+      obtain ⟨a, hh, hcp, hne, hs₁⟩ := step_tabToTab_inv hstep
+      obtain ⟨bb, hb⟩ := ih
+        (by rw [hs₁, putRun_found, setPile_found]; exact hmem) hnmem
+      exact ⟨bb, List.mem_cons.mpr (Or.inr hb)⟩
+
+/-! ## §5. The battery -/
 
 #print axioms rungAt_le13
 #print axioms found_congr_of_rungs
@@ -152,3 +315,6 @@ theorem rung_diff_exhibit {u v : State} (hu : u.WF) (hv : v.WF)
 #print axioms forkless_rungs_agree
 #print axioms forkless_found_unique
 #print axioms rung_diff_exhibit
+#print axioms shuffle_rung_census
+#print axioms shuffle_rung_fall_pulls
+#print axioms found_exodus
