@@ -2844,16 +2844,17 @@ private theorem no_twin_slide {u u' : State} {x z : Card} {b : Base}
 
 /-- **THE REACHABLE-LICENSE CHARACTERIZATION**: at the `.inr`
 twin-parent seats, for a non-king pair, the pair is swappable
-exactly when the raise license is reachable by a reversible play
-that never disturbs the twins. -/
+exactly when the raise license is reachable at some class-mate
+where the twins sit (together) on twin parents - possibly the
+SWAPPED pair, since the fitting class is exactly two cards. -/
 theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
     (hwf : s.WF) (hnk : x.rank ≠ Rank.king)
     (hx : seatOf s x = some (Sum.inr z))
     (hxt : seatOf s x.twin = some (Sum.inr z.twin)) :
     SwappableIn s x ↔
-      ∃ u, sameOrbitSetoid.r s u ∧
-        seatOf u x = some (Sum.inr z) ∧
-        seatOf u x.twin = some (Sum.inr z.twin) ∧
+      ∃ u w, sameOrbitSetoid.r s u ∧
+        seatOf u x = some (Sum.inr w) ∧
+        seatOf u x.twin = some (Sum.inr w.twin) ∧
         (reversibleAtW u (Move.tabToFound x) ∨
           reversibleAtW u (Move.tabToFound x.twin)) := by
   constructor
@@ -2869,7 +2870,7 @@ theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
     have hwfu : u.WF :=
       run_wf hwf (Walk_run (P := fun st m => reversibleAtW st m) (st := s) (W := u) hpre)
     have hru : sameOrbitSetoid.r s u := RevEqW_symm (shufflePlayW_revEqW hpre)
-    refine ⟨u, hru, hu1, hu2, ?_⟩
+    refine ⟨u, z, hru, hu1, hu2, ?_⟩
     have hxne : seatOf u x ≠ none := by rw [hu1]; simp
     have hxtne : seatOf u x.twin ≠ none := by rw [hu2]; simp
     cases m with
@@ -2935,7 +2936,7 @@ theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
               exact absurd hu1 h1
             · rw [hedge x.twin, ite_eq_right (fun h => hct h.symm)] at h1
               exact absurd hu2 h1
-  · rintro ⟨u, horb, hu1, hu2, hlic⟩
+  · rintro ⟨u, w, horb, hu1, hu2, hlic⟩
     obtain ⟨-, -, ρ, hplay⟩ := horb
     have hwfu : u.WF :=
       run_wf hwf (Walk_run (P := fun st m => reversibleAtW st m) (st := s) (W := u) hplay)
