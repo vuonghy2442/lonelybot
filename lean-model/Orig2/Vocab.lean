@@ -40,6 +40,12 @@ commit-polarity originals retired), and the journey letters
 pair `forkState`/`ForkWitness`.  PENDING — everything
 in the annex below.
 
+(2026-10-26, the forkless-ceiling campaign's owner line):
+`SSaturated` (the saturation grade that campaign runs on — the
+annex's "future saturation cards write their own grade", written)
+and `SatDifferFork` (the campaign's single named residue, the
+witness-journey dip) — §5.1 below, with their routes.
+
 ## §1. PLAY-TAXONOMY COUNTERS (live, ported)
 
 Ported verbatim from `Orig/BracketDecomp.lean:254-275` — pure play
@@ -493,6 +499,46 @@ twin is vanilla-blocked.  PORTED VERBATIM from
 `Orig/PairName.lean:27`. -/
 def ForkWitness (st : State) (x : Card) : Prop :=
   (∀ c, (c = x ∨ c = x.twin) ↔ CanRaiseS st c) ∧ ¬ CanRaise st x.twin
+
+/-! ### §5.1. The ceiling campaign's grade and residue
+(owner line 2026-10-26 — the forkless-ceiling campaign) -/
+
+/-- **SSaturated st** — THE SATURATION GRADE the ceiling campaign
+runs on: no card is raisable even after any cascade of reversible
+slides (the S-grade's `∀¬` read).  The `now` constructor makes this
+grade subsume the retired vanilla read (`Final`, KILLED with the
+canon family 2026-10-17), and the annex's own line named this
+def's moment: "`Final` … the vanilla saturation read exits.
+Future saturation cards write their own grade".  This is that
+grade, with its owner line.  Two `SSaturated` class-mates are the
+campaign's endpoints; the campaign's question is whether
+forklessness forces them to share foundations. -/
+def SSaturated (st : State) : Prop := ∀ c, ¬ CanRaiseS st c
+
+/-- **SatDifferFork** — THE CEILING CAMPAIGN'S SINGLE RESIDUE (the
+dip, frozen as the named target): two `SSaturated` class-mates
+whose rung vectors disagree force a fork somewhere in the class.
+The campaign theorem is one `elim` away — the contrapositive
+reads "forkless classes have rung-agreeing saturated endpoints",
+and the rung→found congruence finishes.  ROUTE (the witness-journey
+dip, priced): the rung ledger nets the difference into a σ-pull
+(the LIFO exodus — the differing card, founded at the deep
+endpoint and missing at the shallow one, is pulled; the frozen
+precedent `cross_found_exodus`, `Orig/CrossFamily.lean:502`) plus
+a twin-raise (first passage at the rung exactly;
+`lowslab_rung_walk`, `Orig/LowSlab.lean:1239`); between the last
+pull of the one member and the first raise of the twin sits the
+dip — both twins unfounded, at-rung, one covered — and confining
+the dip's S-live set to the pair is the heart.  The `SSaturated`
+grade is load-bearing at the endpoints: it bars the cover's own
+raise (the cargo sits above its frontier) and the covered card's
+slide-cascade license (the twin tops no pile) — the two escapes
+that would let the difference ride without a fork, and exactly
+what the vanilla grade cannot bar. -/
+def SatDifferFork : Prop :=
+  ∀ u v : State, SSaturated u → SSaturated v → sameOrbitSetoid.r u v →
+    (∃ σ : Suit, rungAt u σ ≠ rungAt v σ) →
+    ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x
 
 /-!
 ## §6. THE PHASE ROTATION COMPONENTS  (live, KEPT 2026-10-17;

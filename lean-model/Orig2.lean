@@ -3,6 +3,7 @@ import Orig2.StratifiedQuotient
 import Orig2.ClaimsScrutiny
 import Orig2.Claims
 import Orig2.OrbitFactor
+import Orig2.CeilingBridge
 
 /-!
 # Orig2 — the proof root
