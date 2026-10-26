@@ -336,7 +336,20 @@ dropped the campaign qualifier - this row is now `fiber_transfer`
 (`fiber_transfer_full`, `_of_king`, `_of_nonking`,
 `_of_pair_free_path`, `_of_last_return`, `_seat_free`,
 `_founds_necessary`, `_twin_membership`).  Old names live in git
-history and the journal. -/
+history and the journal.
+
+AND UNIVERSAL (2026-10-26, the owner's ask): the transfer is the
+well-definedness of a descent - `Orig2/StratifiedQuotient.lean`
+stratifies the reversible class by the twins' foundation-membership
+profile (`stratOrbit` - this row's premise set, as an equivalence
+relation), proves swappability CONSTANT on each stratum (the
+weakened transfer run both ways), and invokes the quotient's
+universal property: `SwappableStratum` descends `SwappableIn` to
+the stratified quotient, UNIQUELY, and so does every
+stratum-invariant predicate (`stratOrbit_universal`).  The house
+axioms turn load-bearing by design - `Quot.sound` IS the universal
+property, `propext` the glue - and the campaign's honest-residue
+"quotient formalization" note is discharged. -/
 theorem fiber_transfer :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
