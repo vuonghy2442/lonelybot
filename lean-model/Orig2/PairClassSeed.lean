@@ -72,6 +72,36 @@ theorem suit_family {s t : Suit} (h : s.color = t.color) :
     s = t ∨ s = t.twin := by
   cases s <;> cases t <;> simp_all [Suit.color, Suit.twin]
 
+/-- **`runOK` is suffix-closed** — a well-formed run's tail is
+well-formed.  Fresh row (the migration wave's kit, the frozen-lineage
+home `Orig/RunOrTwin.lean`'s SeedKit). -/
+theorem runOK_suffix {l₁ l₂ : List Card}
+    (h : runOK (l₁ ++ l₂) = true) : runOK l₂ = true := by
+  induction l₁ with
+  | nil => exact h
+  | cons x xs ih =>
+      cases hap : xs ++ l₂ with
+      | nil =>
+          cases l₂ with
+          | nil => rfl
+          | cons y t => simp at hap
+      | cons y t =>
+          simp only [List.cons_append] at h
+          rw [hap] at h
+          simp only [runOK, Bool.and_eq_true] at h
+          exact ih (by rw [hap]; exact h.2)
+
+/-- **The adjacent fit** — in a well-formed run, the card directly
+above `c` fits `c` (rank one below, opposite color): the runOK
+discipline is the FULL fit at every link.  PORTED from
+`Orig/RunOrTwin.lean`'s SeedKit (`runOK_adjacent_fit`), the row the
+flat characterization's mate-slide consumes. -/
+theorem runOK_adjacent_fit (c d : Card) (P S : List Card)
+    (h : runOK (P ++ c :: d :: S) = true) : canSitOn d c = true := by
+  have h2 : runOK (c :: d :: S) = true := runOK_suffix h
+  simp only [runOK, Bool.and_eq_true] at h2
+  exact h2.1
+
 end SeedKit
 
 /-! ## §3. The founding-height kit -/
@@ -311,6 +341,8 @@ records the terminal grades.  Expected: `[propext]` or
 #print axioms SeedKit.color_pair
 #print axioms SeedKit.rankColor_pair
 #print axioms SeedKit.suit_family
+#print axioms SeedKit.runOK_suffix
+#print axioms SeedKit.runOK_adjacent_fit
 #print axioms FoundKit.mem_found_of_rung
 #print axioms FoundKit.mem_found_rank_lt
 #print axioms FoundKit.mem_found_iff_height
