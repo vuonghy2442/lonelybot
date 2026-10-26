@@ -392,6 +392,54 @@ theorem swappableIn_twin_comm {s : State} {x : Card} :
     · intro y hy1 hy2
       exact h3 y hy2 (by simpa [card_twin_twin] using hy1)
 
+/-- **The either-side recipe**: a reversible raise of EITHER twin
+buys the strict twin swap at the `.inr` twin-parent seats.  The
+twin-side raise is `Orig2/TwinSwapRecipe.lean`'s original
+`swappableIn_of_twin_raise`; the x-side raise runs it with the roles
+exchanged (`card_twin_twin` twice) and the comm row closes. -/
+theorem swappableIn_of_raise
+    {st : State} {x z : Card}
+    (hwf : st.WF)
+    (hx : seatOf st x = some (Sum.inr z))
+    (hxt : seatOf st x.twin = some (Sum.inr z.twin))
+    (hlic : reversibleAtW st (Move.tabToFound x) ∨
+      reversibleAtW st (Move.tabToFound x.twin)) :
+    SwappableIn st x := by
+  rcases hlic with hx' | hxt'
+  · have hswap : SwappableIn st x.twin :=
+      swappableIn_of_twin_raise (c := x.twin) (z := z.twin) hwf hxt
+        (show seatOf st x.twin.twin = some (Sum.inr z.twin.twin) from by
+          rw [card_twin_twin, card_twin_twin]; exact hx)
+        (show reversibleAtW st (Move.tabToFound x.twin.twin) from by
+          rw [card_twin_twin]; exact hx')
+    exact swappableIn_twin_comm.mpr hswap
+  · exact swappableIn_of_twin_raise hwf hx hxt hxt'
+
+/-- **The interface recipe** — the `Orig2/Vocab.lean` §11.1 IOU,
+discharged at the honest grade: for a NON-KING pair at the `.inr`
+twin-parent seats, `RaiseLicensed` buys the swap.  The restriction
+is forced by `SeatMate`'s king-quad semantics (for kings, a licensed
+third king says nothing about THIS pair), and the unconditional form
+is refuted outright by the §13 dichotomy (a mixed pair with a
+licensed twin is never swappable). -/
+theorem swappableIn_of_raiseLicensed
+    {st : State} {x z : Card}
+    (hwf : st.WF)
+    (hnk : x.rank ≠ Rank.king)
+    (hx : seatOf st x = some (Sum.inr z))
+    (hxt : seatOf st x.twin = some (Sum.inr z.twin))
+    (hlic : RaiseLicensed st x) :
+    SwappableIn st x := by
+  obtain ⟨y, hsm, hrev⟩ := hlic
+  rcases hsm with ⟨hking, -⟩ | ⟨-, hy⟩
+  · exact absurd hking hnk
+  · rcases hy with rfl | rfl
+    · exact swappableIn_of_raise hwf hx hxt (Or.inl hrev)
+    · exact swappableIn_of_raise hwf hx hxt (Or.inr hrev)
+
+#print axioms swappableIn_of_raise
+#print axioms swappableIn_of_raiseLicensed
+
 /-- **The pair-free transfer, discharged (the owner's stepping-stone).**
 If the twins are seated on `.inr` parents at both ends of a `NotFoundPair`
 witness play `s → t`, then `SwappableIn` transfers — the point-hom

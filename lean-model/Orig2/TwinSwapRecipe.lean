@@ -1,7 +1,7 @@
 import Orig2.SeatMateStack
 
 /-!
-# Temp/TwinSwapRecipe — the ordinary 3-leg twin-swap recipe
+# Orig2.TwinSwapRecipe - the ordinary 3-leg twin-swap recipe
 
 `twinPairSwapStrict_of_twin_raise`: a reversible raise of the seated
 blocker `c.twin`, followed by the slide of `c` onto the exposed twin
@@ -9,9 +9,12 @@ target, followed by the pull of the raised twin onto `c`'s vacated
 parent.  The three legs are the ordinary twin-pair interchange, and
 the whole play is a witness reversible loop.
 
-House compliance: zero `sorry`, zero `Classical.choice`; the file is a
-scratch card under `Temp/`, importing only the public
-`Orig2.SeatMateStack` surface.
+House compliance: zero `sorry`, zero `Classical.choice`; born as a
+scratch card under `Temp/` (the scratch original remains there,
+gitignored), consolidated into `Orig2/` at the shared-kit pass and
+imported by `Orig2.FiberTransfer` - the either-side and interface
+forms live there (`swappableIn_of_raise`,
+`swappableIn_of_raiseLicensed`).
 -/
 
 /-! ## Private list and twin arithmetic -/

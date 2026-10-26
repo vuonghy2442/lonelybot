@@ -882,8 +882,13 @@ def twinPairSwapStrict (u v : State) (c : Card) : Prop :=
 The transfer program's two statement-level predicates: the strict twin
 swap is realizable inside the orbit (`SwappableIn`), and a seat-mate is
 reversibly raisable to the foundation (`RaiseLicensed`).  The local recipe
-proves `RaiseLicensed → SwappableIn`; the general transfer proves the
-predicate is member-invariant within a foundation fiber.
+is `Orig2/TwinSwapRecipe.lean`'s `swappableIn_of_twin_raise` (the twin-side
+raise; `Orig2/FiberTransfer.lean` adds `swappableIn_of_raise`, the
+either-side form, and `swappableIn_of_raiseLicensed`, the interface wrapper
+with the non-king fine print the raw claim needs - for kings `SeatMate` is
+the whole quad, and a mixed pair with a licensed twin is never swappable,
+the §13 dichotomy); the general transfer proves the predicate is
+member-invariant within a foundation fiber (`fiber_transfer_twin_membership`).
 -/
 
 /-- **SwappableIn s x** — the strict twin swap of `⟨x, x.twin⟩` is
