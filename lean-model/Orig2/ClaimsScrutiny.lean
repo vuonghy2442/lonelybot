@@ -246,13 +246,13 @@ materialize at any probed world.  PRICE (promotion): the
 addendum-#8 reduction rides (transfer + the 3-line induction ⇒
 closure), so this row firms together with the torseur
 formalization of §S4. -/
-/- **`fiber_transfer_corrected`** — THE ORIGINAL STATEMENT, verbatim,
+/- **`fiber_transfer`** — THE ORIGINAL STATEMENT, verbatim,
 at the original `pileHolding` seat grade with the `s.found = s'.found`
 row.
 
 STATUS 2026-10-25: **OPEN** — no proof, no counterexample.  What IS
 proven is a different statement: the `.inr`-seat amendment at
-`Orig2/FiberTransfer.lean` (`fiber_transfer_corrected_of_lastReturn`,
+`Orig2/FiberTransfer.lean` (`fiber_transfer_of_last_return`,
 axiom-clean [propext, Quot.sound]) — incomparable with this one:
 stronger in that it drops the founds row no known route reads,
 weaker in that it requires `.inr` card-parent seat witnesses at
@@ -274,7 +274,7 @@ and this row was restored verbatim from the pre-session history
 (c71df84).
 
 UPDATE 2026-10-25, later the same day: the NON-KING case of this
-row is now DISCHARGED — `fiber_transfer_corrected_of_nonKing`
+row is now DISCHARGED — `fiber_transfer_of_nonking`
 (`Orig2/FiberTransfer.lean` §9, axiom-clean [propext, Quot.sound])
 proves this statement VERBATIM (every hypothesis above, the
 conclusion verbatim) under the single added hypothesis
@@ -285,7 +285,7 @@ stock/waste/hidden), and the proven transfer finishes.  The
 remaining open content is EXACTLY the king pairs.
 
 FINAL UPDATE 2026-10-25 (still the same day): the KING case is
-discharged too, and this row is CLOSED.  `fiber_transfer_corrected_full`
+discharged too, and this row is CLOSED.  `fiber_transfer_full`
 (`Orig2/FiberTransfer.lean` §12, axiom-clean [propext, Quot.sound])
 proves THIS statement verbatim — no rank split in the statement,
 only in the proof: non-king rides §9, king rides §12 (the
@@ -300,14 +300,14 @@ honesty fix, is now DISCHARGED IN FULL.
 
 AND STRONGER (the owner's second observation, same day): the two
 `pileHolding` premises are DERIVABLE —
-`fiber_transfer_corrected_strong` (`Orig2/FiberTransfer.lean` §13,
+`fiber_transfer_seat_free` (`Orig2/FiberTransfer.lean` §13,
 axiom-clean [propext, Quot.sound]) proves this statement with BOTH
 seat premises dropped: the strict letter's own `foundsFixed` field
 kills mixed pairs, and the founds row pins the seats both ways (the
 both-unseated corner is the certified vacuous swap).
 
 AND THE FLOOR (the owner's challenge, same day): the founds row is
-NECESSARY - `fiber_transfer_corrected_noFounds_false`
+NECESSARY - `fiber_transfer_founds_necessary`
 (`Orig2/FiberTransfer.lean` §14, axiom-clean [propext,
 Quot.sound]) REFUTES the further drop, machine-checked: witness
 the twin-kings world (both kings on full foundations, all piles
@@ -319,7 +319,7 @@ floor - the seats were derivable, the founds row is not.
 
 AND WEAKER STILL (the owner's third observation, same day): the
 founds row is READ only as twin-membership transfer -
-`fiber_transfer_corrected_twin_membership`
+`fiber_transfer_twin_membership`
 (`Orig2/FiberTransfer.lean` §15, axiom-clean [propext,
 Quot.sound]) replaces the row with TWIN-MEMBERSHIP PRESERVATION
 (each twin on its row at s iff at s'), leaving the other fifty
@@ -328,15 +328,23 @@ counterexample family: forward forbids pulling a twin down (the
 §14 witness), backward forbids net-raising one.  With the seats
 kept, the backward direction is vacuous (a seated card is on no
 foundation row), so the original-shaped statement needs only the
-forward pair. -/
-theorem fiber_transfer_corrected :
+forward pair.
+
+RENAMED (2026-10-26, the owner's naming choice): the whole family
+dropped the campaign qualifier - this row is now `fiber_transfer`
+(statement verbatim, unchanged), the siblings renamed to match
+(`fiber_transfer_full`, `_of_king`, `_of_nonking`,
+`_of_pair_free_path`, `_of_last_return`, `_seat_free`,
+`_founds_necessary`, `_twin_membership`).  Old names live in git
+history and the journal. -/
+theorem fiber_transfer :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
       (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
       (∃ seatA, s'.pileHolding x = some seatA) →
       (∃ seatA', s'.pileHolding x.twin = some seatA') →
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
-  exact fiber_transfer_corrected_full
+  exact fiber_transfer_full
 
 /- §S5. The keystone reference (ALREADY CERTIFIED — the license
 every spine/fiber row rides) -/
@@ -475,7 +483,7 @@ the stub is deleted per the claims-layer rule. -/
 #print axioms class_pins_row
 #print axioms class_card_zone
 #print axioms fiber_product_schematic
-#print axioms fiber_transfer_corrected
+#print axioms fiber_transfer
 #print axioms tombstone_seatmate_stack
 #print axioms king_change_needs_king_stack
 #print axioms nonFloater_change_demands_stack

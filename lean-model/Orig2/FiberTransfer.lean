@@ -25,19 +25,19 @@ set_option maxHeartbeats 2000000
 
 The owner's last-return route in ONE card.  This is the whole proof:
 
-* `fiber_transfer_corrected_of_lastReturn` — **THE CORRECTED FIBER
+* `fiber_transfer_of_last_return` — **THE CORRECTED FIBER
   TRANSFER** (the `.inr`-seat grade): swap availability transfers along
   the class.
 * `firstTouchRestart` — the `FirstTouchRestart` residual, proved: the
   excursion is never entered; the swap is RECONSTRUCTED at the last
   return.
 * `swappableIn_transfer_of_pairFreePath` /
-  `fiber_transfer_corrected_of_pairFreePath` — the pair-free transfer
+  `fiber_transfer_of_pair_free_path` — the pair-free transfer
   (the stepping-stone the reduction consumes).
 * `seat_inr_of_swappable_nonking` — **THE OWNER'S SEAT LEMMA** (§8,
   fresh 2026-10-25): a swappable non-king pair that is seated at all
   sits on card parents — the wedge for the OPEN original statement.
-* `fiber_transfer_corrected_of_nonKing` — **THE NON-KING WRAPPER**
+* `fiber_transfer_of_nonking` — **THE NON-KING WRAPPER**
   (§9, fresh 2026-10-25): the OPEN original statement, proven under
   the single added hypothesis that the pair is non-king.
 * `not_swappableIn_of_frozen` / `seat_inl_of_seated_king` — **THE
@@ -49,24 +49,24 @@ The owner's last-return route in ONE card.  This is the whole proof:
   SOURCE** (§12, fresh 2026-10-25): a swappable king pair forces the
   class to carry a vacancy — the first-seat-change extraction, the
   classical-free route the wrapper rides.
-* `fiber_transfer_corrected_of_king` / `fiber_transfer_corrected_full`
+* `fiber_transfer_of_king` / `fiber_transfer_full`
   — **THE KING WRAPPER and THE FULL DISCHARGE** (§12, fresh
   2026-10-25): the king case closes (frozen corners vacuous, the
   transport carries `KingBottom` to the far end, the KingBottom-grade
   vacancy arm fires), and the full wrapper — the ORIGINAL statement
   verbatim, no rank split in the statement — is DISCHARGED.
-* `fiber_transfer_corrected_strong` — **THE SEAT-FREE
+* `fiber_transfer_seat_free` — **THE SEAT-FREE
   STRENGTHENING** (§13, fresh 2026-10-25, the owner's second
   observation): the original minus BOTH `pileHolding` premises —
   they are derivable (the strict letter's `foundsFixed` field kills
   mixed pairs; the founds row pins the seats both ways; the
   both-unseated corner is the certified vacuous swap).
-* `fiber_transfer_corrected_noFounds_false` — **THE FOUNDS ROW IS
+* `fiber_transfer_founds_necessary` — **THE FOUNDS ROW IS
   NECESSARY** (§14, fresh 2026-10-25, the owner's challenge): the
   founds-free statement is FALSE, refuted by the twin-kings witness
   world (both kings on full foundations; one reversible pull onto
   the empty anchor strands a mixed pair at the far end).
-* `fiber_transfer_corrected_twin_membership` — **THE TWIN-MEMBERSHIP
+* `fiber_transfer_twin_membership` — **THE TWIN-MEMBERSHIP
   WEAKENING** (§15, fresh 2026-10-25, the owner's third
   observation): the founds row collapses to twin-membership
   preservation — every read in the certified stack is a per-card
@@ -424,7 +424,7 @@ journey may change founds via other cards' letters.  `SwappableIn` is
 definitionally the stub's existential shape (`Orig2/Vocab.lean`), so the
 conclusion is the stub's verbatim.
 (restated from `Orig2/TwinPairFreeTransfer.lean:85` — the per-file kit norm) -/
-theorem fiber_transfer_corrected_of_pairFreePath :
+theorem fiber_transfer_of_pair_free_path :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       PairFreeOrbit x s s' →
       (∃ z, seatOf s x = some (Sum.inr z)) →
@@ -438,7 +438,7 @@ theorem fiber_transfer_corrected_of_pairFreePath :
   exact swappableIn_transfer_of_pairFreePath hwf hwf' hxs hxts hxt hxtt
     hplay hno hswap
 
-#print axioms fiber_transfer_corrected_of_pairFreePath
+#print axioms fiber_transfer_of_pair_free_path
 
 /-! ## §5. Seat & parent kit (restated from `Orig2/TwinForcedCancel.lean`,
 `Orig2/TwinFoundationRow.lean`, `Orig2/TwinPreludeFunctor.lean` — the
@@ -1155,7 +1155,7 @@ theorem firstTouchRestart : FirstTouchRestart := by
 /-- **THE CORRECTED FIBER TRANSFER** (the `.inr`-seat grade): swap
 availability transfers along the class.
 (restated from `Orig2/TwinLastReturn.lean:510` — the per-file kit norm) -/
-theorem fiber_transfer_corrected_of_lastReturn :
+theorem fiber_transfer_of_last_return :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' →
       (∃ z, seatOf s x = some (Sum.inr z)) →
@@ -1169,7 +1169,7 @@ theorem fiber_transfer_corrected_of_lastReturn :
     hsx hstx htx httx hπ hswap
 
 #print axioms firstTouchRestart
-#print axioms fiber_transfer_corrected_of_lastReturn
+#print axioms fiber_transfer_of_last_return
 
 /-! ## §8. The owner's seat lemma (fresh, 2026-10-25)
 
@@ -1286,7 +1286,7 @@ private theorem seat_track3_play {u v : State} {c : Card} {play : List Move}
 /-- **The owner's seat lemma (2026-10-25).**  A swappable non-king
 pair that is seated at all sits on card parents: `SwappableIn` +
 non-king + both twins seated ⟹ both `.inr`-seated.  This is the
-wedge for the OPEN original `fiber_transfer_corrected`
+wedge for the OPEN original `fiber_transfer`
 (`Orig2/ClaimsScrutiny.lean`): it upgrades the original's seat-blind
 `pileHolding` premises to the `.inr` grade the proven transfer
 rides on — the only swappable non-king pair that is not on cards is
@@ -1548,7 +1548,7 @@ foundation arm; the unseated corners are vacuous (a foundation twin
 is pinned by the forward membership arrow; stock/waste/hidden twins
 can never board reversibly — §9's boarding lemma); the proven
 `.inr`-grade transfer finishes.  Kings remain the open corner. -/
-theorem fiber_transfer_corrected_of_nonKing :
+theorem fiber_transfer_of_nonking :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' →
       (x ∈ s.found x.suit → x ∈ s'.found x.suit) →
@@ -1589,14 +1589,14 @@ theorem fiber_transfer_corrected_of_nonKing :
       · rcases seat_track_play hwf hπ hnkt (Or.inl hstx') with ⟨z2, hz2⟩ | hfxt
         · have hz2t : ∃ z : Card, seatOf s' x.twin = some (Sum.inr z.twin) :=
             ⟨z2.twin, by rw [card_twin_twin]; exact hz2⟩
-          exact fiber_transfer_corrected_of_lastReturn s s' x hwf hwf' hclass
+          exact fiber_transfer_of_last_return s s' x hwf hwf' hclass
             hsx hstx ⟨z1, hz1⟩ hz2t hswap
         · exfalso
           exact hseatxt' (seatOf_none_of_mem_found hwf' hfxt)
       · exfalso
         exact hseatx' (seatOf_none_of_mem_found hwf' hfx)
 
-#print axioms fiber_transfer_corrected_of_nonKing
+#print axioms fiber_transfer_of_nonking
 
 /-! ## §10. The frozen king (the owner's observation, 2026-10-25)
 
@@ -2177,7 +2177,7 @@ theorem sameOrbitVacant_of_swappableIn_king {s : State} {x : Card} {a a' : Ancho
 added hypothesis that the pair is a king pair, with the founds row
 WEAKENED to twin-membership preservation (§15 — the only founds
 fact the route reads). -/
-theorem fiber_transfer_corrected_of_king :
+theorem fiber_transfer_of_king :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' →
       (x ∈ s.found x.suit → x ∈ s'.found x.suit) →
@@ -2249,12 +2249,12 @@ theorem fiber_transfer_corrected_of_king :
               hne.symm hhidB)
       · exact absurd hswap (not_swappableIn_of_frozen hwf hx hxt hne hhidA)
 
-/-- **THE ORIGINAL `fiber_transfer_corrected`, DISCHARGED.**  The
+/-- **THE ORIGINAL `fiber_transfer`, DISCHARGED.**  The
 ledger stub's statement VERBATIM — every hypothesis, the conclusion
 verbatim, no rank split in the statement — proven by splitting on the
 rank in the proof: the non-king case rides §9, the king case rides
 §12. -/
-theorem fiber_transfer_corrected_full :
+theorem fiber_transfer_full :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
       (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
@@ -2268,13 +2268,13 @@ theorem fiber_transfer_corrected_full :
       x.twin ∈ s'.found x.twin.suit :=
     fun h => by rw [← hfounds]; exact h
   by_cases hking : x.rank = Rank.king
-  · exact fiber_transfer_corrected_of_king s s' x hwf hwf' hclass hxw hxtw hking hswap
+  · exact fiber_transfer_of_king s s' x hwf hwf' hclass hxw hxtw hking hswap
       hholdx hholdxt
-  · exact fiber_transfer_corrected_of_nonKing s s' x hwf hwf' hclass hxw hxtw hking
+  · exact fiber_transfer_of_nonking s s' x hwf hwf' hclass hxw hxtw hking
       hswap hholdx hholdxt
 
-#print axioms fiber_transfer_corrected_of_king
-#print axioms fiber_transfer_corrected_full
+#print axioms fiber_transfer_of_king
+#print axioms fiber_transfer_full
 
 /-! ## §13. The seat-free strengthening (fresh, 2026-10-25, the
 owner's second observation)
@@ -2371,14 +2371,14 @@ theorem unseated_of_orbit {s s' : State} {x : Card}
 BOTH `pileHolding` premises (the owner's second observation,
 2026-10-25): the premises are derivable.  The founds row, never
 read by the last-return route, is load-bearing here. -/
-theorem fiber_transfer_corrected_strong :
+theorem fiber_transfer_seat_free :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' → s.found = s'.found →
       (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
       (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
   intro s s' x hwf hwf' hclass hfounds hswap
   rcases seats_both_or_neither_of_swappable hwf hswap with ⟨hxs, hxts⟩ | ⟨hxs, hxts⟩
-  · refine fiber_transfer_corrected_full s s' x hwf hwf' hclass hfounds hswap ?_ ?_
+  · refine fiber_transfer_full s s' x hwf hwf' hclass hfounds hswap ?_ ?_
     · exact pileHolding_of_seatOf_ne_none
         (seated_of_orbit hwf hwf' hclass
           (fun h => by rw [hfounds]; exact h) hxs)
@@ -2394,7 +2394,7 @@ theorem fiber_transfer_corrected_strong :
 #print axioms seats_both_or_neither_of_swappable
 #print axioms seated_of_orbit
 #print axioms unseated_of_orbit
-#print axioms fiber_transfer_corrected_strong
+#print axioms fiber_transfer_seat_free
 
 /-! ## §14. The founds row is necessary — the refutation witness
 (fresh, 2026-10-25, the owner's challenge)
@@ -2480,7 +2480,7 @@ pull strands the heart king at the anchor while the diamond king
 stays upstairs — a mixed pair at the far end, never strictly
 swappable (the §13 dichotomy); every premise except the founds row
 holds at the pair. -/
-theorem fiber_transfer_corrected_noFounds_false :
+theorem fiber_transfer_founds_necessary :
     ¬ (∀ (s s' : State) (x : Card), s.WF → s'.WF →
         sameOrbitSetoid.r s s' →
         (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
@@ -2513,7 +2513,7 @@ theorem fiber_transfer_corrected_noFounds_false :
   · exact h2 hseatKT'
   · exact hseatK' h1
 
-#print axioms fiber_transfer_corrected_noFounds_false
+#print axioms fiber_transfer_founds_necessary
 
 /-! ## §15. The twin-membership weakening (fresh, 2026-10-25, the
 owner's third observation)
@@ -2535,10 +2535,10 @@ original-shaped statement needs only the forward pair. -/
 /-- **THE TWIN-MEMBERSHIP WEAKENING** — the seat-free statement with
 the founds row collapsed to twin-membership preservation: each twin
 is on its foundation row at `s` iff it is at `s'`.  Strictly
-stronger than §13's `fiber_transfer_corrected_strong` (founds
+stronger than §13's `fiber_transfer_seat_free` (founds
 equality implies both iffs) and consistent with §14's refutation
 (the twin-kings witness violates the heart king's iff). -/
-theorem fiber_transfer_corrected_twin_membership :
+theorem fiber_transfer_twin_membership :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →
       sameOrbitSetoid.r s s' →
       (x ∈ s.found x.suit ↔ x ∈ s'.found x.suit) →
@@ -2552,11 +2552,11 @@ theorem fiber_transfer_corrected_twin_membership :
     have hseatt' : seatOf s' x.twin ≠ none :=
       seated_of_orbit hwf hwf' hclass hxtw.mpr hxts
     by_cases hking : x.rank = Rank.king
-    · exact fiber_transfer_corrected_of_king s s' x hwf hwf' hclass
+    · exact fiber_transfer_of_king s s' x hwf hwf' hclass
         hxw.mp hxtw.mp hking hswap
         (pileHolding_of_seatOf_ne_none hseatx')
         (pileHolding_of_seatOf_ne_none hseatt')
-    · exact fiber_transfer_corrected_of_nonKing s s' x hwf hwf' hclass
+    · exact fiber_transfer_of_nonking s s' x hwf hwf' hclass
         hxw.mp hxtw.mp hking hswap
         (pileHolding_of_seatOf_ne_none hseatx')
         (pileHolding_of_seatOf_ne_none hseatt')
@@ -2564,4 +2564,4 @@ theorem fiber_transfer_corrected_twin_membership :
       (unseated_of_orbit hwf hwf' hclass hxw.mp hxs)
       (unseated_of_orbit hwf hwf' hclass hxtw.mp hxts)
 
-#print axioms fiber_transfer_corrected_twin_membership
+#print axioms fiber_transfer_twin_membership
