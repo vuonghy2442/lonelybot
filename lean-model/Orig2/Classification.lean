@@ -1388,7 +1388,7 @@ private theorem tabToTab_undo_bare {st : State} {c : Card} {b : Base} {a k : Anc
       (st.setPile a ⟨[], ([] : List Card)⟩ : State).pileOfTop z' = some k)
     (hkeep : ∀ y, y ≠ a → y ≠ k → s₁.piles y = st.piles y)
     (hcN : c ∉ (st.piles k).faceUp) :
-    reversibleAtW st (Move.tabToTab c b) := by
+    ∃ b₂, State.step s₁ (Move.tabToTab c b₂) = some st := by
   obtain ⟨a₀, hh₀, hcp, hfr, hs₁⟩ := step_tabToTab_inv hstep
   rw [hh] at hh₀
   injection hh₀ with haa
@@ -1431,8 +1431,13 @@ private theorem tabToTab_undo_bare {st : State} {c : Card} {b : Base} {a k : Anc
       have hne := (pileOfTop_top hmidPin).1
       rw [hmidK] at hne
       exact absurd hcon hne
-  exact ⟨s₁, [Move.tabToTab c (Sum.inl a)], hstep,
-    tabToTab_bare_rtp hs₁ hrt hface hhidden hking hhold hs₁A hs₁K hkeep hcN hka hKE⟩
+  obtain ⟨s₂, hf2, hr2⟩ := State.run_cons
+    (tabToTab_bare_rtp hs₁ hrt hface hhidden hking hhold hs₁A hs₁K hkeep hcN hka hKE)
+  have hrnil : s₂.run [] = some s₂ := rfl
+  rw [hrnil] at hr2
+  injection hr2 with hst
+  rw [hst] at hf2
+  exact ⟨Sum.inl a, hf2⟩
 
 /-- **The under-seat slide's whole-segment relocation round trip.**
 PORTED verbatim from `Orig/Classify.lean:1498`
@@ -1559,7 +1564,7 @@ private theorem tabToTab_undo_under {st : State} {c : Card} {b : Base} {a k : An
     (hcN : c ∉ (st.piles k).faceUp)
     (hzOnly : ∀ y, y ≠ a → (s₁.piles y).top ≠ some z)
     (hzK : (st.piles k).top ≠ some z) :
-    reversibleAtW st (Move.tabToTab c b) := by
+    ∃ b₂, State.step s₁ (Move.tabToTab c b₂) = some st := by
   obtain ⟨a₀, hh₀, hcp, hfr, hs₁⟩ := step_tabToTab_inv hstep
   rw [hh] at hh₀
   injection hh₀ with haa
@@ -1604,8 +1609,13 @@ private theorem tabToTab_undo_under {st : State} {c : Card} {b : Base} {a k : An
       have hne := (pileOfTop_top hmidPin).1
       rw [setPile_piles_ne hka] at hne
       exact absurd hcon hne
-  exact ⟨s₁, [Move.tabToTab c (Sum.inr z)], hstep,
-    tabToTab_under_rtp hs₁ hrt hz hsit hhold hsA hs₁K hkeep hcN hka hzOnly hzK hKE⟩
+  obtain ⟨s₂, hf2, hr2⟩ := State.run_cons
+    (tabToTab_under_rtp hs₁ hrt hz hsit hhold hsA hs₁K hkeep hcN hka hzOnly hzK hKE)
+  have hrnil : s₂.run [] = some s₂ := rfl
+  rw [hrnil] at hr2
+  injection hr2 with hst
+  rw [hst] at hf2
+  exact ⟨Sum.inr z, hf2⟩
 
 /-!
 ## §2. THE WASTE PAIR  (universal rows — no gate)
@@ -2092,12 +2102,13 @@ at the zero scrutinee (`afterRunRemoved_empty_eq`) — the frozen
 below-form wrapper died at the `cases`/`rw` iota behavior
 differences recorded in §1t. -/
 private theorem tabToTab_W_bare_king_wf {st : State} {c : Card} {b : Base} {a : Anchor}
+    {s₁ : State}
+    (hstep : State.step st (Move.tabToTab c b) = some s₁)
     (hwf : st.WF) (hh : st.pileHolding c = some a) (hcp : st.canPlace c b = true)
     (hbelow : below c (st.piles a).faceUp = []) (hhid : (st.piles a).hidden = [])
     (hkng : c.rank = Rank.king) :
-    reversibleAtW st (Move.tabToTab c b) := by
-  obtain ⟨s₁, hs⟩ := step_tabToTab_some hh hcp
-  obtain ⟨a₂, hht, hct, hfr, hs₁⟩ := step_tabToTab_inv hs
+    ∃ b₂, State.step s₁ (Move.tabToTab c b₂) = some st := by
+  obtain ⟨a₂, hht, hct, hfr, hs₁⟩ := step_tabToTab_inv hstep
   have haeq : a₂ = a := by
     have hx : some a = some a₂ := hh.symm.trans hht
     injection hx with hxE
@@ -2126,7 +2137,7 @@ private theorem tabToTab_W_bare_king_wf {st : State} {c : Card} {b : Base} {a : 
         holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
           (fun y hyk hya =>
             (mem_faceUp_unique hwf (pileHolding_mem hh) y hya).1)
-      exact tabToTab_undo_bare hs hh hbelow hhid hkng hhold (Or.inl rfl)
+      exact tabToTab_undo_bare hstep hh hbelow hhid hkng hhold (Or.inl rfl)
         hkeep hcN
   | inr z' =>
       obtain ⟨k, hk₀, -⟩ := canPlace_inr hcp
@@ -2173,7 +2184,7 @@ private theorem tabToTab_W_bare_king_wf {st : State} {c : Card} {b : Base} {a : 
         holdingPin2 hca (fun y hyk hya => hkeep y hya hyk) hhk
           (fun y hyk hya =>
             (mem_faceUp_unique hwf (pileHolding_mem hh) y hya).1)
-      exact tabToTab_undo_bare hs hh hbelow hhid hkng hhold
+      exact tabToTab_undo_bare hstep hh hbelow hhid hkng hhold
         (Or.inr ⟨z', rfl, hseatMid⟩) hkeep hcN
 
 /-- **The under-row slide witness at `WF`.**  PORTED (extraction,
@@ -2185,12 +2196,13 @@ re-pin, the rank-exclusion grind of `hzOnly`, the mid-board
 `pileOfTop` pin through the `z ≠ z'` occurrence split) are the
 classification's own grind. -/
 private theorem tabToTab_W_under_wf {st : State} {c : Card} {b : Base} {a : Anchor}
+    {s₁ : State}
+    (hstep : State.step st (Move.tabToTab c b) = some s₁)
     (hwf : st.WF) (hh : st.pileHolding c = some a) (hcp : st.canPlace c b = true)
     {z₀ : Card} {pre' : List Card}
     (hbelow : below c (st.piles a).faceUp = z₀ :: pre') :
-    reversibleAtW st (Move.tabToTab c b) := by
-  obtain ⟨s₁, hs⟩ := step_tabToTab_some hh hcp
-  obtain ⟨a₂, hht, hct, hfr, hs₁⟩ := step_tabToTab_inv hs
+    ∃ b₂, State.step s₁ (Move.tabToTab c b₂) = some st := by
+  obtain ⟨a₂, hht, hct, hfr, hs₁⟩ := step_tabToTab_inv hstep
   have haeq : a₂ = a := by
     have hx : some a = some a₂ := hh.symm.trans hht
     injection hx with hxE
@@ -2265,7 +2277,7 @@ private theorem tabToTab_W_under_wf {st : State} {c : Card} {b : Base} {a : Anch
         · intro htop
           rw [hkeep y hya hyk] at htop
           exact wf_no_other_top hwf hzmem y hya htop
-      exact tabToTab_undo_under hs hh hzB hsit hhold (Or.inl rfl)
+      exact tabToTab_undo_under hstep hh hzB hsit hhold (Or.inl rfl)
         hkeep hcN hzOnly hzK
   | inr z' =>
       obtain ⟨k, hk₀, -⟩ := canPlace_inr hcp
@@ -2350,7 +2362,7 @@ private theorem tabToTab_W_under_wf {st : State} {c : Card} {b : Base} {a : Anch
         · intro htop
           rw [hkeep y hya hyk] at htop
           exact wf_no_other_top hwf hzmem y hya htop
-      exact tabToTab_undo_under hs hh hzB hsit hhold
+      exact tabToTab_undo_under hstep hh hzB hsit hhold
         (Or.inr ⟨z', rfl, hseatMid⟩) hkeep hcN hzOnly hzK
 
 /-- **The slide letter**: at `WF` the shape `tabToTabR` reads
@@ -2390,9 +2402,13 @@ theorem tabToTabR_iff_reversibleAtW {st : State} (hwf : st.WF) (c : Card) (b : B
                       simp only [tabToTabR, hh, hcp, hbelow, hhid]
                       rw [decide_eq_true hkng]
                     rw [hcell]
-                    exact ⟨fun _ =>
-                      tabToTab_W_bare_king_wf hwf hh hcp hbelow hhid hkng,
-                      fun _ => rfl⟩
+                    constructor
+                    · intro _
+                      obtain ⟨b₂, hfire2⟩ :=
+                        tabToTab_W_bare_king_wf hs hwf hh hcp hbelow hhid hkng
+                      exact reversible_mirrorW hs hfire2
+                    · intro _
+                      rfl
                   · have hcell : tabToTabR st c b = false := by
                       simp only [tabToTabR, hh, hcp, hbelow, hhid]
                       rw [decide_false_of_not hkng]
@@ -2415,7 +2431,44 @@ theorem tabToTabR_iff_reversibleAtW {st : State} (hwf : st.WF) (c : Card) (b : B
               have hcell : tabToTabR st c b = true := by
                 simp only [tabToTabR, hh, hcp, hbelow]
               rw [hcell]
-              exact ⟨fun _ => tabToTab_W_under_wf hwf hh hcp hbelow, fun _ => rfl⟩
+              constructor
+              · intro _
+                obtain ⟨b₂, hfire2⟩ := tabToTab_W_under_wf hs hwf hh hcp hbelow
+                exact reversible_mirrorW hs hfire2
+              · intro _
+                rfl
+
+/-- **THE MIRROR MOVE EXISTS** — at `WF`, every reversible slide
+has a single-move mirror: the moved run relocates back whole.  The
+classification's own witness (§1t's undo rows through the §1u
+wrappers), extracted as a public row — the leg-inversion engine
+the cargo symmetry rides (the flat characterization's migration,
+stage 3; the undo rows' conclusions were strengthened to expose
+the mirror's firing, and the iff's two tabToTab leaves re-wrap via
+`reversible_mirrorW` — no other content touched). -/
+theorem tabToTab_mirror {st : State} {c : Card} {b : Base} {s₁ : State}
+    (hwf : st.WF) (hstep : State.step st (Move.tabToTab c b) = some s₁)
+    (hrev : reversibleAtW st (Move.tabToTab c b)) :
+    ∃ b₂, State.step s₁ (Move.tabToTab c b₂) = some st := by
+  obtain ⟨a, hh, hcp, -, -⟩ := step_tabToTab_inv hstep
+  cases hbelow : below c (st.piles a).faceUp with
+  | nil =>
+      cases hhid : (st.piles a).hidden with
+      | nil =>
+          by_cases hkng : c.rank = Rank.king
+          · exact tabToTab_W_bare_king_wf hstep hwf hh hcp hbelow hhid hkng
+          · have hcell : tabToTabR st c b = false := by
+              simp only [tabToTabR, hh, hcp, hbelow, hhid]
+              rw [decide_false_of_not hkng]
+            exact absurd ((tabToTabR_iff_reversibleAtW hwf c b).mpr hrev)
+              (by rw [hcell]; simp)
+      | cons hh1 t1 =>
+          have hcell : tabToTabR st c b = false := by
+            simp only [tabToTabR, hh, hcp, hbelow, hhid]
+          exact absurd ((tabToTabR_iff_reversibleAtW hwf c b).mpr hrev)
+            (by rw [hcell]; simp)
+  | cons z₀ pre' =>
+      exact tabToTab_W_under_wf hstep hwf hh hcp hbelow
 
 /-!
 ## §7. THE ASSEMBLY — THE CLAIM, DISCHARGED AND PROMOTED
@@ -2476,4 +2529,5 @@ promotion (see §7). -/
 #print axioms tabToFoundR_iff_reversibleAtW
 #print axioms foundToTabR_iff_reversibleAtW
 #print axioms tabToTabR_iff_reversibleAtW
+#print axioms tabToTab_mirror
 #print axioms reversibleOf_iff_reversibleAtW
