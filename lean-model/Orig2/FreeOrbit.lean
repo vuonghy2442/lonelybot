@@ -1477,6 +1477,23 @@ theorem freeCardS_orbit_rung {s s' : State} (hwf : s.WF)
         rintro ⟨hP, hQ⟩
         exact hne ⟨(hpar e heng).mp hP, (hpar e.twin hetng).mp hQ⟩
 
+/-- **THE LICENSE COROLLARY** — at equal rungs, an orbit-mate
+preserves the full S-license: the foundation gate rides the rung
+congruence (`nextUp` reads the rung), the tableau-readiness the
+campaign's theorem.  The residue's stage is set: within a rung
+class, the license cannot tell orbit-mates apart. -/
+theorem canRaiseS_orbit_rung {s s' : State} (hwf : s.WF)
+    (horb : sameOrbitSetoid.r s s')
+    (hrung : ∀ σ, rungAt s σ = rungAt s' σ) {c : Card} :
+    CanRaiseS s c ↔ CanRaiseS s' c := by
+  have hfree := freeCardS_orbit_rung (c := c) hwf horb hrung
+  obtain ⟨ρ, hj1, τ, hj2⟩ := horb
+  have hwf' : s'.WF := walk_wf hwf hj2
+  have hnext : s.nextUp c = s'.nextUp c := by
+    rw [State.nextUp, State.nextUp,
+      show s.foundHeight c.suit = s'.foundHeight c.suit from hrung c.suit]
+  rw [canRaiseS_split hwf, canRaiseS_split hwf', hnext, hfree]
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -1504,3 +1521,4 @@ theorem freeCardS_orbit_rung {s s' : State} (hwf : s.WF)
 #print axioms hatch_iff
 #print axioms freeCardS_sem
 #print axioms freeCardS_orbit_rung
+#print axioms canRaiseS_orbit_rung
