@@ -278,26 +278,41 @@ end FoundKit
 /-! ## §4. The rung pins -/
 
 /-- **THE S-LICENSE RUNG PIN** — an S-raisable card is next-up on its
-rung.  PORTED from `Orig/ForkStateS.lean:178` (the `now` leg is the
-vanilla pin; the `via` leg's slide never writes foundations). -/
+rung.  PORTED from `Orig/ForkStateS.lean:178` (the far-end vanilla
+raise is the pin; the cargo legs never write foundations).
+RE-TOOLED at the flat restate (2026-10-27): the induction rides the
+underlying `CargoPath` now — the same two cases, base the far-end
+vanilla pin, step the leg's foundation-freedom. -/
 theorem canRaiseS_rung {st : State} {c : Card} (h : CanRaiseS st c) :
     rungAt st c.suit = c.rank.toIdx := by
-  induction h with
-  | now c hcan =>
-      obtain ⟨hn, -⟩ := hcan
-      have hnext :=
-        of_decide_eq_true (by simpa only [State.nextUp] using hn)
-      simp only [State.foundHeight] at hnext
-      unfold rungAt
-      rw [← hnext]
-  | via c hl _ ih =>
-      obtain ⟨d, b, hstep, -⟩ := hl
-      obtain ⟨a, -, -, -, hs'⟩ := step_tabToTab_inv hstep
-      rw [hs'] at ih
-      unfold rungAt at ih
-      rw [putRun_found] at ih
-      unfold rungAt
-      exact ih
+  obtain ⟨z, hp, hcr⟩ := h
+  -- the span's legs never write foundations (path induction; the
+  -- z-dependent witness stays out of the motive — a bare `induction
+  -- hp` would revert `hcr` into the IH's premises):
+  have hspan : rungAt st c.suit = rungAt z c.suit := by
+    have key : ∀ w u, CargoPath w u →
+        rungAt w c.suit = rungAt u c.suit := by
+      intro w u hpw
+      induction hpw with
+      | refl v => rfl
+      | @cons v s₁ u' hleg t ih =>
+          obtain ⟨d, b, hstep, -⟩ := hleg
+          obtain ⟨a, -, -, -, hs'⟩ := step_tabToTab_inv hstep
+          rw [hs'] at ih
+          unfold rungAt at ih
+          rw [putRun_found] at ih
+          unfold rungAt
+          exact ih
+    exact key st z hp
+  -- the far end's vanilla pin:
+  have hbase : rungAt z c.suit = c.rank.toIdx := by
+    obtain ⟨hn, -⟩ := hcr
+    have hnext :=
+      of_decide_eq_true (by simpa only [State.nextUp] using hn)
+    simp only [State.foundHeight] at hnext
+    unfold rungAt
+    rw [← hnext]
+  exact hspan.trans hbase
 
 /-- **THE WITNESS RUNG PINS** — at a fork witness both suits of the
 pair family read the pair's rank index.  PORTED from the pins row of

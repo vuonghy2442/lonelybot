@@ -30,6 +30,14 @@ the certified orbit iff:
 * `nextUp` is `foundsFixed` (a clause of the iff, no induction);
 * the mate-slide IS the iff's own sufficiency construction.
 
+RESTATE (2026-10-27, the flat restate at the registry): `CanRaiseS`
+is now DEFINED as the cargo span (`Orig2/Vocab.lean` — `∃ z,
+CargoPath st z ∧ CanRaise z c`, the retired inductive's constructor
+names preserved as flagged intro rows at the def).  The bridge below
+is therefore DEFINITIONAL — the two structural inductions collapsed
+to one-liners and `canRaiseS_cargoPath_iff` is `Iff.rfl`-grade; the
+mission's shape and every downstream stage ride unchanged.
+
 WAVE: this card's landing is the bridge (§1).  Staged next:
 `cargoPath` symmetry (the leg inversion — the undo's
 reversibility is `reversible_mirrorW`, only the undo-fires
@@ -73,35 +81,29 @@ SeedKit fit row the mate-slide rides); zero `sorry`, zero
 /-! ## §1. The bridge -/
 
 /-- **THE CARGO BRIDGE, REACHABILITY HALF** — a cargo path to a
-state where the vanilla raise fires is already a maneuver-raise:
-peel the legs one `via` at a time (the cargo letter and the
-via-leg are the same ∃-shape). -/
+state where the vanilla raise fires is already a maneuver-raise.
+DEFINITIONAL since the flat restate (the S-license IS the span):
+the path and the far-end raise are the certificate outright, no
+leg-peeling induction needed. -/
 theorem canRaiseS_of_cargoPath {st z : State} {c : Card}
-    (hp : CargoPath st z) : CanRaise z c → CanRaiseS st c := by
-  induction hp with
-  | refl w => exact fun hcr => CanRaiseS.now c hcr
-  | cons h t ih => exact fun hcr => CanRaiseS.via c h (ih hcr)
+    (hp : CargoPath st z) : CanRaise z c → CanRaiseS st c :=
+  fun hcr => ⟨z, hp, hcr⟩
 
 /-- **THE CARGO BRIDGE, WITNESS HALF** — a maneuver-raise deposits a
-cargo path to a vanilla-raise state: the via-legs compose into the
-path directly. -/
+cargo path to a vanilla-raise state.  DEFINITIONAL since the flat
+restate: the certificate already is the path-plus-raise pair. -/
 theorem cargoPath_of_canRaiseS {st : State} {c : Card}
-    (h : CanRaiseS st c) : ∃ z, CargoPath st z ∧ CanRaise z c := by
-  induction h with
-  | @now st' _ hcr => exact ⟨st', Steps.refl st', hcr⟩
-  | @via st st' _ hl _ ih =>
-      obtain ⟨z, hp, hcr⟩ := ih
-      exact ⟨z, Steps.cons hl hp, hcr⟩
+    (h : CanRaiseS st c) : ∃ z, CargoPath st z ∧ CanRaise z c := h
 
 /-- **THE CARGO BRIDGE** — the swap-aware license IS the cargo
 span of the vanilla license: `CanRaiseS st c` exactly when some
 cargo path reaches a state where `c` raises now.  The flat
 characterization's migration base: every downstream question about
-the S-license becomes a question about the cargo class. -/
+the S-license becomes a question about the cargo class.
+DEFINITIONAL since the flat restate (`Iff.rfl`). -/
 theorem canRaiseS_cargoPath_iff {st : State} {c : Card} :
     CanRaiseS st c ↔ ∃ z, CargoPath st z ∧ CanRaise z c :=
-  ⟨fun h => cargoPath_of_canRaiseS h,
-    fun ⟨_, hp, hcr⟩ => canRaiseS_of_cargoPath hp hcr⟩
+  Iff.rfl
 
 /-! ## §2. The leg inversion (the wave's stage 3) -/
 

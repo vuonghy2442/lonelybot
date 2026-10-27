@@ -4932,6 +4932,30 @@ checkpoints.
   per-pile, the pool row for draws, the census - plus the EXCURSION CLOSURE corollary); then the seat rows
   (parented-ness/bareness invariance per letter); then the hatch factorization; then the assembly.
 
+## THE FLAT RESTATE - CanRaiseS DEFINED AS THE CARGO SPAN (2026-10-27, owner session)
+
+- THE RESTATE (Vocab, relocated to CargoPath s side): `CanRaiseS st c := exists z, CargoPath st z AND CanRaise z c` - the
+  inductive (the verbatim port of Orig/MacroInternal.lean:1176) RETIRED; the wave s stage-2 bridge (7de3961) had already
+  certified the two forms EQUAL with no WF, so the restate is definition-level only. The constructor names survive as
+  FLAGGED INTRO ROWS at the def: `CanRaiseS.now` = the zero-leg span at refl; `CanRaiseS.via` = the Steps.cons
+  leg-prepend, same signature the constructor had, no WF premise - every constructor call site keeps its shape (the
+  registry s file-rules line amended for the second flagged support-kit category).
+- WHY THE ONE-WAY SPAN, not BareCargoEquiv (the design call): per-leg reversibility already rides the letter (CargoLeg
+  carries reversibleAtW); the two-way reading equals the one-way span only at WF (cargoPath_symm needs tabToTab_mirror) -
+  as a def it would be strictly weaker below WF and the via-intro would drag a WF premise. The orbit reading stays the
+  THEOREM it already was: canRaiseS_bareCargo_iff at WF, cargoPath_bareCargo the witness upgrade.
+- THE COLLAPSE (CargoRaise par.1): canRaiseS_of_cargoPath / cargoPath_of_canRaiseS are one-liners;
+  canRaiseS_cargoPath_iff := Iff.rfl. Stages 2-6 re-verified green unchanged (the leg inversion, the seat-diffs, the flat
+  iff, canRaiseSB, RankSat, the split).
+- THE ONE RE-TOOL (PairClassSeed): canRaiseS_rung - the induction rides the underlying CargoPath now (same two cases:
+  base the far-end vanilla pin, step the leg s foundation-freedom via step_tabToTab_inv + putRun_found).
+- LEAN LESSON (cost the first build): `induction hp` on the span AUTO-REVERTS every z-dependent hypothesis (the witness
+  hcr, any derived pin) into the motive - the IH comes back a FUNCTION with premises, unusable as the plain equality.
+  Fix: state the path fact as its own `forall w u, CargoPath w u -> ...` have, intro w u, THEN induct - the z-dependent
+  data never enters the motive.
+- GATE: the full 44-job root build green, the restate and the zone-rows card gated together (canRaiseS_rung back to
+  [propext, Quot.sound] after the interim sorryAx of the failed first pass).
+
 ## FREE-CARD ORBIT CAMPAIGN STAGE 2 - THE ZONE ROWS (2026-10-27, commit ca72559)
 
 - LANDED (ca72559, FreeOrbit par.2, all [propext, Quot.sound]): THE EXCURSION CLOSURE -

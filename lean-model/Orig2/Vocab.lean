@@ -10,9 +10,11 @@ this file IS reviewing the program's language.
 
 THE FILE RULES
 
-* definitions only — the ONE structural exception is the setoid
-  support kit of §3 (the three carrier rows the Setoid instance
-  cannot exist without), each flagged and audited;
+* definitions only — the structural exceptions are the flagged
+  support kits a definition cannot be consumed without (the setoid
+  carrier rows of §3; the Walk/RevEqW rows; the `CanRaiseS`
+  retired-constructor intro rows of the 2026-10-27 flat restate),
+  each flagged and audited;
 * a port from the frozen `Orig` tier is a VERBATIM shape copy with
   the source cited, or an honest re-statement — never a shape-guess;
 * the REVIEW ANNEX holds the old tier's remaining main vocabulary
@@ -206,16 +208,15 @@ def CanRaise (st : State) (c : Card) : Prop :=
     (chop (st.piles a).faceUp ≠ [] ∨
       ((st.piles a).hidden = [] ∧ c.rank = Rank.king))
 
-/-- **CanRaiseS st c** — the swap-aware license: raisable now
-(vanilla), or raisable after finitely many licensed cargo slides —
-the {slide · raise} closure, the cascade license.  PORTED VERBATIM
-from `Orig/MacroInternal.lean:1176`. -/
-inductive CanRaiseS : State → Card → Prop
-  | now {st : State} (c : Card) (h : CanRaise st c) : CanRaiseS st c
-  | via {st st' : State} (c : Card)
-      (hl : ∃ d b, st.step (.tabToTab d b) = some st' ∧
-                       reversibleAtW st (.tabToTab d b))
-      (h : CanRaiseS st' c) : CanRaiseS st c
+/- CanRaiseS — RELOCATED to the span tier below (the flat restate,
+2026-10-27): the swap-aware license now reads directly as THE CARGO
+SPAN of the vanilla license — `∃ z, CargoPath st z ∧ CanRaise z c` —
+sitting at `CargoPath`'s side (the letter it reads on), with the
+retired inductive's constructor names `now`/`via` preserved as
+flagged intro rows at the def.  The two forms are the same
+predicate: the span iff was certified by the flat characterization's
+migration wave (`canRaiseS_cargoPath_iff`, `Orig2/CargoRaise.lean`
+§1 — both halves structural, no `WF`). -/
 
 /-!
 ## §3. THE CLASS FOUNDATION  (live, KEPT 2026-10-17; the walk
@@ -419,6 +420,45 @@ unification): formerly the verbatim port of
 `Orig/MacroInternal.lean:1348` with its kind-witness cons, now
 `Steps CargoLeg` — identical span content, the direct letter. -/
 abbrev CargoPath := Steps CargoLeg
+
+/-- **CanRaiseS st c** — the swap-aware license: raisable now
+(vanilla), or raisable after finitely many licensed cargo slides —
+the {slide · raise} closure, the cascade license.  RESTATE (the flat
+restate, 2026-10-27): formerly the verbatim port of
+`Orig/MacroInternal.lean:1176` — the `now`/`via` inductive — and now
+THE CARGO SPAN of the vanilla license: some state reached from `st`
+by reversible cargo slides raises `c` now.  The two forms are the
+SAME predicate, certified by the flat characterization's migration
+wave (`canRaiseS_cargoPath_iff`, `Orig2/CargoRaise.lean` §1 — both
+halves structural, no `WF`), so the restate is definition-level
+only: the wave's stages ride unchanged.  WHY THE ONE-WAY SPAN and
+not `BareCargoEquiv`: per-leg reversibility already rides the
+letter (`CargoLeg` carries `reversibleAtW`), the two-way reading
+equals this one only at `WF` (`cargoPath_symm` needs
+`tabToTab_mirror`), and the one-way span is unconditionally equal —
+at `WF` the orbit reading upgrades the witness for free
+(`cargoPath_bareCargo`, `canRaiseS_bareCargo_iff`).  The retired
+constructors survive as the flagged intro rows below, so every
+constructor call site keeps its shape. -/
+def CanRaiseS (st : State) (c : Card) : Prop :=
+  ∃ z, CargoPath st z ∧ CanRaise z c
+
+/-- Support kit (flagged): the retired `now` constructor as an intro
+row — the zero-leg span, a vanilla raise at `refl`. -/
+theorem CanRaiseS.now {st : State} (c : Card) (h : CanRaise st c) :
+    CanRaiseS st c :=
+  ⟨st, Steps.refl st, h⟩
+
+/-- Support kit (flagged): the retired `via` constructor as an intro
+row — one reversible cargo leg, then the span.  Same signature the
+constructor had (no `WF` premise): the leg-prepend is `Steps.cons`
+alone, the mirror the two-way reading would need is not consulted. -/
+theorem CanRaiseS.via {st st' : State} (c : Card)
+    (hl : ∃ d b, st.step (.tabToTab d b) = some st' ∧
+      reversibleAtW st (.tabToTab d b))
+    (h : CanRaiseS st' c) : CanRaiseS st c := by
+  obtain ⟨z, hp, hcr⟩ := h
+  exact ⟨z, Steps.cons hl hp, hcr⟩
 
 /-- **Journey** — a legal journey: any play of legal moves.  The
 Steps instance at the anonymous some-fired-move letter.  RESTATE
