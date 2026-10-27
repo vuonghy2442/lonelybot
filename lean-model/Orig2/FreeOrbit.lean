@@ -689,6 +689,200 @@ theorem parented_orbit_rung {s s' : State} (hwf : s.WF)
   · intro hp
     exact walk_parented hwf' hj1 c hk ((hiff c).mpr (faceUp_of_parented hp)) (Or.inr hp)
 
+/-- **Bare st c** — the card is held and its pile's hidden deck is
+empty (the king's seat condition: a king sits on nothing, so its
+flat arm is exactly the hidden emptiness). -/
+def Bare (st : State) (c : Card) : Prop :=
+  ∃ a, st.pileHolding c = some a ∧ (st.piles a).hidden = []
+
+/-- A king cannot sit on anything (the rank arithmetic: the sitter
+would need a rank above king). -/
+private theorem canSitOn_ne_king {c z : Card} (h : canSitOn c z = true) :
+    c.rank ≠ Rank.king := by
+  intro hking
+  obtain ⟨hrank, -⟩ := (canSitOn_eq c z).mp h
+  have hidx : c.rank.toIdx = 12 := by rw [hking]; rfl
+  have hlt := Rank.toIdx_lt z.rank
+  rw [hidx] at hrank
+  omega
+
+/-- **A HELD KING'S SEAT IS THE ANCHOR** — kings sit on nothing, so
+a held king is the face-up bottom: its seat is `inl a` and its
+below-part is empty. -/
+private theorem king_seat_inl {st : State} {K : Card} {a : Anchor} (hwf : st.WF)
+    (hking : K.rank = Rank.king) (hh : st.pileHolding K = some a) :
+    seatOf st K = some (Sum.inl a) ∧ below K ((st.piles a).faceUp) = [] := by
+  rw [tfc_seatOf_pair hh]
+  cases hlast : List.getLast? (below K ((st.piles a).faceUp)) with
+  | none =>
+      refine ⟨rfl, ?_⟩
+      rw [tfc_getLast?_lastOf] at hlast
+      exact lastOf_eq_none _ hlast
+  | some z =>
+      exfalso
+      rw [tfc_getLast?_lastOf] at hlast
+      exact (canSitOn_ne_king (tfc_seat_parent hwf hh hlast).1) hking
+
+/-- An `inl` seat determines the holding pile. -/
+private theorem holding_of_seat_inl {st : State} {c : Card} {a : Anchor}
+    (h : seatOf st c = some (Sum.inl a)) : st.pileHolding c = some a := by
+  rw [tfc_seatOf_eq] at h
+  cases hh : st.pileHolding c with
+  | none =>
+      rw [hh] at h
+      exact absurd (show none = some (Sum.inl a) from h)
+        (fun hcon => Option.some_ne_none _ hcon.symm)
+  | some a' =>
+      rw [hh] at h
+      cases hlast : List.getLast? (below c ((st.piles a').faceUp)) with
+      | none =>
+          simp only [hlast] at h
+          injection h with h2
+          injection h2 with h3
+          rw [h3]
+      | some z =>
+          simp only [hlast] at h
+          injection h with h2
+          cases h2
+
+/-- Both arms of the king orbit's fuel set have empty hidden decks. -/
+private theorem hidden_eq_of_VKSet {st : State} {j : Anchor} (h : VKSet st j) :
+    (st.piles j).hidden = [] := by
+  rcases h with hvac | ⟨cc, hseat, -, hhidden⟩
+  · exact ((Pile.isEmpty_eq _).mp hvac).1
+  · exact hhidden
+
+/-- **A RETURNING KING LANDS BARE** — the pull of a king can only
+target an empty anchor (a king sits on nothing), whose hidden deck
+is empty by construction. -/
+theorem pull_king_bare {u v : State} {K : Card} {b : Base} (hwf : u.WF)
+    (hstep : State.step u (Move.foundToTab K b) = some v)
+    (hking : K.rank = Rank.king) : Bare v K := by
+  obtain ⟨c', hft, hc', hcp, hv⟩ := step_foundToTab_inv hstep
+  cases b with
+  | inl a' =>
+      have hpile : v = (u.setFound K.suit (chop (u.found K.suit))).setPile a' ⟨[], [K]⟩ := by
+        rw [hv]; rfl
+      have hwfv := step_wf hwf hstep
+      rw [hpile] at hwfv
+      rw [hpile]
+      refine ⟨a', (pileHolding_eq_some_iff hwfv).2 ?_, ?_⟩
+      · rw [setPile_piles_self]; exact List.mem_cons_self ..
+      · rw [setPile_piles_self]
+  | inr z =>
+      obtain ⟨k, hz, hsit⟩ := canPlace_inr hcp
+      exact absurd hking (canSitOn_ne_king hsit)
+
+/-- **THE PER-STEP KING BARENESS CENSUS** — along one reversible
+step, a king held at both ends keeps its bareness: the draw, raise
+and pull of other cards preserve the seat (hence the holding) and
+the hidden deck; the slide is a cargo pair, and the split iff's
+king clause sends every seat change to a fuel anchor — both of
+whose arms have empty hidden decks, which the step's hidden
+invariance transports. -/
+theorem step_king_bare {u v : State} {m : Move} (hwf : u.WF)
+    (hstep : State.step u m = some v) (hrev : reversibleAtW u m) {K : Card}
+    (hking : K.rank = Rank.king)
+    (hu : ∃ a, K ∈ (u.piles a).faceUp) (hv : ∃ a, K ∈ (v.piles a).faceUp)
+    (hb : Bare u K) : Bare v K := by
+  obtain ⟨a, hhold, hhidden⟩ := hb
+  have hseat := (king_seat_inl hwf hking hhold).1
+  have hhid : ∀ a', (v.piles a').hidden = (u.piles a').hidden :=
+    rev_step_hidden_eq hwf hstep hrev
+  cases m with
+  | wasteToFound d => exact absurd hrev (wasteToFound_not_reversibleAtW u d)
+  | wasteToTab d b => exact absurd hrev (wasteToTab_not_reversibleAtW u d b)
+  | draw =>
+      have hseatv : seatOf v K = some (Sum.inl a) := by
+        rw [(chart_draw hstep).1 K]; exact hseat
+      exact ⟨a, holding_of_seat_inl hseatv, by rw [hhid a]; exact hhidden⟩
+  | tabToFound d =>
+      by_cases hkd : K = d
+      · rw [← hkd] at hstep
+        exact absurd hv (raise_notFaceUp hwf hstep)
+      · have hseatv : seatOf v K = some (Sum.inl a) := by
+          rw [raise_seat_change_of_seated hstep hrev
+            (seatOf_ne_of_faceUp hwf hu) hkd]
+          exact hseat
+        exact ⟨a, holding_of_seat_inl hseatv, by rw [hhid a]; exact hhidden⟩
+  | foundToTab d b =>
+      by_cases hkd : K = d
+      · rw [← hkd] at hstep
+        exact pull_king_bare hwf hstep hking
+      · have hseatv : seatOf v K = some (Sum.inl a) := by
+          rw [pull_seat_change hstep K hkd]
+          exact hseat
+        exact ⟨a, holding_of_seat_inl hseatv, by rw [hhid a]; exact hhidden⟩
+  | tabToTab d b =>
+      have hkc := ((bareCargo_iff_split hwf (step_wf hwf hstep)).mp
+        (bareCargo_of_slide hwf hstep hrev)).1.1 K hking
+      by_cases hchg : seatOf u K = seatOf v K
+      · have hseatv : seatOf v K = some (Sum.inl a) := by
+          rw [← hchg]; exact hseat
+        exact ⟨a, holding_of_seat_inl hseatv, by rw [hhid a]; exact hhidden⟩
+      · obtain ⟨a', hseatv, hvk⟩ := hkc hchg
+        exact ⟨a', holding_of_seat_inl hseatv,
+          by rw [hhid a']; exact hidden_eq_of_VKSet hvk⟩
+
+/-- A bare card is face-up (the holding exists). -/
+private theorem faceUp_of_bare {st : State} {c : Card} (hb : Bare st c) :
+    ∃ a, c ∈ (st.piles a).faceUp := by
+  obtain ⟨a, hhold, -⟩ := hb
+  exact ⟨a, pileHolding_mem hhold⟩
+
+/-- **THE JOURNEY CENSUS FOR KINGS, FROZEN FORM** — along a witness
+shuffle, a king that is face-up at the far end is bare unless it
+was already off-board at the origin: the disjunction form carries
+the stay-cases (the per-step census) and the away-intervals (a
+returning king lands bare). -/
+theorem walk_king_bare {u : State} (hwf : u.WF) {ρ : List Move} {v : State}
+    (h : ShufflePlayW u ρ v) : ∀ c, c.rank = Rank.king →
+    (∃ a, c ∈ (v.piles a).faceUp) →
+    ((¬ ∃ a, c ∈ (u.piles a).faceUp) ∨ Bare u c) → Bare v c := by
+  revert hwf
+  induction h with
+  | nil st =>
+      intro _ _ _ hy hdisj
+      rcases hdisj with hnu | hb
+      · exact absurd hy hnu
+      · exact hb
+  | @cons st s1 W m ρ' hlet hstep hrest ih =>
+      intro hwf c hkng hy hdisj
+      have hwf1 : s1.WF := step_wf hwf hstep
+      rcases hdisj with hnu | hb
+      · cases hh : s1.pileHolding c with
+        | none =>
+            exact ih hwf1 c hkng hy (Or.inl (not_faceUp_of_holding_none hwf1 hh))
+        | some a =>
+            obtain ⟨b, hmb⟩ := step_arrival hwf hstep hlet hnu ⟨a, pileHolding_mem hh⟩
+            rw [hmb] at hstep
+            exact ih hwf1 c hkng hy (Or.inr (pull_king_bare hwf hstep hkng))
+      · have hu : ∃ a, c ∈ (st.piles a).faceUp :=
+          faceUp_of_bare hb
+        cases hh : s1.pileHolding c with
+        | none =>
+            exact ih hwf1 c hkng hy (Or.inl (not_faceUp_of_holding_none hwf1 hh))
+        | some a =>
+            have hv : ∃ a, c ∈ (s1.piles a).faceUp := ⟨a, pileHolding_mem hh⟩
+            exact ih hwf1 c hkng hy (Or.inr
+              (step_king_bare hwf hstep hlet hkng hu hv hb))
+
+/-- **THE ORBIT KING ROW** — at equal rungs, an orbit-mate preserves
+every king's bareness: the journey census along both directions of
+the orbit, riding the zone row for the face-up transport. -/
+theorem king_bare_orbit_rung {s s' : State} (hwf : s.WF)
+    (horb : sameOrbitSetoid.r s s')
+    (hrung : ∀ σ, rungAt s σ = rungAt s' σ) {c : Card} (hking : c.rank = Rank.king) :
+    Bare s c ↔ Bare s' c := by
+  have hiff := faceUp_iff hwf horb hrung
+  obtain ⟨ρ, hj1, τ, hj2⟩ := horb
+  have hwf' : s'.WF := walk_wf hwf hj2
+  constructor
+  · intro hb
+    exact walk_king_bare hwf hj2 c hking ((hiff c).mp (faceUp_of_bare hb)) (Or.inr hb)
+  · intro hb
+    exact walk_king_bare hwf' hj1 c hking ((hiff c).mpr (faceUp_of_bare hb)) (Or.inr hb)
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -705,3 +899,7 @@ theorem parented_orbit_rung {s s' : State} (hwf : s.WF)
 #print axioms step_parented
 #print axioms walk_parented
 #print axioms parented_orbit_rung
+#print axioms pull_king_bare
+#print axioms step_king_bare
+#print axioms walk_king_bare
+#print axioms king_bare_orbit_rung
