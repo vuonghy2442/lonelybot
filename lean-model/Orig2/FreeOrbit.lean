@@ -883,6 +883,154 @@ theorem king_bare_orbit_rung {s s' : State} (hwf : s.WF)
   · intro hb
     exact walk_king_bare hwf' hj1 c hking ((hiff c).mpr (faceUp_of_bare hb)) (Or.inr hb)
 
+/-! ## §4. The hatch factorization -/
+
+/-- `below` membership is membership.  Lineage: Classification's
+private `below_mem` — restated per the kit rule. -/
+private theorem below_mem {c : Card} : ∀ {l : List Card} {x : Card},
+    x ∈ below c l → x ∈ l := by
+  intro l
+  induction l with
+  | nil => intro x h; cases h
+  | cons y t ih =>
+      intro x h
+      rw [below_cons] at h
+      by_cases hyc : y = c
+      · rw [if_pos hyc] at h; cases h
+      · rw [if_neg hyc] at h
+        rcases List.mem_cons.mp h with rfl | h'
+        · exact List.mem_cons_self ..
+        · exact List.mem_cons.mpr (Or.inr (ih h'))
+
+/-- No card is below itself. -/
+private theorem below_irrefl {c : Card} : ∀ {l : List Card}, c ∉ below c l := by
+  intro l
+  induction l with
+  | nil => intro h; cases h
+  | cons y t ih =>
+      intro h
+      rw [below_cons] at h
+      by_cases hyc : y = c
+      · rw [if_pos hyc] at h; cases h
+      · rw [if_neg hyc] at h
+        rcases List.mem_cons.mp h with rfl | h'
+        · exact hyc rfl
+        · exact ih h'
+
+/-- A card strictly inside a nodup append is not in the front part.
+Lineage: CargoRaise §4's private row — restated per the kit rule. -/
+private theorem nodup_mid_notmem (d : Card) :
+    ∀ (l rest : List Card), (l ++ d :: rest).Nodup → d ∉ l := by
+  intro l
+  induction l with
+  | nil => intro rest _ hm; exact absurd hm (by simp)
+  | cons x xs ih =>
+      intro rest hnd hm
+      rcases List.mem_cons.mp hm with rfl | hin
+      · exact absurd (List.mem_append.mpr (Or.inr (List.mem_cons_self ..)))
+          ((List.nodup_cons.mp hnd).1)
+      · exact ih rest ((List.nodup_cons.mp hnd).2) hin
+
+/-- Append cancellation. -/
+private theorem append_cancel {α : Type} : ∀ (l₁ t₁ t₂ : List α),
+    l₁ ++ t₁ = l₁ ++ t₂ → t₁ = t₂ := by
+  intro l₁
+  induction l₁ with
+  | nil => intro t₁ t₂ h; exact h
+  | cons x xs ih =>
+      intro t₁ t₂ h
+      injection h with h1 h2
+      exact ih t₁ t₂ h2
+
+/-- The sitters of one sittee are a twin pair (the sittee-side
+two-seat: the fit equation pins the rank, the two-color pigeonhole
+the color, the deck arithmetic the card). -/
+private theorem sitter_pair {d e c : Card} (hd : canSitOn d c = true)
+    (he : canSitOn e c = true) : d = e ∨ d = e.twin := by
+  obtain ⟨hrd, hcd⟩ := (canSitOn_eq d c).mp hd
+  obtain ⟨hre, hce⟩ := (canSitOn_eq e c).mp he
+  exact card_eq_twin_of_rank_color (Rank.toIdx_inj (by omega))
+    (color_eq_of_ne hcd hce)
+
+/-- The fit is twin-blind in the target. -/
+private theorem canSitOn_twin_target (e c : Card) : canSitOn e c.twin = canSitOn e c := by
+  have hc2 : c.twin.suit.color = c.suit.color := by
+    rcases c with ⟨s, r⟩
+    cases s <;> rfl
+  rw [show canSitOn e c.twin
+      = (decide (e.rank.toIdx + 1 = c.twin.rank.toIdx)
+          && decide (e.suit.color ≠ c.twin.suit.color)) from rfl,
+    show canSitOn e c
+      = (decide (e.rank.toIdx + 1 = c.rank.toIdx)
+          && decide (e.suit.color ≠ c.suit.color)) from rfl,
+    show c.twin.rank.toIdx = c.rank.toIdx from rfl, hc2]
+
+/-- The front part of a `w`-headed representation is the below-of-w. -/
+private theorem below_w_eq {w : Card} {X F : List Card} (hwX : w ∉ X) :
+    ∀ (l : List Card), l = X ++ w :: F → below w l = X := by
+  intro l hl
+  rw [hl, (tfc_below_fromCard_excl w X (w :: F) hwX).1, below_cons_self, List.append_nil]
+
+/-- **THE SEAT'S POSITIONAL UNIQUENESS** — at most one card sits
+directly on any given card: two `inr w` seats are the same card
+(the below/fromCard arithmetic at the unique occurrence, with the
+run discipline's duplicate-freedom). -/
+theorem seat_inr_inj {st : State} {y z w : Card} (hwf : st.WF)
+    (hy : seatOf st y = some (Sum.inr w)) (hz : seatOf st z = some (Sum.inr w)) :
+    y = z := by
+  obtain ⟨a_y, hhy, -, hly⟩ := tfc_seatOf_of_inr hy
+  obtain ⟨a_z, hhz, -, hlz⟩ := tfc_seatOf_of_inr hz
+  have hhwy : st.pileHolding w = some a_y :=
+    (pileHolding_eq_some_iff hwf).2 (below_mem (lastOf_mem hly))
+  have hhwz : st.pileHolding w = some a_z :=
+    (pileHolding_eq_some_iff hwf).2 (below_mem (lastOf_mem hlz))
+  have ha : a_y = a_z := by
+    injection (hhwz.symm.trans hhwy) with h
+    exact h.symm
+  subst ha
+  -- the two representations of the pile:
+  have hrep_y : (st.piles a_y).faceUp
+      = chop (below y ((st.piles a_y).faceUp))
+        ++ w :: fromCard y ((st.piles a_y).faceUp) := by
+    have h1 : below y ((st.piles a_y).faceUp)
+        = chop (below y ((st.piles a_y).faceUp)) ++ [w] := lastOf_chop hly
+    have h2 := tfc_below_fromCard y ((st.piles a_y).faceUp)
+    rw [h1, List.append_assoc] at h2
+    exact h2.symm
+  have hrep_z : (st.piles a_y).faceUp
+      = chop (below z ((st.piles a_y).faceUp))
+        ++ w :: fromCard z ((st.piles a_y).faceUp) := by
+    have h1 : below z ((st.piles a_y).faceUp)
+        = chop (below z ((st.piles a_y).faceUp)) ++ [w] := lastOf_chop hlz
+    have h2 := tfc_below_fromCard z ((st.piles a_y).faceUp)
+    rw [h1, List.append_assoc] at h2
+    exact h2.symm
+  have hnd : ((st.piles a_y).faceUp).Nodup := runOK_nodup (hwf.2.1 a_y)
+  have hwXy : w ∉ chop (below y ((st.piles a_y).faceUp)) := by
+    intro hcon
+    exact nodup_mid_notmem w _ _ (by rw [← hrep_y]; exact hnd) hcon
+  have hwXz : w ∉ chop (below z ((st.piles a_y).faceUp)) := by
+    intro hcon
+    exact nodup_mid_notmem w _ _ (by rw [← hrep_z]; exact hnd) hcon
+  have hXy : below w ((st.piles a_y).faceUp)
+      = chop (below y ((st.piles a_y).faceUp)) :=
+    below_w_eq hwXy _ hrep_y
+  have hXz : below w ((st.piles a_y).faceUp)
+      = chop (below z ((st.piles a_y).faceUp)) :=
+    below_w_eq hwXz _ hrep_z
+  rw [← hXy] at hrep_y
+  rw [← hXz] at hrep_z
+  -- cancel the common prefix:
+  have h5 := append_cancel _ _ _ (hrep_y.symm.trans hrep_z)
+  have hyin : y ∈ (st.piles a_y).faceUp := pileHolding_mem hhy
+  have hzin : z ∈ (st.piles a_y).faceUp := pileHolding_mem hhz
+  obtain ⟨r_y, hry⟩ := tfc_fromCard_cons_head _ hyin
+  obtain ⟨r_z, hrz⟩ := tfc_fromCard_cons_head _ hzin
+  have h6 : fromCard y ((st.piles a_y).faceUp)
+      = fromCard z ((st.piles a_y).faceUp) := congrArg List.tail h5
+  have hfin : y :: r_y = z :: r_z := hry.symm.trans (h6.trans hrz)
+  injection hfin with hA hB
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -903,3 +1051,4 @@ theorem king_bare_orbit_rung {s s' : State} (hwf : s.WF)
 #print axioms step_king_bare
 #print axioms walk_king_bare
 #print axioms king_bare_orbit_rung
+#print axioms seat_inr_inj
