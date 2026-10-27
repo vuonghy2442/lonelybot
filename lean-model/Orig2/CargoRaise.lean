@@ -830,6 +830,41 @@ theorem canRaiseSB_iff {st : State} {c : Card} (hwf : st.WF) :
         | none => exact absurd hp htwin
         | some k => rw [Bool.or_eq_true]; exact Or.inr rfl
 
+/-- **freeCardS st c** — THE TABLEAU-READINESS PROBE (the campaign's
+new predicate, owner line 2026-10-27): the S-license's flat shape
+with the foundation gate REMOVED — `canRaiseSB` minus its `nextUp`
+head.  A pure piles-function (no clause reads `st.found`): the card
+is seated with company (or a bare king), and either stands exposed
+or its twin tops a pile — "free but not yet due".  The split below
+factors the license into foundation-gate ∧ tableau-readiness; the
+orbit-invariance campaign (`Orig2/FreeOrbit.lean`) proves the
+readiness is an (orbit, rung-tuple) invariant. -/
+def freeCardS (st : State) (c : Card) : Bool :=
+  match st.pileHolding c with
+  | none => false
+  | some a =>
+      match fromCard c ((st.piles a).faceUp) with
+      | [] => false
+      | _ :: run =>
+          (decide (below c ((st.piles a).faceUp) ≠ []) ||
+            (decide ((st.piles a).hidden = []) && decide (c.rank = Rank.king))) &&
+          (decide (run = []) || (st.pileOfTop c.twin).isSome)
+
+/-- The definitional bridge: the S-probe is the foundation gate
+conjoined with the readiness probe, verbatim. -/
+theorem canRaiseSB_eq (st : State) (c : Card) :
+    canRaiseSB st c = (st.nextUp c && freeCardS st c) := rfl
+
+/-- **THE LICENSE SPLITS** — the S-license is the foundation gate
+conjoined with the tableau-readiness probe.  The flat iff's first
+clause is the tuple shadow (the rung); the remaining clauses are
+the probe verbatim.  The orbit-invariance campaign rides this
+decomposition: `nextUp` is (orbit, tuple)-fixed by `foundsFixed`,
+and the campaign proves `freeCardS` is too. -/
+theorem canRaiseS_split {st : State} {c : Card} (hwf : st.WF) :
+    CanRaiseS st c ↔ st.nextUp c = true ∧ freeCardS st c = true := by
+  rw [← canRaiseSB_iff hwf, canRaiseSB_eq, Bool.and_eq_true]
+
 /-- **RankSat k st** — the level-k saturation frontier: no card of
 rank-index at most `k` is S-raisable at `st`.  The question
 family's anchor predicate (the campaign's Q-family — vacuity,
@@ -892,3 +927,5 @@ theorem rankSatB_iff {st : State} (hwf : st.WF) (k : Nat) :
 #print axioms canRaiseS_iff
 #print axioms canRaiseSB_iff
 #print axioms rankSatB_iff
+#print axioms canRaiseSB_eq
+#print axioms canRaiseS_split
