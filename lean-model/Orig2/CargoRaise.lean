@@ -53,6 +53,15 @@ under-cell grind).  The frozen tier's engines
 `canRaiseS_free`) are NOT imported — the orbit characterization
 carries their content at the class grade.
 
+STAGE 6 (landed here, §5): THE DECIDABILITY PACKAGING — the probe
+`canRaiseSB` (the Orig census pattern lifted to the cascade
+grade: no anchor scan, the holding-pile pin plus the computed
+below/fromCard split), certified against `CanRaiseS` at `WF`
+(`canRaiseSB_iff`); the frontier `RankSat k` with its universe
+scan `rankSatB` and the certified iff (`rankSatB_iff`) — Q9 of
+the campaign's question family, and the door to the Q-family
+probes (vacuity first).
+
 House compliance: additive leaf (`Orig2.Vocab` +
 `Orig2.Classification` for the public mirror row, `Orig2.StepWF`
 for the well-formedness propagation, `Orig2.FloatOrbit` for the
@@ -711,7 +720,159 @@ theorem canRaiseS_iff {st : State} {c : Card} (hwf : st.WF) :
   · exact canRaiseS_flat_necessity hwf
   · exact canRaiseS_flat_sufficiency hwf
 
-/-! ## §5. The battery -/
+/-! ## §5. The decidability packaging (the wave's stage 6) -/
+
+/-- **canRaiseSB st c** — THE S-LICENSE PROBE (the Orig census
+pattern, `canRaiseB` lifted to the cascade grade): the flat
+characterization as a single Bool.  No anchor scan — the flat
+witness pins to the holding pile by occurrence uniqueness, and
+`bs`/`run` are the computed below/fromCard split, not a search.
+The match arms are the flat clauses verbatim: the seat condition
+(company below, or the bare-king cell) and the cover's run-or-twin
+(the run empty, or the twin topping some pile).  Certified against
+`CanRaiseS` at `WF` below. -/
+def canRaiseSB (st : State) (c : Card) : Bool :=
+  st.nextUp c &&
+  match st.pileHolding c with
+  | none => false
+  | some a =>
+      match fromCard c ((st.piles a).faceUp) with
+      | [] => false
+      | _ :: run =>
+          (decide (below c ((st.piles a).faceUp) ≠ []) ||
+            (decide ((st.piles a).hidden = []) && decide (c.rank = Rank.king))) &&
+          (decide (run = []) || (st.pileOfTop c.twin).isSome)
+
+/-- **THE PROBE AGREES WITH THE LICENSE** — at `WF`, the S-license
+is its flat Bool: the migration's decidability dividend.  The
+reading rides the flat iff both ways: the probe's computed
+witness IS the flat witness (the holding pile, the below/fromCard
+split — the shape definitional through `tfc_below_fromCard`), and
+the flat witness's pile IS the holding pile (occurrence
+uniqueness), its `bs` the computed below (the run discipline's
+duplicate-freedom), its `run` the fromCard tail. -/
+theorem canRaiseSB_iff {st : State} {c : Card} (hwf : st.WF) :
+    canRaiseSB st c = true ↔ CanRaiseS st c := by
+  rw [canRaiseS_iff hwf]
+  constructor
+  · -- the probe reads the flat shape at the holding pile
+    intro h
+    rw [canRaiseSB, Bool.and_eq_true] at h
+    obtain ⟨hnext, hrest⟩ := h
+    cases hhold : st.pileHolding c with
+    | none => simp only [hhold] at hrest; exact absurd hrest (by simp)
+    | some a =>
+        simp only [hhold] at hrest
+        have hcmem : c ∈ (st.piles a).faceUp := pileHolding_mem hhold
+        obtain ⟨run₀, hcrr⟩ := tfc_fromCard_cons_head _ hcmem
+        cases hF : fromCard c ((st.piles a).faceUp) with
+        | nil =>
+            rw [hF] at hcrr
+            exact absurd hcrr (by simp)
+        | cons c' run =>
+            rw [hF] at hcrr
+            injection hcrr with hchd hrun
+            simp only [hF] at hrest
+            rw [Bool.and_eq_true] at hrest
+            obtain ⟨hseat, hrot⟩ := hrest
+            rw [Bool.or_eq_true] at hseat
+            refine ⟨hnext, a, below c ((st.piles a).faceUp), run, ?_, ?_, ?_⟩
+            · have h0 := tfc_below_fromCard c ((st.piles a).faceUp)
+              rw [hF, hchd] at h0
+              exact h0.symm
+            · rcases hseat with hbs | hhk
+              · exact Or.inl (decide_eq_true_iff.mp hbs)
+              · rw [Bool.and_eq_true] at hhk
+                obtain ⟨hd1, hd2⟩ := hhk
+                exact Or.inr ⟨decide_eq_true_iff.mp hd1, decide_eq_true_iff.mp hd2⟩
+            · rw [Bool.or_eq_true] at hrot
+              rcases hrot with hr | his
+              · exact Or.inl (decide_eq_true_iff.mp hr)
+              · refine Or.inr ?_
+                intro hcon
+                rw [hcon] at his
+                exact absurd his (by simp)
+  · -- the flat shape sets the probe
+    rintro ⟨hnext, a, bs, run, hshape, hseat, hdisj⟩
+    have hcmem : c ∈ (st.piles a).faceUp := by
+      rw [hshape]
+      exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+    have hhold : st.pileHolding c = some a := (pileHolding_eq_some_iff hwf).2 hcmem
+    have hnd : (bs ++ c :: run).Nodup := by
+      have h := runOK_nodup (hwf.2.1 a)
+      rw [hshape] at h
+      exact h
+    have hcNbs : c ∉ bs := nodup_mid_notmem c bs run hnd
+    have hbelow : below c ((st.piles a).faceUp) = bs := by
+      have hexcl := tfc_below_fromCard_excl c bs (c :: run) hcNbs
+      have h1 := hexcl.1
+      rw [below_cons_self, List.append_nil] at h1
+      rw [hshape]
+      exact h1
+    have hfc : fromCard c ((st.piles a).faceUp) = c :: run := by
+      have hexcl := tfc_below_fromCard_excl c bs (c :: run) hcNbs
+      have h2 := hexcl.2
+      rw [fromCard_head_eq] at h2
+      rw [hshape]
+      exact h2
+    simp only [canRaiseSB, hnext, hhold, hfc, Bool.true_and]
+    rw [Bool.and_eq_true]
+    refine ⟨?_, ?_⟩
+    · rcases hseat with hbs | ⟨hh1, hh2⟩
+      · rw [hbelow, Bool.or_eq_true]
+        exact Or.inl (decide_eq_true hbs)
+      · rw [hbelow, Bool.or_eq_true, Bool.and_eq_true]
+        exact Or.inr ⟨decide_eq_true hh1, decide_eq_true hh2⟩
+    · rcases hdisj with hre | htwin
+      · rw [hre, Bool.or_eq_true]
+        exact Or.inl (decide_eq_true rfl)
+      · cases hp : st.pileOfTop c.twin with
+        | none => exact absurd hp htwin
+        | some k => rw [Bool.or_eq_true]; exact Or.inr rfl
+
+/-- **RankSat k st** — the level-k saturation frontier: no card of
+rank-index at most `k` is S-raisable at `st`.  The question
+family's anchor predicate (the campaign's Q-family — vacuity,
+κ-spectrum, the residue — reads at this grade).  Fresh def at the
+migration card; the campaign's consumption card re-exports as
+needed. -/
+def RankSat (k : Nat) (st : State) : Prop :=
+  ∀ c, c.rank.toIdx ≤ k → ¬ CanRaiseS st c
+
+/-- **rankSatB** — the frontier probe: the universe scan over the
+S-license checker.  Completeness rides `Card.mem_universe` (every
+card is scanned); soundness rides `canRaiseSB_iff`. -/
+def rankSatB (k : Nat) (st : State) : Bool :=
+  Card.universe.all (fun c => !(decide (c.rank.toIdx ≤ k) && canRaiseSB st c))
+
+/-- **THE FRONTIER IS DECIDABLE** — Q9 of the campaign's question
+family: the saturation frontier is its Bool, at every `WF` state.
+The whole Q-family now reads on decidable questions — vacuity,
+the κ-spectrum, the residue's witnesses. -/
+theorem rankSatB_iff {st : State} (hwf : st.WF) (k : Nat) :
+    rankSatB k st = true ↔ RankSat k st := by
+  constructor
+  · intro h c hc hS
+    have hSB : canRaiseSB st c = true := (canRaiseSB_iff hwf).mpr hS
+    have h1 := (List.all_eq_true.mp h) c (Card.mem_universe c)
+    have h2 : (decide (c.rank.toIdx ≤ k) && canRaiseSB st c) = true := by
+      rw [Bool.and_eq_true]
+      exact ⟨decide_eq_true hc, hSB⟩
+    rw [h2, Bool.not_true] at h1
+    exact absurd h1 (by simp)
+  · intro h
+    refine List.all_eq_true.mpr ?_
+    intro c hmem
+    by_cases hle : c.rank.toIdx ≤ k
+    · have hnS : ¬ CanRaiseS st c := h c hle
+      have hSB : canRaiseSB st c = false := by
+        cases hSB' : canRaiseSB st c with
+        | false => rfl
+        | true => exact absurd ((canRaiseSB_iff hwf).mp hSB') hnS
+      rw [decide_eq_true hle, hSB, Bool.and_false, Bool.not_false]
+    · rw [decide_false_of_not hle, Bool.false_and, Bool.not_false]
+
+/-! ## §6. The battery -/
 
 #print axioms canRaiseS_of_cargoPath
 #print axioms cargoPath_of_canRaiseS
@@ -729,3 +890,5 @@ theorem canRaiseS_iff {st : State} {c : Card} (hwf : st.WF) :
 #print axioms canRaiseS_flat_necessity
 #print axioms canRaiseS_flat_sufficiency
 #print axioms canRaiseS_iff
+#print axioms canRaiseSB_iff
+#print axioms rankSatB_iff
