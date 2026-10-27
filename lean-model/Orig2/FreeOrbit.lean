@@ -1141,6 +1141,203 @@ theorem tops_of_held_no_cover {st : State} {c : Card}
   rw [hcon] at hpt
   exact Option.some_ne_none _ hpt.symm
 
+/-- The fit is twin-blind in the sitter (the sitter pair of `c` is
+closed under twin). -/
+private theorem canSitOn_twin_sitter (e c : Card) : canSitOn e.twin c = canSitOn e c := by
+  have hc2 : e.twin.suit.color = e.suit.color := by
+    rcases e with ⟨s, r⟩
+    cases s <;> rfl
+  rw [show canSitOn e.twin c
+      = (decide (e.twin.rank.toIdx + 1 = c.rank.toIdx)
+          && decide (e.twin.suit.color ≠ c.suit.color)) from rfl,
+    show canSitOn e c
+      = (decide (e.rank.toIdx + 1 = c.rank.toIdx)
+          && decide (e.suit.color ≠ c.suit.color)) from rfl,
+    show e.twin.rank.toIdx = e.rank.toIdx from rfl, hc2]
+
+/-- A seated card's parent is a fit target of the twin pair: the
+parent is `c` or `c.twin` (the sittee-side two-seat). -/
+private theorem parent_of_seat {st : State} {x c z : Card} (hwf : st.WF)
+    (hseat : seatOf st x = some (Sum.inr z)) (hfit : canSitOn x c = true) :
+    z = c ∨ z = c.twin := by
+  obtain ⟨a_x, hhold_x, -, hlast_x⟩ := tfc_seatOf_of_inr hseat
+  exact canSitOn_twin_pair hfit (tfc_seat_parent hwf hhold_x hlast_x).1
+
+/-- The covered card is face-up (it is below its cover). -/
+private theorem faceUp_of_covered {st : State} {x z : Card}
+    (hseat : seatOf st x = some (Sum.inr z)) :
+    ∃ a', z ∈ (st.piles a').faceUp := by
+  obtain ⟨a_x, hhold_x, -, hlast_x⟩ := tfc_seatOf_of_inr hseat
+  exact ⟨a_x, below_mem (lastOf_mem hlast_x)⟩
+
+/-- A seated card's parent is not a top (the cover hides it). -/
+private theorem no_top_of_seat {st : State} {x z : Card} (hwf : st.WF)
+    (hseat : seatOf st x = some (Sum.inr z)) : st.pileOfTop z = none := by
+  obtain ⟨a_x, hhold_x, -, hlast_x⟩ := tfc_seatOf_of_inr hseat
+  exact (tfc_seat_parent hwf hhold_x hlast_x).2
+
+/-- No `inr` seat means unparented (the seat is the parentedness
+witness-function). -/
+private theorem not_parented_of_no_inr {st : State} {x : Card}
+    (h : ∀ z, seatOf st x ≠ some (Sum.inr z)) : ¬ Parented st x := by
+  intro hz
+  rcases hz with ⟨z, hz2⟩
+  exact h z hz2
+
+/-- A `none` seat kills every `inr` seat equation. -/
+private theorem no_inr_of_none {st : State} {x z : Card} (h : seatOf st x = none) :
+    seatOf st x ≠ some (Sum.inr z) := by rw [h]; simp
+
+/-- An `inl` seat kills every `inr` seat equation. -/
+private theorem no_inr_of_inl {st : State} {x z : Card} {b' : Anchor}
+    (h : seatOf st x = some (Sum.inl b')) :
+    seatOf st x ≠ some (Sum.inr z) := by rw [h]; simp
+
+/-- **THE HATCH FACTORIZATION** — the readiness hatch's cover clause
+(the run empty, or the twin topping some pile) is, at `WF`, exactly the
+sitter-pair census: either no sitter of `c` is parented, or the twin
+is face-up and not both sitters are parented.  The four components —
+the sitters' parentedness and the twin's face-up membership — are the
+orbit-rung invariants the assembly rides.  Aces are vacuous (no card
+fits on an ace, so no sitter ever instantiates the quantifier). -/
+theorem hatch_iff {st : State} {c : Card} {a : Anchor} {run : List Card}
+    (hwf : st.WF) (hhold : st.pileHolding c = some a)
+    (hfc : fromCard c ((st.piles a).faceUp) = c :: run) :
+    (run = [] ∨ st.pileOfTop c.twin ≠ none) ↔
+      ∀ e, canSitOn e c = true →
+        ((¬ Parented st e ∧ ¬ Parented st e.twin) ∨
+          ((∃ a', c.twin ∈ (st.piles a').faceUp) ∧
+            ¬ (Parented st e ∧ Parented st e.twin))) := by
+  constructor
+  · rintro (hrun | hpt) e he
+    · -- Case A: nothing sits on c
+      have hnc : ∀ y, seatOf st y = some (Sum.inr c) → False :=
+        fun y hy => no_cover_of_nil_run hwf hhold (by rw [hfc, hrun]) hy
+      have he_t : canSitOn e.twin c = true := (canSitOn_twin_sitter e c).trans he
+      have hbranch : (∀ z, seatOf st e ≠ some (Sum.inr z)) →
+          ((¬ Parented st e ∧ ¬ Parented st e.twin) ∨
+            ((∃ a', c.twin ∈ (st.piles a').faceUp) ∧
+              ¬ (Parented st e ∧ Parented st e.twin))) := by
+        intro hE
+        have hnotP : ¬ Parented st e := not_parented_of_no_inr hE
+        cases hseatT : seatOf st e.twin with
+        | none =>
+            exact Or.inl ⟨hnotP,
+              not_parented_of_no_inr (fun z => no_inr_of_none hseatT)⟩
+        | some s =>
+            cases s with
+            | inl b' =>
+                exact Or.inl ⟨hnotP,
+                  not_parented_of_no_inr (fun z => no_inr_of_inl hseatT)⟩
+            | inr z_t =>
+                rcases parent_of_seat hwf hseatT he_t with hzc | hzct
+                · exact (hnc e.twin (by rw [hzc] at hseatT; exact hseatT)).elim
+                · rw [hzct] at hseatT
+                  exact Or.inr ⟨faceUp_of_covered hseatT, fun hp => hnotP hp.1⟩
+      cases hseatE : seatOf st e with
+      | none => exact hbranch (fun z => no_inr_of_none hseatE)
+      | some s =>
+          cases s with
+          | inl b' => exact hbranch (fun z => no_inr_of_inl hseatE)
+          | inr z_e =>
+              rcases parent_of_seat hwf hseatE he with hzc | hzct
+              · exact (hnc e (by rw [hzc] at hseatE; exact hseatE)).elim
+              · rw [hzct] at hseatE
+                refine Or.inr ⟨faceUp_of_covered hseatE, ?_⟩
+                rintro ⟨-, ⟨z_t, hz_t⟩⟩
+                rcases parent_of_seat hwf hz_t he_t with hzc2 | hzct2
+                · exact (hnc e.twin (by rw [hzc2] at hz_t; exact hz_t)).elim
+                · rw [hzct2] at hz_t
+                  exact (card_twin_ne e (seat_inr_inj hwf hz_t hseatE)).elim
+    · -- Case B: the twin tops some pile
+      have hH : ∃ a', c.twin ∈ (st.piles a').faceUp :=
+        match hps : st.pileOfTop c.twin with
+        | none => absurd hps hpt
+        | some a' => ⟨a', lastOf_mem
+            (show lastOf ((st.piles a').faceUp) = some c.twin from
+              (pileOfTop_eq_some_iff hwf).1 hps)⟩
+      have he_t : canSitOn e.twin c = true := (canSitOn_twin_sitter e c).trans he
+      have hbranch : (∀ z, seatOf st e ≠ some (Sum.inr z)) →
+          ((¬ Parented st e ∧ ¬ Parented st e.twin) ∨
+            ((∃ a', c.twin ∈ (st.piles a').faceUp) ∧
+              ¬ (Parented st e ∧ Parented st e.twin))) := by
+        intro hE
+        have hnotP : ¬ Parented st e := not_parented_of_no_inr hE
+        cases hseatT : seatOf st e.twin with
+        | none =>
+            exact Or.inl ⟨hnotP,
+              not_parented_of_no_inr (fun z => no_inr_of_none hseatT)⟩
+        | some s =>
+            cases s with
+            | inl b' =>
+                exact Or.inl ⟨hnotP,
+                  not_parented_of_no_inr (fun z => no_inr_of_inl hseatT)⟩
+            | inr z_t =>
+                exact Or.inr ⟨hH, fun hp => hnotP hp.1⟩
+      cases hseatE : seatOf st e with
+      | none => exact hbranch (fun z => no_inr_of_none hseatE)
+      | some s =>
+          cases s with
+          | inl b' => exact hbranch (fun z => no_inr_of_inl hseatE)
+          | inr z_e =>
+              have hzne : z_e ≠ c.twin := fun hzct =>
+                hpt (by rw [← hzct]; exact no_top_of_seat hwf hseatE)
+              have hzec : z_e = c := by
+                rcases parent_of_seat hwf hseatE he with h | h'
+                · exact h
+                · exact absurd h' hzne
+              refine Or.inr ⟨hH, ?_⟩
+              rintro ⟨-, ⟨z_t, hz_t⟩⟩
+              have hztc : z_t = c := by
+                rcases parent_of_seat hwf hz_t he_t with h | h'
+                · exact h
+                · exact absurd h' (fun hzct =>
+                    hpt (by rw [← hzct]; exact no_top_of_seat hwf hz_t))
+              rw [hzec] at hseatE
+              rw [hztc] at hz_t
+              exact (card_twin_ne e (seat_inr_inj hwf hz_t hseatE)).elim
+  · intro hrhs
+    cases run with
+    | nil => exact Or.inl rfl
+    | cons w t =>
+        obtain ⟨d, hcv⟩ := cover_of_run hwf hhold hfc (by simp)
+        obtain ⟨a_d, hhold_d, -, hlast_d⟩ := tfc_seatOf_of_inr hcv
+        have hd_fit : canSitOn d c = true := (tfc_seat_parent hwf hhold_d hlast_d).1
+        rcases hrhs d hd_fit with ⟨h1, -⟩ | ⟨hH, -⟩
+        · exact absurd ⟨c, hcv⟩ h1
+        cases hpt : st.pileOfTop c.twin with
+        | some a' => exact Or.inr (Option.some_ne_none _)
+        | none =>
+            exfalso
+            obtain ⟨a2, hmem⟩ := hH
+            have hhold_t : st.pileHolding c.twin = some a2 :=
+              (pileHolding_eq_some_iff hwf).2 hmem
+            obtain ⟨run', hfc_t⟩ := tfc_fromCard_cons_head _ hmem
+            cases run' with
+            | nil =>
+                have htop : (st.piles a2).top = some c.twin := by
+                  show lastOf ((st.piles a2).faceUp) = some c.twin
+                  have h1 := tfc_below_fromCard c.twin ((st.piles a2).faceUp)
+                  rw [hfc_t] at h1
+                  rw [← h1, lastOf_snoc]
+                exact Option.some_ne_none a2
+                  (((pileOfTop_eq_some_iff hwf).2 htop).symm.trans hpt)
+            | cons g t2 =>
+                obtain ⟨f, hcv_f⟩ := cover_of_run hwf hhold_t hfc_t (by simp)
+                obtain ⟨a_f, hhold_f, -, hlast_f⟩ := tfc_seatOf_of_inr hcv_f
+                have hf_fit : canSitOn f c = true :=
+                  (canSitOn_twin_target f c).symm.trans
+                    (tfc_seat_parent hwf hhold_f hlast_f).1
+                rcases hrhs f hf_fit with ⟨h1, -⟩ | ⟨-, hne_f⟩
+                · exact absurd ⟨c.twin, hcv_f⟩ h1
+                have hnf : ¬ Parented st f.twin :=
+                  fun hQ => hne_f ⟨⟨c.twin, hcv_f⟩, hQ⟩
+                rcases sitter_pair hd_fit hf_fit with rdf | rdft
+                · rw [rdf] at hcv
+                  exact (card_twin_ne c
+                    (Sum.inr.inj (Option.some.inj (hcv_f.symm.trans hcv)))).elim
+                · exact hnf (by rw [← rdft]; exact ⟨c, hcv⟩)
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -1165,3 +1362,4 @@ theorem tops_of_held_no_cover {st : State} {c : Card}
 #print axioms cover_of_run
 #print axioms no_cover_of_nil_run
 #print axioms tops_of_held_no_cover
+#print axioms hatch_iff
