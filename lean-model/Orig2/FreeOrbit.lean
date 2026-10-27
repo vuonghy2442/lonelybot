@@ -397,6 +397,225 @@ theorem pull_parented {u v : State} {c : Card} {b : Base} (hwf : u.WF)
       rw [hpk, below_snoc_not_mem hnotmem]
       exact (pileOfTop_top hz).1
 
+/-- The census complement: a card that is nowhere face-up lives in
+the foundations, some hidden deck, or the pool.  (The constructive
+zones-unfolding — no case split on undecidable existentials.) -/
+private theorem zone_notFaceUp {st : State} (hwf : st.WF) {c : Card}
+    (h : ¬ ∃ a, c ∈ (st.piles a).faceUp) :
+    (∃ σ, c ∈ st.found σ) ∨ (∃ a, c ∈ (st.piles a).hidden) ∨ (c ∈ st.stock ∨ c ∈ st.waste) := by
+  obtain ⟨zs, hzs, hczs⟩ := List.mem_flatMap.mp (mem_zones_of_wf hwf c)
+  rcases List.mem_append.mp hzs with h1 | h1
+  · rcases List.mem_append.mp h1 with h2 | h2
+    · obtain ⟨σ, -, hzeq⟩ := List.mem_map.mp h2
+      rw [← hzeq] at hczs
+      exact Or.inl ⟨σ, hczs⟩
+    · obtain ⟨a, -, hzeq⟩ := List.mem_map.mp h2
+      rw [← hzeq] at hczs
+      rcases List.mem_append.mp hczs with hmem | hmem
+      · exact Or.inr (Or.inl ⟨a, hmem⟩)
+      · exact absurd ⟨a, hmem⟩ h
+  · rcases List.mem_cons.mp h1 with rfl | h1
+    · exact Or.inr (Or.inr (Or.inl hczs))
+    · rcases List.mem_cons.mp h1 with rfl | h1
+      · exact Or.inr (Or.inr (Or.inr hczs))
+      · exact absurd h1 (List.not_mem_nil)
+
+/-- The exclusion trio: a card in the foundations, a hidden deck, or
+the pool is nowhere face-up. -/
+private theorem not_faceUp_of_found {st : State} (hwf : st.WF) {c : Card} {σ : Suit}
+    (hm : c ∈ st.found σ) : ¬ ∃ a, c ∈ (st.piles a).faceUp := by
+  rintro ⟨a, hcon⟩
+  exact ((mem_found_unique hwf hm).1 a).2 hcon
+
+private theorem not_faceUp_of_hidden {st : State} (hwf : st.WF) {c : Card} {a : Anchor}
+    (hm : c ∈ (st.piles a).hidden) : ¬ ∃ a', c ∈ (st.piles a').faceUp := by
+  rintro ⟨a', hcon⟩
+  by_cases haa' : a' = a
+  · rw [haa'] at hcon
+    exact mem_hidden_not_faceUp hwf hm hcon
+  · exact ((mem_pile_unique hwf (Or.inl hm)).1 a' haa').2 hcon
+
+private theorem not_faceUp_of_pool {st : State} (hwf : st.WF) {c : Card}
+    (hm : c ∈ st.stock ∨ c ∈ st.waste) : ¬ ∃ a, c ∈ (st.piles a).faceUp := by
+  rintro ⟨a, hcon⟩
+  rcases hm with hs | hw'
+  · exact ((mem_stock_unique hwf hs).1 a).2 hcon
+  · exact ((mem_waste_unique hwf hw').1 a).2 hcon
+
+/-- **THE FOUND-MEMBERSHIP STEP ROW** — a reversible step preserves
+foundation membership for every card it does not pull: the draw
+conserves the founds, the raise appends (the prefix survives), the
+pull chops only its own top, the slide never writes found. -/
+private theorem step_found_mem {u v : State} {m : Move} {c : Card}
+    (hstep : State.step u m = some v) (hrev : reversibleAtW u m)
+    (hmem : ∃ σ, c ∈ u.found σ) (hne : ∀ b, m ≠ Move.foundToTab c b) :
+    ∃ σ, c ∈ v.found σ := by
+  cases m with
+  | draw =>
+      obtain ⟨σ, hm⟩ := hmem
+      refine ⟨σ, ?_⟩
+      rw [← (chart_draw hstep).2.1 σ]
+      exact hm
+  | wasteToFound d => exact absurd hrev (wasteToFound_not_reversibleAtW u d)
+  | wasteToTab d b => exact absurd hrev (wasteToTab_not_reversibleAtW u d b)
+  | tabToFound d =>
+      obtain ⟨hnext, ap, hpa, hv⟩ := step_tabToFound_inv hstep
+      obtain ⟨σ, hm⟩ := hmem
+      refine ⟨σ, ?_⟩
+      rw [hv]
+      show c ∈ (u.setFound d.suit (u.found d.suit ++ [d])).found σ
+      simp only [State.setFound]
+      by_cases hsd : σ = d.suit
+      · rw [if_pos hsd]
+        rw [hsd] at hm
+        exact List.mem_append.mpr (Or.inl hm)
+      · rw [if_neg hsd]
+        exact hm
+  | foundToTab d b =>
+      have hne' : d ≠ c := by
+        intro hcon
+        exact hne b (by rw [hcon])
+      obtain ⟨c', hft, hc', hcp, hvl⟩ := step_foundToTab_inv hstep
+      obtain ⟨σ, hm⟩ := hmem
+      refine ⟨σ, ?_⟩
+      rw [hvl, putCard_found]
+      show c ∈ (u.setFound d.suit (chop (u.found d.suit))).found σ
+      simp only [State.setFound]
+      by_cases hsd : σ = d.suit
+      · rw [if_pos hsd]
+        rw [hsd] at hm
+        have hlast : lastOf (u.found d.suit) = some d := by
+          rw [hc'] at hft
+          show u.foundTop d.suit = some d
+          exact hft
+        have hsplit : u.found d.suit = chop (u.found d.suit) ++ [d] :=
+          lastOf_chop hlast
+        rw [hsplit] at hm
+        rcases List.mem_append.mp hm with h' | h'
+        · exact h'
+        · exact absurd (List.mem_singleton.mp h') (fun hcon => hne' hcon.symm)
+      · rw [if_neg hsd]
+        exact hm
+  | tabToTab d b =>
+      obtain ⟨a, hh, hcp, hfr, hv⟩ := step_tabToTab_inv hstep
+      obtain ⟨σ, hm⟩ := hmem
+      refine ⟨σ, ?_⟩
+      rw [hv, putRun_found, setPile_found]
+      exact hm
+
+/-- **THE NO-ARRIVAL ROW** — a reversible step that does not pull `c`
+cannot bring it face-up (the zone route: the census complement at
+the origin, the three conservations, the exclusion trio). -/
+private theorem step_notFaceUp_of_ne {u v : State} {m : Move} (hwf : u.WF)
+    (hstep : State.step u m = some v) (hrev : reversibleAtW u m) {c : Card}
+    (hnu : ¬ ∃ a, c ∈ (u.piles a).faceUp) (hne : ∀ b, m ≠ Move.foundToTab c b) :
+    ¬ ∃ a, c ∈ (v.piles a).faceUp := by
+  rintro ⟨a, hy⟩
+  have hwf' : v.WF := step_wf hwf hstep
+  rcases zone_notFaceUp hwf hnu with ⟨σ, hf⟩ | ⟨a', hh⟩ | (hs | hw')
+  · obtain ⟨σ', hm'⟩ := step_found_mem hstep hrev ⟨σ, hf⟩ hne
+    exact not_faceUp_of_found hwf' hm' ⟨a, hy⟩
+  · have hh' : c ∈ (v.piles a').hidden := by
+      rw [rev_step_hidden_eq hwf hstep hrev a']
+      exact hh
+    exact not_faceUp_of_hidden hwf' hh' ⟨a, hy⟩
+  · exact not_faceUp_of_pool hwf' (step_pool_rev hstep hrev c (Or.inl hs)) ⟨a, hy⟩
+  · exact not_faceUp_of_pool hwf' (step_pool_rev hstep hrev c (Or.inr hw')) ⟨a, hy⟩
+
+/-- **THE ARRIVAL IDENTIFICATION** — the only letter that brings a
+card face-up is its own pull: if a reversible step takes `c` from
+off-board to face-up, the move is `foundToTab c b`. -/
+theorem step_arrival {u v : State} {m : Move} (hwf : u.WF)
+    (hstep : State.step u m = some v) (hrev : reversibleAtW u m) {c : Card}
+    (hnu : ¬ ∃ a, c ∈ (u.piles a).faceUp) (hy : ∃ a, c ∈ (v.piles a).faceUp) :
+    ∃ b, m = Move.foundToTab c b := by
+  cases m with
+  | draw =>
+      exact absurd hy (step_notFaceUp_of_ne hwf hstep hrev hnu
+        (fun _ hb => absurd hb (by simp)))
+  | wasteToFound d => exact absurd hrev (wasteToFound_not_reversibleAtW u d)
+  | wasteToTab d b => exact absurd hrev (wasteToTab_not_reversibleAtW u d b)
+  | tabToFound d =>
+      exact absurd hy (step_notFaceUp_of_ne hwf hstep hrev hnu
+        (fun _ hb => absurd hb (by simp)))
+  | tabToTab d b =>
+      exact absurd hy (step_notFaceUp_of_ne hwf hstep hrev hnu
+        (fun _ hb => absurd hb (by simp)))
+  | foundToTab d b =>
+      by_cases hdc : d = c
+      · refine ⟨b, ?_⟩
+        rw [hdc]
+      · exact absurd hy (step_notFaceUp_of_ne hwf hstep hrev hnu
+          (fun _ hb => by injection hb with hb'; exact hdc hb'))
+
+/-- Face-up cards have seats. -/
+private theorem seatOf_ne_of_faceUp {st : State} {c : Card} (hwf : st.WF)
+    (h : ∃ a, c ∈ (st.piles a).faceUp) : seatOf st c ≠ none := by
+  obtain ⟨a, hm⟩ := h
+  have hh : st.pileHolding c = some a := (pileHolding_eq_some_iff hwf).2 hm
+  rw [tfc_seatOf_eq]
+  cases hhold : st.pileHolding c with
+  | none => exact absurd hh (by rw [hhold]; simp)
+  | some a₂ =>
+      simp only [hhold]
+      cases hlast : List.getLast? (below c ((st.piles a₂).faceUp)) with
+      | none => simp only [hlast]; exact Option.some_ne_none _
+      | some z => simp only [hlast]; exact Option.some_ne_none _
+
+/-- The raise removes its card from the face-up board. -/
+private theorem raise_notFaceUp {u v : State} {c : Card} (hwf : u.WF)
+    (hstep : State.step u (Move.tabToFound c) = some v) :
+    ¬ ∃ a, c ∈ (v.piles a).faceUp := by
+  obtain ⟨hnext, ap, hpa, hv⟩ := step_tabToFound_inv hstep
+  have hcf : c ∈ v.found c.suit := by
+    rw [hv]
+    change c ∈ (if c.suit = c.suit then u.found c.suit ++ [c] else u.found c.suit)
+    have hss : c.suit = c.suit := rfl
+    rw [if_pos hss]
+    exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
+  rintro ⟨a, hcon⟩
+  exact ((mem_found_unique (step_wf hwf hstep) hcf).1 a).2 hcon
+
+/-- **THE PER-STEP PARENTED CENSUS** — along one reversible step, a
+non-king that is face-up at both ends keeps its parented-ness: the
+draw preserves every seat; the slide is a cargo pair (the class
+census); the raise preserves every other seated card's seat; the
+pull preserves every non-pulled card's seat, and the pulled card
+itself lands parented. -/
+theorem step_parented {u v : State} {m : Move} (hwf : u.WF)
+    (hstep : State.step u m = some v) (hrev : reversibleAtW u m) {c : Card}
+    (hk : c.rank ≠ Rank.king)
+    (hu : ∃ a, c ∈ (u.piles a).faceUp) (hv : ∃ a, c ∈ (v.piles a).faceUp)
+    (hp : Parented u c) : Parented v c := by
+  cases m with
+  | wasteToFound d => exact absurd hrev (wasteToFound_not_reversibleAtW u d)
+  | wasteToTab d b => exact absurd hrev (wasteToTab_not_reversibleAtW u d b)
+  | draw =>
+      obtain ⟨z, hz⟩ := hp
+      refine ⟨z, ?_⟩
+      rw [(chart_draw hstep).1 c]
+      exact hz
+  | tabToFound d =>
+      by_cases hcd : c = d
+      · subst hcd
+        exact absurd hv (raise_notFaceUp hwf hstep)
+      · obtain ⟨z, hz⟩ := hp
+        have hseat := raise_seat_change_of_seated hstep hrev
+          (seatOf_ne_of_faceUp hwf hu) hcd
+        refine ⟨z, ?_⟩
+        rw [hseat]; exact hz
+  | foundToTab d b =>
+      by_cases hcd : c = d
+      · subst hcd
+        exact pull_parented hwf hstep hk
+      · obtain ⟨z, hz⟩ := hp
+        have hseat := pull_seat_change hstep c hcd
+        refine ⟨z, ?_⟩
+        rw [hseat]; exact hz
+  | tabToTab d b =>
+      exact (parented_bareCargo hwf (step_wf hwf hstep)
+        (bareCargo_of_slide hwf hstep hrev) hk).mp hp
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -409,3 +628,5 @@ theorem pull_parented {u v : State} {c : Card} {b : Base} (hwf : u.WF)
 #print axioms bareCargo_of_slide
 #print axioms parented_bareCargo
 #print axioms pull_parented
+#print axioms step_arrival
+#print axioms step_parented
