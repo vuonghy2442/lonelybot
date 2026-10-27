@@ -267,6 +267,136 @@ theorem faceUp_iff {s s' : State} (hwf : s.WF)
   · exact faceUp_of_walk hwf hwf' hj2 hj1 hrung c
   · exact faceUp_of_walk hwf' hwf hj1 hj2 (fun σ => (hrung σ).symm) c
 
+/-! ## §3. The seat rows — parented-ness and the class census -/
+
+/-- The custom `lastOf` never answers `none` on a nonempty list.
+Lineage: CargoRaise §4's private row — restated here per the kit
+rule. -/
+private theorem lastOf_eq_none : ∀ (l : List Card), lastOf l = none → l = [] := by
+  intro l
+  cases l with
+  | nil => intro _; rfl
+  | cons w t =>
+      cases t with
+      | nil =>
+          intro h
+          rw [show lastOf [w] = some w from rfl] at h
+          exact absurd h (Option.some_ne_none w)
+      | cons w2 t2 =>
+          intro h
+          rw [show lastOf (w :: w2 :: t2) = lastOf (w2 :: t2) from rfl] at h
+          exact absurd (lastOf_eq_none (w2 :: t2) h) (List.cons_ne_nil w2 t2)
+
+/-- **Parented st c** — the card sits on some parent (a non-king's
+seat condition; a king sits on nothing by the rank arithmetic, so
+its seat condition is bareness instead). -/
+def Parented (st : State) (c : Card) : Prop :=
+  ∃ z, seatOf st c = some (Sum.inr z)
+
+/-- **THE SEAT-ARM BRIDGE** — for a held card, the flat iff's
+`bs ≠ []` arm is exactly the parented reading: the below-part is
+nonempty iff the seat is an `inr` (the parent, the below-part's
+last). -/
+theorem parented_iff_below {st : State} {c : Card} {a : Anchor}
+    (hh : st.pileHolding c = some a) :
+    Parented st c ↔ below c ((st.piles a).faceUp) ≠ [] := by
+  have hseat : seatOf st c = match List.getLast? (below c ((st.piles a).faceUp)) with
+    | none => some (Sum.inl a) | some z => some (Sum.inr z) := tfc_seatOf_pair hh
+  constructor
+  · rintro ⟨z, hz⟩
+    intro hnil
+    simp only [hseat, hnil, List.getLast?] at hz
+    injection hz with hz2
+    cases hz2
+  · intro hne
+    have h1 : List.getLast? (below c ((st.piles a).faceUp)) ≠ none := by
+      intro hcon
+      have h2 : lastOf (below c ((st.piles a).faceUp)) = none := by
+        rw [← tfc_getLast?_lastOf]; exact hcon
+      exact hne (lastOf_eq_none _ h2)
+    cases hlast : List.getLast? (below c ((st.piles a).faceUp)) with
+    | none => exact absurd hlast h1
+    | some z => exact ⟨z, by rw [hseat, hlast]⟩
+
+/-- **A REVERSIBLE SLIDE IS A CARGO-CLASS PAIR** — the forward leg
+is the leg itself; the return is the mirror (a single `tabToTab`,
+`tabToTab_mirror`), itself reversible (`reversible_mirrorW`).  This
+is the bridge that carries the orbit's slide letters into the
+certified class machinery. -/
+theorem bareCargo_of_slide {u v : State} {d : Card} {b : Base} (hwf : u.WF)
+    (hstep : State.step u (Move.tabToTab d b) = some v)
+    (hrev : reversibleAtW u (Move.tabToTab d b)) : BareCargoEquiv u v := by
+  obtain ⟨b₂, hfire2⟩ := tabToTab_mirror hwf hstep hrev
+  exact ⟨Steps.cons ⟨d, b, hstep, hrev⟩ (Steps.refl v),
+    Steps.cons ⟨d, b₂, hfire2, reversible_mirrorW hfire2 hstep⟩ (Steps.refl u)⟩
+
+/-- **THE CLASS CENSUS, ONE WAY** — across a bare-cargo pair, every
+non-king's parented-ness is preserved: the split iff's twin-carry
+clause forces every seat change to go `inr → inr.twin` (parented to
+parented), and unchanged seats are unchanged. -/
+private theorem parented_of_bareCargo {u v : State} (hwf : u.WF) (hwf' : v.WF)
+    (h : BareCargoEquiv u v) {c : Card} (hk : c.rank ≠ Rank.king)
+    (hp : Parented u c) : Parented v c := by
+  obtain ⟨z, hz⟩ := hp
+  have hc := ((bareCargo_iff_split hwf hwf').mp h).1.2 c hk
+  by_cases hchg : seatOf u c = seatOf v c
+  · refine ⟨z, ?_⟩
+    rw [← hchg]; exact hz
+  · obtain ⟨z', hu', hv'⟩ := hc hchg
+    exact ⟨z'.twin, hv'⟩
+
+/-- **THE CLASS CENSUS** — across a bare-cargo pair (in particular:
+across every single reversible slide), a non-king card is parented
+at one end iff at the other.  The orbit's slide letters inherit
+this wholesale. -/
+theorem parented_bareCargo {u v : State} (hwf : u.WF) (hwf' : v.WF)
+    (h : BareCargoEquiv u v) {c : Card} (hk : c.rank ≠ Rank.king) :
+    Parented u c ↔ Parented v c :=
+  ⟨parented_of_bareCargo hwf hwf' h hk,
+    parented_of_bareCargo hwf' hwf ⟨h.2, h.1⟩ hk⟩
+
+/-- **THE PULL'S RETURN LANDS PARENTED** — a non-king returning
+from the foundation sits on a parent (the `inr` landing: the empty
+anchor is king-only), with the host pile's old face-up as its
+below-part. -/
+theorem pull_parented {u v : State} {c : Card} {b : Base} (hwf : u.WF)
+    (hstep : State.step u (Move.foundToTab c b) = some v)
+    (hk : c.rank ≠ Rank.king) : Parented v c := by
+  obtain ⟨c', hft, hc', hcp, hv⟩ := step_foundToTab_inv hstep
+  cases b with
+  | inl a =>
+      obtain ⟨-, hkg⟩ := canPlace_inl hcp
+      exact absurd hkg hk
+  | inr z =>
+      obtain ⟨k, hz, hsit⟩ := canPlace_inr hcp
+      have hzmid : (u.setFound c.suit (chop (u.found c.suit))).pileOfTop z = some k :=
+        hz
+      have hpk : (v.piles k).faceUp = (u.piles k).faceUp ++ [c] := by
+        rw [hv]
+        have hput : ((u.setFound c.suit (chop (u.found c.suit))).putCard c (Sum.inr z)).piles k
+            = { (u.setFound c.suit (chop (u.found c.suit))).piles k with
+                faceUp := ((u.setFound c.suit (chop (u.found c.suit))).piles k).faceUp ++ [c] } := by
+          simp only [State.putCard, hzmid, setPile_piles_self]
+        rw [hput]
+        rfl
+      have hmem : c ∈ (v.piles k).faceUp := by
+        rw [hpk]
+        exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
+      have hhold : v.pileHolding c = some k :=
+        (pileHolding_eq_some_iff (step_wf hwf hstep)).2 hmem
+      have hcf : c ∈ u.found c.suit := by
+        have hlast : lastOf (u.found c.suit) = some c := by
+          show u.foundTop c.suit = some c
+          rw [hc'] at hft
+          exact hft
+        exact lastOf_mem hlast
+      have hnotmem : c ∉ (u.piles k).faceUp := by
+        intro hcon
+        exact ((mem_found_unique hwf hcf).1 k).2 hcon
+      refine (parented_iff_below hhold).mpr ?_
+      rw [hpk, below_snoc_not_mem hnotmem]
+      exact (pileOfTop_top hz).1
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -275,3 +405,7 @@ theorem faceUp_iff {s s' : State} (hwf : s.WF)
 #print axioms walk_hidden_eq
 #print axioms walk_wf
 #print axioms faceUp_iff
+#print axioms parented_iff_below
+#print axioms bareCargo_of_slide
+#print axioms parented_bareCargo
+#print axioms pull_parented
