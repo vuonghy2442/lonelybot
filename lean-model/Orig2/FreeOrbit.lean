@@ -1338,6 +1338,145 @@ theorem hatch_iff {st : State} {c : Card} {a : Anchor} {run : List Card}
                     (Sum.inr.inj (Option.some.inj (hcv_f.symm.trans hcv)))).elim
                 · exact hnf (by rw [← rdft]; exact ⟨c, hcv⟩)
 
+/-- `isSome` reads off non-`none`. -/
+private theorem isSome_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) :
+    o.isSome = true := by
+  cases hps : o with
+  | none => exact absurd hps h
+  | some a' => rfl
+
+/-- Non-`none` reads off `isSome`. -/
+private theorem ne_none_of_isSome {α : Type} {o : Option α} (h : o.isSome = true) :
+    o ≠ none := by
+  intro hcon
+  rw [hcon] at h
+  exact absurd h (by simp)
+
+/-- **THE READINESS SEMANTICS** — the probe's flat computation is the
+invariant reading: held, seated with company (non-king) or bare
+(king), and the hatch's sitter-pair census.  Every component of the
+right-hand side is an (orbit, rung-tuple) invariant. -/
+theorem freeCardS_sem {st : State} {c : Card} (hwf : st.WF) :
+    freeCardS st c = true ↔
+      ∃ a, st.pileHolding c = some a ∧
+        ((Parented st c ∧ c.rank ≠ Rank.king) ∨
+          (Bare st c ∧ c.rank = Rank.king)) ∧
+        (∀ e, canSitOn e c = true →
+          ((¬ Parented st e ∧ ¬ Parented st e.twin) ∨
+            ((∃ a', c.twin ∈ (st.piles a').faceUp) ∧
+              ¬ (Parented st e ∧ Parented st e.twin)))) := by
+  constructor
+  · intro h
+    rw [freeCardS] at h
+    cases hhold : st.pileHolding c with
+    | none => simp only [hhold] at h; exact absurd h (by simp)
+    | some a =>
+        simp only [hhold] at h
+        have hcmem : c ∈ (st.piles a).faceUp := pileHolding_mem hhold
+        obtain ⟨run0, hcrr⟩ := tfc_fromCard_cons_head _ hcmem
+        cases hF : fromCard c ((st.piles a).faceUp) with
+        | nil =>
+            rw [hF] at hcrr
+            exact absurd hcrr (by simp)
+        | cons x run =>
+            rw [hF] at hcrr
+            injection hcrr with hchd hrun
+            simp only [hF] at h
+            rw [Bool.and_eq_true] at h
+            obtain ⟨hseat, hrot⟩ := h
+            have hfc : fromCard c ((st.piles a).faceUp) = c :: run := by
+              rw [hF, hchd]
+            refine ⟨a, rfl, ?_, ?_⟩
+            · rw [Bool.or_eq_true] at hseat
+              rcases hseat with hbs | hhk
+              · have hbl : below c ((st.piles a).faceUp) ≠ [] := decide_eq_true_iff.mp hbs
+                have hk : c.rank ≠ Rank.king := fun hcon =>
+                  hbl (king_seat_inl hwf hcon hhold).2
+                exact Or.inl ⟨(parented_iff_below hhold).2 hbl, hk⟩
+              · rw [Bool.and_eq_true] at hhk
+                obtain ⟨hd1, hd2⟩ := hhk
+                exact Or.inr ⟨⟨a, hhold, decide_eq_true_iff.mp hd1⟩,
+                  decide_eq_true_iff.mp hd2⟩
+            · rw [← hatch_iff hwf hhold hfc]
+              rw [Bool.or_eq_true] at hrot
+              rcases hrot with hr | his
+              · exact Or.inl (decide_eq_true_iff.mp hr)
+              · exact Or.inr (ne_none_of_isSome his)
+  · rintro ⟨a, hhold, hseat, hh⟩
+    have hcmem : c ∈ (st.piles a).faceUp := pileHolding_mem hhold
+    obtain ⟨run, hcrr⟩ := tfc_fromCard_cons_head _ hcmem
+    simp only [freeCardS, hhold, hcrr]
+    rw [Bool.and_eq_true]
+    refine ⟨?_, ?_⟩
+    · rw [Bool.or_eq_true]
+      rcases hseat with ⟨hp, hk⟩ | ⟨hb, hk⟩
+      · exact Or.inl (decide_eq_true ((parented_iff_below hhold).mp hp))
+      · rcases hb with ⟨a', hhold', hhidden'⟩
+        have ha' : a' = a := Option.some.inj (hhold'.symm.trans hhold)
+        rw [ha'] at hhidden'
+        rw [Bool.and_eq_true]
+        exact Or.inr ⟨decide_eq_true hhidden', decide_eq_true hk⟩
+    · rw [Bool.or_eq_true]
+      rcases (hatch_iff hwf hhold hcrr).2 hh with hr | hne
+      · exact Or.inl (decide_eq_true hr)
+      · exact Or.inr (isSome_of_ne_none hne)
+
+/-- **THE READINESS IS AN (ORBIT, RUNG-TUPLE) INVARIANT** — at equal
+rungs, an orbit-mate preserves every card's tableau-readiness: the
+excursion closure carries the holdings, the seat census the
+parented/bare arms, the hatch factorization the cover clause.  This is
+the campaign's theorem — the S-license's tableau content cannot tell
+orbit-mates apart. -/
+theorem freeCardS_orbit_rung {s s' : State} (hwf : s.WF)
+    (horb : sameOrbitSetoid.r s s')
+    (hrung : ∀ σ, rungAt s σ = rungAt s' σ)
+    {c : Card} : freeCardS s c = true ↔ freeCardS s' c = true := by
+  have hiff := faceUp_iff hwf horb hrung
+  have hpar : ∀ x : Card, x.rank ≠ Rank.king → (Parented s x ↔ Parented s' x) :=
+    fun _ hx => parented_orbit_rung hwf horb hrung hx
+  have hking : ∀ x : Card, x.rank = Rank.king → (Bare s x ↔ Bare s' x) :=
+    fun _ hx => king_bare_orbit_rung hwf horb hrung hx
+  obtain ⟨ρ, hj1, τ, hj2⟩ := horb
+  have hwf' : s'.WF := walk_wf hwf hj2
+  rw [freeCardS_sem hwf, freeCardS_sem hwf']
+  constructor
+  · rintro ⟨a, hhold, hseat, hh⟩
+    have hmem : c ∈ (s.piles a).faceUp := pileHolding_mem hhold
+    obtain ⟨a', hmem'⟩ := (hiff c).mp ⟨a, hmem⟩
+    refine ⟨a', (pileHolding_eq_some_iff hwf').2 hmem', ?_, ?_⟩
+    · rcases hseat with ⟨hp, hk⟩ | ⟨hb, hk⟩
+      · exact Or.inl ⟨(hpar c hk).mp hp, hk⟩
+      · exact Or.inr ⟨(hking c hk).mp hb, hk⟩
+    · intro e he
+      have heng : e.rank ≠ Rank.king := canSitOn_ne_king he
+      have hetng : e.twin.rank ≠ Rank.king := by
+        rcases e with ⟨s2, r2⟩
+        exact heng
+      rcases hh e he with h1 | ⟨hH, hne⟩
+      · exact Or.inl ⟨fun hP' => h1.1 ((hpar e heng).mpr hP'),
+          fun hQ' => h1.2 ((hpar e.twin hetng).mpr hQ')⟩
+      · refine Or.inr ⟨(hiff c.twin).mp hH, ?_⟩
+        rintro ⟨hP', hQ'⟩
+        exact hne ⟨(hpar e heng).mpr hP', (hpar e.twin hetng).mpr hQ'⟩
+  · rintro ⟨a', hhold', hseat', hh'⟩
+    have hmem' : c ∈ (s'.piles a').faceUp := pileHolding_mem hhold'
+    obtain ⟨a, hmem⟩ := (hiff c).mpr ⟨a', hmem'⟩
+    refine ⟨a, (pileHolding_eq_some_iff hwf).2 hmem, ?_, ?_⟩
+    · rcases hseat' with ⟨hp, hk⟩ | ⟨hb, hk⟩
+      · exact Or.inl ⟨(hpar c hk).mpr hp, hk⟩
+      · exact Or.inr ⟨(hking c hk).mpr hb, hk⟩
+    · intro e he
+      have heng : e.rank ≠ Rank.king := canSitOn_ne_king he
+      have hetng : e.twin.rank ≠ Rank.king := by
+        rcases e with ⟨s2, r2⟩
+        exact heng
+      rcases hh' e he with h1 | ⟨hH, hne⟩
+      · exact Or.inl ⟨fun hP => h1.1 ((hpar e heng).mp hP),
+          fun hQ => h1.2 ((hpar e.twin hetng).mp hQ)⟩
+      · refine Or.inr ⟨(hiff c.twin).mpr hH, ?_⟩
+        rintro ⟨hP, hQ⟩
+        exact hne ⟨(hpar e heng).mp hP, (hpar e.twin hetng).mp hQ⟩
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -1363,3 +1502,5 @@ theorem hatch_iff {st : State} {c : Card} {a : Anchor} {run : List Card}
 #print axioms no_cover_of_nil_run
 #print axioms tops_of_held_no_cover
 #print axioms hatch_iff
+#print axioms freeCardS_sem
+#print axioms freeCardS_orbit_rung
