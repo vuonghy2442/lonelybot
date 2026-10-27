@@ -616,6 +616,79 @@ theorem step_parented {u v : State} {m : Move} (hwf : u.WF)
       exact (parented_bareCargo hwf (step_wf hwf hstep)
         (bareCargo_of_slide hwf hstep hrev) hk).mp hp
 
+/-- A parented card is face-up (the seat exists). -/
+private theorem faceUp_of_parented {st : State} {c : Card} (hp : Parented st c) :
+    ∃ a, c ∈ (st.piles a).faceUp := by
+  obtain ⟨z, hz⟩ := hp
+  rw [tfc_seatOf_eq] at hz
+  cases hh : st.pileHolding c with
+  | none =>
+      rw [hh] at hz
+      exact absurd (show none = some (Sum.inr z) from hz)
+        (fun hcon => Option.some_ne_none _ hcon.symm)
+  | some a => exact ⟨a, pileHolding_mem hh⟩
+
+/-- An unheld card is nowhere face-up. -/
+private theorem not_faceUp_of_holding_none {st : State} (hwf : st.WF) {c : Card}
+    (hh : st.pileHolding c = none) : ¬ ∃ a, c ∈ (st.piles a).faceUp := by
+  rintro ⟨a, hm⟩
+  rw [(pileHolding_eq_some_iff hwf).2 hm] at hh
+  exact (Option.some_ne_none a) hh
+
+/-- **THE JOURNEY CENSUS, FROZEN FORM** — along a witness shuffle, a
+non-king that is face-up at the far end is parented unless it was
+already unparented-face-up at the origin.  The disjunction form
+carries both the stay-cases (the per-step census) and the
+away-intervals (an arrival is its own pull, which lands parented);
+the contrapositive is the unparented-bottom freeze: a face-up
+unparented card at the end was face-up unparented at the start. -/
+theorem walk_parented {u : State} (hwf : u.WF) {ρ : List Move} {v : State}
+    (h : ShufflePlayW u ρ v) : ∀ c, c.rank ≠ Rank.king →
+    (∃ a, c ∈ (v.piles a).faceUp) →
+    ((¬ ∃ a, c ∈ (u.piles a).faceUp) ∨ Parented u c) → Parented v c := by
+  revert hwf
+  induction h with
+  | nil st =>
+      intro _ _ _ hy hdisj
+      rcases hdisj with hnu | hp
+      · exact absurd hy hnu
+      · exact hp
+  | @cons st s1 W m ρ' hlet hstep hrest ih =>
+      intro hwf c hk hy hdisj
+      have hwf1 : s1.WF := step_wf hwf hstep
+      rcases hdisj with hnu | hp
+      · cases hh : s1.pileHolding c with
+        | none =>
+            exact ih hwf1 c hk hy (Or.inl (not_faceUp_of_holding_none hwf1 hh))
+        | some a =>
+            obtain ⟨b, hmb⟩ := step_arrival hwf hstep hlet hnu ⟨a, pileHolding_mem hh⟩
+            rw [hmb] at hstep
+            exact ih hwf1 c hk hy (Or.inr (pull_parented hwf hstep hk))
+      · have huf : ∃ a, c ∈ (st.piles a).faceUp := faceUp_of_parented hp
+        cases hh : s1.pileHolding c with
+        | none =>
+            exact ih hwf1 c hk hy (Or.inl (not_faceUp_of_holding_none hwf1 hh))
+        | some a =>
+            exact ih hwf1 c hk hy (Or.inr
+              (step_parented hwf hstep hlet hk huf ⟨a, pileHolding_mem hh⟩ hp))
+
+/-- **THE ORBIT PARENTED ROW** — at equal rungs, an orbit-mate
+preserves every non-king's parented-ness: the journey census along
+both directions of the orbit, riding the zone row for the face-up
+transport. -/
+theorem parented_orbit_rung {s s' : State} (hwf : s.WF)
+    (horb : sameOrbitSetoid.r s s')
+    (hrung : ∀ σ, rungAt s σ = rungAt s' σ) {c : Card} (hk : c.rank ≠ Rank.king) :
+    Parented s c ↔ Parented s' c := by
+  have hiff := faceUp_iff hwf horb hrung
+  obtain ⟨ρ, hj1, τ, hj2⟩ := horb
+  have hwf' : s'.WF := walk_wf hwf hj2
+  constructor
+  · intro hp
+    exact walk_parented hwf hj2 c hk ((hiff c).mp (faceUp_of_parented hp)) (Or.inr hp)
+  · intro hp
+    exact walk_parented hwf' hj1 c hk ((hiff c).mpr (faceUp_of_parented hp)) (Or.inr hp)
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -630,3 +703,5 @@ theorem step_parented {u v : State} {m : Move} (hwf : u.WF)
 #print axioms pull_parented
 #print axioms step_arrival
 #print axioms step_parented
+#print axioms walk_parented
+#print axioms parented_orbit_rung
