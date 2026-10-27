@@ -1031,6 +1031,116 @@ theorem seat_inr_inj {st : State} {y z w : Card} (hwf : st.WF)
   have hfin : y :: r_y = z :: r_z := hry.symm.trans (h6.trans hrz)
   injection hfin with hA hB
 
+/-- **THE RUN-HEAD COVER** — if the fromCard tail is nonempty,
+its head sits directly on `c` (the adjacent fit of the run
+discipline, reflected into the seat). -/
+theorem cover_of_run {st : State} {c : Card} {a : Anchor} {run : List Card}
+    (hwf : st.WF) (hhold : st.pileHolding c = some a)
+    (hfc : fromCard c ((st.piles a).faceUp) = c :: run) (hrne : run ≠ []) :
+    ∃ d, seatOf st d = some (Sum.inr c) := by
+  obtain ⟨d, rest', hrun⟩ : ∃ d rest', run = d :: rest' := by
+    cases run with
+    | nil => exact absurd rfl hrne
+    | cons w t => exact ⟨w, t, rfl⟩
+  have hshape : (st.piles a).faceUp
+      = below c ((st.piles a).faceUp) ++ c :: d :: rest' := by
+    have h := tfc_below_fromCard c ((st.piles a).faceUp)
+    rw [hfc, hrun] at h
+    exact h.symm
+  have hnd : ((st.piles a).faceUp).Nodup := runOK_nodup (hwf.2.1 a)
+  have hresh : (below c ((st.piles a).faceUp) ++ [c]) ++ d :: rest'
+      = (st.piles a).faceUp := by
+    rw [List.append_assoc, List.cons_append, List.nil_append]
+    exact hshape.symm
+  rw [← hresh] at hnd
+  have hdnotin : d ∉ below c ((st.piles a).faceUp) ++ [c] :=
+    nodup_mid_notmem d _ _ hnd
+  have hcd : c ≠ d := by
+    intro hcon
+    apply hdnotin
+    rw [← hcon]
+    exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
+  have hbelod : below d ((st.piles a).faceUp)
+      = below c ((st.piles a).faceUp) ++ [c] := by
+    have hdnotbelow : d ∉ below c ((st.piles a).faceUp) :=
+      fun hcon => hdnotin (List.mem_append.mpr (Or.inl hcon))
+    have hex := (tfc_below_fromCard_excl d
+      (below c ((st.piles a).faceUp)) (c :: d :: rest') hdnotbelow).1
+    rw [← hshape] at hex
+    rw [hex, below_cons, if_neg hcd, below_cons_self]
+  have hdmem : d ∈ (st.piles a).faceUp := by
+    rw [hshape]
+    exact List.mem_append.mpr (Or.inr (List.mem_cons.mpr (Or.inr (List.mem_cons_self ..))))
+  refine ⟨d, ?_⟩
+  rw [tfc_seatOf_pair ((pileHolding_eq_some_iff hwf).2 hdmem), hbelod,
+    tfc_getLast?_lastOf, lastOf_snoc]
+
+/-- **THE NIL-RUN KILLS COVERS** — if `c` is the last card of its
+pile's face-up run, nothing sits on it (the cover's fromCard
+cancellation). -/
+theorem no_cover_of_nil_run {st : State} {c y : Card} {a : Anchor}
+    (hwf : st.WF) (hhold : st.pileHolding c = some a)
+    (hfc : fromCard c ((st.piles a).faceUp) = c :: [])
+    (hcov : seatOf st y = some (Sum.inr c)) : False := by
+  obtain ⟨a_y, hhy, -, hly⟩ := tfc_seatOf_of_inr hcov
+  have hhc : st.pileHolding c = some a_y :=
+    (pileHolding_eq_some_iff hwf).2 (below_mem (lastOf_mem hly))
+  have ha : a_y = a := Option.some.inj (hhc.symm.trans hhold)
+  subst ha
+  have hnd : ((st.piles a_y).faceUp).Nodup := runOK_nodup (hwf.2.1 a_y)
+  have hrep : (st.piles a_y).faceUp
+      = chop (below y ((st.piles a_y).faceUp))
+        ++ c :: fromCard y ((st.piles a_y).faceUp) := by
+    have h1 : below y ((st.piles a_y).faceUp)
+        = chop (below y ((st.piles a_y).faceUp)) ++ [c] := lastOf_chop hly
+    have h2 := tfc_below_fromCard y ((st.piles a_y).faceUp)
+    rw [h1, List.append_assoc] at h2
+    exact h2.symm
+  have hcX : c ∉ chop (below y ((st.piles a_y).faceUp)) := by
+    intro hcon
+    exact nodup_mid_notmem c _ _ (by rw [← hrep]; exact hnd) hcon
+  have hfc2 : fromCard c ((st.piles a_y).faceUp)
+      = c :: fromCard y ((st.piles a_y).faceUp) := by
+    have hex := (tfc_below_fromCard_excl c
+      (chop (below y ((st.piles a_y).faceUp)))
+      (c :: fromCard y ((st.piles a_y).faceUp)) hcX).2
+    rw [← hrep] at hex
+    rw [hex, fromCard_head_eq]
+  rw [hfc] at hfc2
+  have hyin : y ∈ fromCard y ((st.piles a_y).faceUp) := by
+    obtain ⟨r, hr⟩ := tfc_fromCard_cons_head _ (pileHolding_mem hhy)
+    rw [hr]
+    exact List.mem_cons_self ..
+  injection hfc2 with hc1 hc2
+  rw [← hc2] at hyin
+  exact absurd hyin (by simp)
+
+/-- **HELD AND UNCOVERED MEANS TOPPING** — a face-up card with
+nothing on it tops its pile. -/
+theorem tops_of_held_no_cover {st : State} {c : Card}
+    (hwf : st.WF) (hheld : ∃ a, c ∈ (st.piles a).faceUp)
+    (hnocov : ¬ ∃ y, seatOf st y = some (Sum.inr c)) :
+    st.pileOfTop c ≠ none := by
+  obtain ⟨a, hmem⟩ := hheld
+  have hhold : st.pileHolding c = some a := (pileHolding_eq_some_iff hwf).2 hmem
+  obtain ⟨run, hfc⟩ := tfc_fromCard_cons_head _ hmem
+  have hrun : run = [] := by
+    cases run with
+    | nil => rfl
+    | cons d rest' =>
+        exact absurd (cover_of_run hwf hhold hfc (by simp)) (by
+          rintro ⟨d, hd⟩
+          exact hnocov ⟨d, hd⟩)
+  have htop : (st.piles a).top = some c := by
+    show lastOf ((st.piles a).faceUp) = some c
+    have h1 := tfc_below_fromCard c ((st.piles a).faceUp)
+    rw [hfc, hrun] at h1
+    rw [← h1, lastOf_snoc]
+  have hpt := (pileOfTop_eq_some_iff hwf).2 htop
+  intro hcon
+  rw [hcon] at hpt
+  exact Option.some_ne_none _ hpt.symm
+
 /-! ## §9. The battery -/
 
 #print axioms canSitOn_twin_pair
@@ -1052,3 +1162,6 @@ theorem seat_inr_inj {st : State} {y z w : Card} (hwf : st.WF)
 #print axioms walk_king_bare
 #print axioms king_bare_orbit_rung
 #print axioms seat_inr_inj
+#print axioms cover_of_run
+#print axioms no_cover_of_nil_run
+#print axioms tops_of_held_no_cover
