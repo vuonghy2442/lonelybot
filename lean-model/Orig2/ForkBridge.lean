@@ -335,14 +335,15 @@ theorem no_forkWitness_at_pull_landing {A' F : State} {c d : Card} {b : Base}
   exact not_forkWitness_of_two_raisable hcd
     (ValleyStep.pull_card_canRaise hA' hpull) (canRaise_of_reversible_raise hF hrev)
 
-/-- **`SplitResidual`** — THE FINEST NAMED RESIDUAL.  At the canonical valley
-split of a SHORTEST witness play between saturated `WF` class-mates with
-differing rungs: the last pull's card `c` and the first raise's card `d` are
-twins, the pull card is blocked at the bottom, and nothing S-live sits below
-the pair's rank there.
+/-- **`SplitResidual` — WITHDRAWN, FALSE AS LITERALLY STATED.**  The binders
+`left right c d b pre post tail` do not occur in the hypotheses (only
+`ValleySplitAt`, which is itself an ∃ over fresh data), so the definition
+forces `d = c.twin` for *arbitrary* `d`.  The refutation is
+`SplitKit.not_splitResidual_of_split` in `Orig2/ForkSplitResidual.lean`.
 
-(Needed only for the split `valley_exists` returns; quantified over all splits
-here, which is a harmless strengthening.) -/
+The correct form is `SplitKit.SplitResidualData`, where the split equations
+are hypotheses (`SplitHyp`).  This definition is kept only so the refutation
+can name it; do not use it as a target. -/
 def SplitResidual : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base)
@@ -364,21 +365,6 @@ def BottomDip : Prop :=
     (∀ ρ' : List Move, ShufflePlayW u ρ' v → ρ.length ≤ ρ'.length) →
     ∃ x : Card, CanRaise F x ∧ CanRaiseS F x.twin ∧ ¬ CanRaise F x.twin ∧
       (∀ e, CanRaiseS F e → x.rank.toIdx ≤ e.rank.toIdx)
-
-/-- `SplitResidual` implies `BottomDip` (through the concrete orientation
-theorem above). -/
-theorem bottomDip_of_splitResidual (h : SplitResidual) : BottomDip := by
-  intro u v ρ F huwf hsu hsv hcls hdiff hplay hsplit hmin
-  obtain ⟨left, right, c, d, b, pre, post, tail,
-    hρ, hleft, hright, hshape, hfree, hrightShape⟩ := hsplit
-  obtain ⟨htwin, hblock, hfloor⟩ :=
-    h u v ρ F left right c d b pre post tail huwf hsu hsv hplay
-      ⟨left, right, c, d, b, pre, post, tail,
-        hρ, hleft, hright, hshape, hfree, hrightShape⟩ hmin
-  obtain ⟨-, hcan, hS, hblk, hfloor'⟩ :=
-    bottom_asymmetry_of_split_data huwf hleft hright hshape hfree hrightShape
-      htwin hblock hfloor
-  exact ⟨d, hcan, hS, hblk, hfloor'⟩
 
 /-- **A PLAY THAT ENDS IN THE PULL ENDS AT ITS LANDING.**  Hence the pull card
 is vanilla-raisable there. -/
@@ -609,37 +595,20 @@ theorem forkExistenceFromAsymmetry_iff_cover :
     obtain ⟨a1, a2, a3, a4⟩ := (asymmetry_iff_covered hwf).mp ⟨h1, h2, h3, h4⟩
     exact h w x hwf a1 a2 a3 a4
 
-/-! ## §5c. The full chain from the finest residual -/
+/-! ## §5c. The drain conversion
 
-/-- **THE FULL CHAIN.**  `SplitResidual` (twins + blocked pull + rank floor at
-the canonical shortest-play valley bottom) plus shortest-play existence and the
-drain half gives `SatDifferForkWF`. -/
-theorem satDifferForkWF_of_splitResidual (h : SplitResidual)
-    (hmin : ValleyElim.ShortestPlayExists) (hdrain : ForkExistenceFromAsymmetry) :
-    SatDifferForkWF :=
-  satDifferForkWF_of_bottom_asymmetry
-    (bottomAsymmetry_of_bottomDip (bottomDip_of_splitResidual h) hmin) hdrain
-
-/-- The same chain with the drain discharged from `DrainInputs`. -/
-theorem satDifferForkWF_of_splitResidual_drainInputs (h : SplitResidual)
-    (hmin : ValleyElim.ShortestPlayExists) (hin : DrainInputs) :
-    SatDifferForkWF :=
-  satDifferForkWF_of_splitResidual h hmin (forkExistence_of_drainInputs hin)
+`SplitResidual` is false as stated (see its docstring and
+`Orig2/ForkSplitResidual.lean`); the corrected chain lives in that card. -/
 
 /-- **THE CAMPAIGN TARGET, DRAIN DISCHARGED.**  The drain half is
-`DrainClose.fork_exists_of_asymmetry`; the only remaining hypotheses are the
-bridge `SplitResidual` and the choice-free shortest-play interface. -/
+`DrainClose.fork_exists_of_asymmetry`, so any bridge residual plus the
+choice-free shortest-play interface gives `SatDifferForkWF`. -/
 theorem forkExistenceFromAsymmetry_drainClosed : ForkExistenceFromAsymmetry := by
   intro w x hwf hcan hlive hblock hfloor
   obtain ⟨F, hrel, hfork⟩ :=
     DrainClose.fork_exists_of_asymmetry hwf hcan hlive hblock hfloor
   obtain ⟨y, hy⟩ := forkState_iff.mp hfork
   exact ⟨F, y, hrel, hy⟩
-
-theorem satDifferForkWF_of_splitResidual_drainClosed
-    (h : SplitResidual) (hmin : ValleyElim.ShortestPlayExists) :
-    SatDifferForkWF :=
-  satDifferForkWF_of_splitResidual h hmin forkExistenceFromAsymmetry_drainClosed
 
 /-! ## §6. Battery -/
 
@@ -672,11 +641,7 @@ theorem satDifferForkWF_of_splitResidual_drainClosed
 #print axioms not_forkWitness_of_two_raisable
 #print axioms no_forkWitness_at_pull_landing
 #print axioms bottom_asymmetry_of_split_data
-#print axioms bottomDip_of_splitResidual
 #print axioms bottomAsymmetry_of_bottomDip
-#print axioms satDifferForkWF_of_splitResidual
-#print axioms satDifferForkWF_of_splitResidual_drainInputs
 #print axioms forkExistenceFromAsymmetry_drainClosed
-#print axioms satDifferForkWF_of_splitResidual_drainClosed
 
 end Bridge
