@@ -129,7 +129,7 @@ theorem canRaise_of_raise_high {st w : State} {c d : Card} {b : Anchor}
     show (if b = a0 then
         Pile.afterRunRemoved (st.piles a0) (chop (st.piles a0).faceUp)
       else st.piles b) = st.piles b
-    rw [if_neg hb_ne]
+    rw [ite_eq_right hb_ne]
   exact canRaise_of_raise_other hwf hstep hsu hd hpiles h
 
 #print axioms ValleyDrain.canRaise_of_raise_high

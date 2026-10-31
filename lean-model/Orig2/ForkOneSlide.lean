@@ -328,7 +328,7 @@ theorem safe_cargo_path_of_any
     {st z : State} {x : Card}
     (hwf : st.WF) (hpath : CargoPath st z) (hcan : CanRaise z x.twin)
     (hblock : ¬ CanRaise st x.twin)
-    (hfloor : ∀ c, CanRaiseS st c → x.rank.toIdx ≤ c.rank.toIdx) :
+    (_hfloor : ∀ c, CanRaiseS st c → x.rank.toIdx ≤ c.rank.toIdx) :
     ∃ z', Steps (RevStepOf (safeMoves x.rank.toIdx x)) st z' ∧ CanRaise z' x.twin := by
   have hlive : CanRaiseS st x.twin := ⟨z, hpath, hcan⟩
   obtain ⟨hnext, a, bs, run, hshape, hseat, hdisj⟩ :=
