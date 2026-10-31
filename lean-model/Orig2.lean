@@ -10,6 +10,7 @@ import Orig2.ForkTailCover
 import Orig2.ForkLanding
 import Orig2.ForkLocator
 import Orig2.ForkLocatorRefute
+import Orig2.ForkNormalizeTail
 import Orig2.Fiber
 import Orig2.Boundary
 import Orig2.BoundaryForkFree

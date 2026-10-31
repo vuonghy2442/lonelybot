@@ -14,6 +14,8 @@ import Orig2.ForkSafeTransport
 import Orig2.ForkOneSlideLive
 import Orig2.ForkSplit
 import Orig2.ForkCommute
+import Orig2.ForkBubble
+import Orig2.ForkNormalize
 
 /-!
 # Orig2.Fork — the fork theory umbrella
@@ -53,6 +55,12 @@ The local and class-level fork cards, in dependency order:
   raisable.
 * `ForkSafeTransport` — `CanRaiseS` is preserved by a high raise, with
   the necessary side condition `c ≠ x.twin`.
+* `ForkBubble` — the play-level bubbling kit: `swap_at`, `bubble_one`,
+  `bracket_delete_at`, the raise/pull normal form, and the inversion
+  measure.
+* `ForkNormalize` — the directional window writers and the conditional
+  bracket normalizer (`crossingBracketNormalizer_of_commutes`, its
+  `NoSlide` corollary, and the explicit slide-row reduction).
 
 This module is an umbrella only; the cards themselves are unchanged.
 -/
