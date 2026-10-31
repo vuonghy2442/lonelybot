@@ -1,5 +1,6 @@
 import Orig2.StratifiedQuotient
 import Orig2.FreeOrbit
+import Orig2.OrbitFactor
 
 /-!
 # Orig2.Position - THE GAME-POSITION QUOTIENT (the grid card)
@@ -685,6 +686,40 @@ theorem raise_class_position {s s₁ t t₁ : State} {c : Card}
   · rw [if_pos hσ, if_pos hσ, hrung σ]
   · rw [if_neg hσ, if_neg hσ]
     exact hrung σ
+/-! ## par.7. The draw's vanishing -/
+
+/-- The board-move closure is reflexive (the empty plays). -/
+private theorem NoDrawPlayW_refl (u : State) : NoDrawPlayW u u :=
+  ⟨[], Walk.nil u, by simp, [], Walk.nil u, by simp⟩
+
+/-- One reversible draw is a forward draws-only witness journey. -/
+private theorem draw_forward_DrawPlayW {u v : State}
+    (hstep : State.step u Move.draw = some v)
+    (hrev : reversibleAtW u Move.draw) :
+    DrawPlayW u [Move.draw] v :=
+  ⟨Walk.cons hrev hstep (Walk.nil v), by simp⟩
+
+/-- **THE DRAW VANISHES, GIVEN THE CYCLE** - a reversible draw
+holds the ledger (the draw never touches the founds), and given
+the all-draw witness return (the rest of the draw cycle - the
+phase loop algebra's remaining row: from the post-draw state,
+drain the stock by in-phase draws, recycle at the empty base,
+and the divider returns), the orbit factorization composes the
+orbit.  The remaining gap is exactly the cycle row:
+`∃ τ, DrawPlayW v τ u` from one reversible draw. -/
+theorem draw_position_of_cycle {u v : State} (hwf : u.WF) (hwfv : v.WF)
+    (hstep : State.step u Move.draw = some v)
+    (hrev : reversibleAtW u Move.draw)
+    (hcycle : ∃ τ, DrawPlayW v τ u) :
+    (Quotient.mk orbitRungSetoid ⟨u, hwf⟩ : Position)
+      = Quotient.mk orbitRungSetoid ⟨v, hwfv⟩ := by
+  obtain ⟨τ, hτ⟩ := hcycle
+  refine Quotient.sound ⟨?_, ?_⟩
+  · refine (sameOrbit_factor hwf hwfv).mpr ⟨u, NoDrawPlayW_refl u, ?_⟩
+    exact ⟨[Move.draw], τ, draw_forward_DrawPlayW hstep hrev, hτ⟩
+  · intro σ
+    exact (rungAt_draw hstep σ).symm
+
 /-! ## par.8. The saturation descent -/
 
 /-- **THE SATURATION FRONTIER AT THE POSITION LEVEL** - the level-k
@@ -761,3 +796,4 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms ssaturated_iff_spec
 #print axioms tabToFound_pull_back
 #print axioms raise_class_position
+#print axioms draw_position_of_cycle
