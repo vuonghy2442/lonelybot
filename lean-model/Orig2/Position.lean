@@ -793,6 +793,82 @@ theorem drawR_invariant {x y : State} (hd : 0 < x.drawStep)
       rw [inPhase_eq_decide_of_cons hsty] at hphy
       exact hphy
 
+/-- The drained target: the stock emptied into the waste, the pool
+conserved. -/
+private def drainState (x : State) : State :=
+  { x with stock := [], waste := x.stock.reverse ++ x.waste }
+
+/-- **THE DRAIN TO THE EMPTY STOCK** - from any reversible-draw
+state, an all-draw witness walk drains the stock to empty, the
+dealt cards (reversed) onto the waste - the pool conserved.  The
+strong induction on the stock length; every leg reversible by the
+drawR invariant. -/
+private theorem drain_zero_walk : ∀ (n : Nat) (x : State), x.stock.length ≤ n →
+    x.WF → drawR x = true →
+    ∃ τ, DrawPlayW x τ (drainState x) := by
+  intro n
+  induction n with
+  | zero =>
+      intro x hlen hwf h
+      have hlen0 : x.stock.length = 0 := by omega
+      have hnil : x.stock = ([] : List Card) :=
+        List.eq_nil_of_length_eq_zero hlen0
+      have hstr : drainState x = x := by
+        unfold drainState
+        refine State.ext ?_ ?_ ?_ ?_ ?_
+        · rfl
+        · rfl
+        · exact hnil.symm
+        · rw [hnil, List.reverse_nil, List.nil_append]
+        · rfl
+      rw [hstr]
+      exact ⟨[], Walk.nil x, by simp⟩
+  | succ n ih =>
+      intro x hlen hwf h
+      by_cases hnil : x.stock = []
+      · have hstr : drainState x = x := by
+          unfold drainState
+          refine State.ext ?_ ?_ ?_ ?_ ?_
+          · rfl
+          · rfl
+          · exact hnil.symm
+          · rw [hnil, List.reverse_nil, List.nil_append]
+          · rfl
+        rw [hstr]
+        exact ⟨[], Walk.nil x, by simp⟩
+      · have hd : 0 < x.drawStep := hwf.2.2.2
+        let x' : State :=
+          { x with stock := (List.drop x.drawStep x.stock), waste := ((List.take x.drawStep x.stock).reverse ++ x.waste) }
+        have hstep : State.step x Move.draw = some x' := by
+          show x.stepDraw = some x'
+          exact plain_draw_shape hnil
+        have hrev : reversibleAtW x Move.draw :=
+          (drawR_iff_reversibleAtW hwf).mp h
+        have hx' : drawR x' = true := drawR_invariant hd hstep h
+        have hwf' : x'.WF := step_wf hwf hstep
+        have hlen' : x'.stock.length ≤ n := by
+          have hdrop : x'.stock.length = x.stock.length - x.drawStep := by
+            rw [show x'.stock = List.drop x.drawStep x.stock from rfl, List.length_drop]
+          omega
+        obtain ⟨τ', hw1, hw2⟩ := ih x' hlen' hwf' hx'
+        have hstate : drainState x' = drainState x := by
+          unfold drainState
+          refine State.ext ?_ ?_ ?_ ?_ ?_
+          · rfl
+          · rfl
+          · rfl
+          · rw [show x'.stock = List.drop x.drawStep x.stock from rfl,
+              show x'.waste = (List.take x.drawStep x.stock).reverse ++ x.waste from rfl,
+              ← List.append_assoc, ← List.reverse_append, List.take_append_drop]
+          · rfl
+        rw [hstate] at hw1
+        exact ⟨Move.draw :: τ', Walk.cons hrev hstep hw1,
+          by
+            intro m hm
+            rcases List.mem_cons.mp hm with rfl | hm'
+            · rfl
+            · exact hw2 m hm'⟩
+
 /-! ## par.8. The saturation descent -/
 
 /-- **THE SATURATION FRONTIER AT THE POSITION LEVEL** - the level-k
@@ -871,3 +947,4 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms raise_class_position
 #print axioms draw_position_of_cycle
 #print axioms drawR_invariant
+#print axioms drain_zero_walk
