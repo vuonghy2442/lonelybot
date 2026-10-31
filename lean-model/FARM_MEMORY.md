@@ -4990,3 +4990,941 @@ checkpoints.
   (the bare-bottom freeze via the oracles king-checks; excursion returns are inr for non-kings via
   canPlace_inl) - then par.4 the hatch factorization (the clause as the parented-count of the sitter
   pair, via two-seat), then the assembly `freeCardS_orbit_rung` + the CanRaiseS-set corollary.
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 3 - THE SEAT ROWS KIT (2026-10-27, commit 963350e)
+
+- LANDED (963350e, FreeOrbit par.3, all clean): 
+  * **`Parented`** (def): the card sits on some parent (the seat-form: an inr-seat; kings sit on nothing
+    by the rank arithmetic, so their seat condition is bareness).
+  * **`parented_iff_below`** ([propext]): THE SEAT-ARM BRIDGE - for a held card, the flat iff s bs <> []
+    arm is exactly the parented reading (the below-part nonempty iff the seat is an inr, the parent being
+    the below-part s last). Uses the private lastOf_eq_none restatement (CargoRaise par.4 s row, kit rule).
+  * **`bareCargo_of_slide`** ([propext, Quot.sound]): THE DISCOVERY OF THE SITTING - a single reversible
+    slide IS a BareCargoEquiv pair (the forward leg + the mirror leg: tabToTab_mirror gives the mirror as
+    a single tabToTab, reversible_mirrorW certifies it - BOTH STAGE-3 ROWS!). This carries the orbit s
+    slide letters into the certified class machinery wholesale.
+  * **`parented_bareCargo`** ([propext, Quot.sound]): THE CLASS CENSUS - across a bare-cargo pair (hence
+    across every single reversible slide), a non-king is parented iff parented. Proof: the split iff s
+    twin-carry clause forces every seat change to go inr -> inr.twin (parented to parented); unchanged
+    seats are unchanged; the iff from the pair s symmetry. THE SLIDE LETTER S ENTIRE SEAT CENSUS WAS
+    ALREADY INSIDE bareCargo_iff_split.
+  * **`pull_parented`** ([propext, Quot.sound]): the return lands parented - a non-king returning from the
+    foundation sits on a parent (the inl landing is king-only via canPlace_inl), with the host pile s old
+    faceUp as its below-part (below_snoc_not_mem + the found-membrance exclusion via mem_found_unique).
+- REMAINING FOR par.3 (next sitting): the journey-level mutual induction - the (1)/(2) pair that handles
+  the away-intervals: (1) [face-up at u, parented at u, face-up at v] -> parented at v; (2) [not-face-up at
+  u, face-up at v] -> parented at v (the return-row) - proved together (the cons case of (1) uses (2) when
+  the card left at the step; the cons case of (2) uses (1) after the arrival) - plus the arrival-step
+  identification ([not-face-up at u, face-up at s1] -> the step is a foundToTab of c, via the in-tree
+  per-letter seat rows: chart_draw s seats, raise_seat_change_of_seated, pull_seat_change, and the slide
+  census); then the king bareness rows (the king-run landings are empty anchors - hidden = []; non-bare
+  kings frozen by the oracles).
+- THEN: par.4 the hatch factorization (the clause as the parented-count of the sitter pair via two-seat),
+  par.5 the assembly freeCardS_orbit_rung + the CanRaiseS-set corollary.
+- LEAN LESSONS: reversible_mirrorW takes the MIRROR FIRING as its first argument (conclusion: the FORWARD
+  move is reversible at the origin); mem_found_unique s first component is a per-anchor conjunction (forall
+  a, not-hidden AND not-faceUp), not an exists-negation; simp only [putCard_piles_inr ...] beta-reduces but
+  eq_self turns k = k into True inside the ite, leaving a MISMATCHED-INSTANCE ite that nothing reduces - for
+  reflexive conditions avoid the simp route (unfold putCard + setPile_piles_self instead); simp only ... at hz
+  with a ctor-clash reduces hz but does NOT auto-close - follow with injection + cases; rw [hc s] at hft
+  direction: rewrite the witness IN THE HYPOTHESIS, not the goal (the suit variable must stay).
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 3b - THE PER-STEP LAYER COMPLETE (2026-10-27, commit 95ff2be)
+
+- LANDED (95ff2be, FreeOrbit par.3, all clean): the per-step layer for the mutual induction:
+  * Private kit: `zone_notFaceUp` (the census complement - CONSTRUCTIVE zones-unfolding, no by_cases on
+    existentials!), the exclusion trio (`not_faceUp_of_found/hidden/pool` via mem_found_unique /
+    mem_hidden_not_faceUp + mem_pile_unique / mem_stock_unique / mem_waste_unique), `step_found_mem`
+    (the found-membership step row: the draw conserves, the raise appends (the prefix survives), the
+    pull chops only its own top (lastOf_chop + the not-the-pulled-card premise), the slide never writes
+    (putRun_found + setPile_found)), `step_notFaceUp_of_ne` (the no-arrival row: the zone route),
+    `seatOf_ne_of_faceUp`, `raise_notFaceUp` (the raise removes its card from the board).
+  * **`step_arrival`** ([propext, Quot.sound]): THE ARRIVAL IDENTIFICATION - the only letter that brings
+    a card face-up is its own pull. Proof: letter-cases; the four non-arrival letters contradict via
+    the zone route (complement + the three conservations + the exclusions); the foundToTab case is
+    either c s own pull (done) or another card s (d != c gives the found-preservation + injection on
+    the move equality).
+  * **`step_parented`** ([propext, Quot.sound]): THE PER-STEP PARENTED CENSUS - along one reversible
+    step, a non-king face-up at both ends keeps its parented-ness. The draw preserves every seat
+    (chart_draw); the slide is a cargo pair (parented_bareCargo); the raise preserves every other
+    seated card s seat (raise_seat_change_of_seated + seatOf_ne_of_faceUp); the pull preserves every
+    non-pulled card s seat (pull_seat_change), and the pulled card lands parented (pull_parented).
+- REMAINING FOR par.3: the JOURNEY-LEVEL MUTUAL INDUCTION (the (1)/(2) pair):
+    (1) [face-up at u, parented at u, face-up at v] -> parented at v (per walk)
+    (2) [not-face-up at u, face-up at v] -> parented at v (the return-row)
+  proved together (cons of (1) uses (2) when the card left at the step; cons of (2) uses (1) after
+  the arrival: step_arrival -> pull_parented -> IH(1)). Then `parented_orbit_rung` (the orbit-level
+  iff via the two journeys + faceUp_iff) + the king bareness rows.
+- THEN: par.4 the hatch factorization, par.5 the assembly (freeCardS_orbit_rung + the CanRaiseS-set
+  corollary). THE THEOREM IS 2 SITTINGS OUT.
+- LEAN LESSONS (three new): `by_contra` is MATHLIB-ONLY (no Mathlib in the house!) - restructure as
+  letter-cases + a negation-helper; **`by_cases` on an EXISTENTIAL prop silently pulls Classical.choice**
+  (the axiom battery caught it: step_arrival came out [propext, Classical.choice, Quot.sound] - the fix
+  is the constructive zones-unfolding via mem_flatMap/mem_append/mem_map directly - ALWAYS check the
+  battery after landing, it is the house s only classical-detector); Kit ALREADY has putCard_found
+  (the putCard field-row family is: stock/waste/piles/found - check the kit BEFORE writing field rows).
+  Plus the recurring: the transport-rewrite direction follows the EQ S ORIENTATION not the goal s
+  (hsplit FORWARD turns the found into the append form; rev_step_hidden_eq FORWARD turns v-hidden into
+  u-hidden); pattern-lambdas (fun <x, h> =>) in term-position are anonymous-constructors - write
+  explicit (fun x h => ...) with the constructed witness inside.
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 3c - THE JOURNEY CENSUS + ORBIT PARENTED ROW (2026-10-27, commit deaf075)
+
+- LANDED (deaf075, FreeOrbit par.3, all clean):
+  * **`walk_parented`** ([propext, Quot.sound], COMPILED FIRST TRY): THE JOURNEY CENSUS IN FROZEN FORM -
+    along a witness shuffle, a non-king face-up at the far end is parented unless it was already
+    unparented-face-up at the origin. THE DESIGN COLLAPSE: the two-part mutual induction ((1)/(2)) is
+    subsumed by the single disjunction [not-face-up-at-u OR parented-at-u] - the contrapositive is the
+    unparented-bottom freeze (a face-up unparented card at the end was face-up unparented at the start).
+    The cons-case closure: the rcases on the disjunction (constructive! Or is inductive - no by_cases on
+    existentials, no by_contra) + the Option-cases on the mid-state s pileHolding (the face-up-ness split,
+    constructive Option-inductive) - all four sub-cases (stays/left, stays/arrived) close over the certified
+    per-step rows: step_parented (the stay), step_arrival + pull_parented (the arrival - an arrival is its
+    own pull, which lands parented).
+  * **`parented_orbit_rung`** ([propext, Quot.sound]): at equal rungs, an orbit-mate preserves every
+    NON-KING s parented-ness - the journey census along both directions of the orbit, riding faceUp_iff
+    for the face-up transport (faceUp_of_parented + the zone row both ways).
+  * Private kit: faceUp_of_parented (the seat exists), not_faceUp_of_holding_none (the unheld are
+    nowhere face-up).
+- CAMPAIGN STATE: the seat rows are COMPLETE FOR NON-KINGS. REMAINING: the KING BARENESS rows (the
+  analogous journey argument: kings only move bare - the oracle s king-arm requires hidden = []; the
+  pull of a king lands inl-only (kings sit on nothing); non-bare kings are frozen) - then par.4 the
+  hatch factorization (the clause as the sitter pair s parented-count via two-seat), par.5 the
+  assembly (freeCardS_orbit_rung + the CanRaiseS-set corollary). THE THEOREM IS 1-2 SITTINGS OUT.
+- LEAN LESSON: obtain CONSUMES the destructed hypothesis (rcases-obtain clears the source) - compute
+  every have that needs the original BEFORE the obtain.
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 3d - THE KING LAYER (2026-10-27, commit badbd65)
+
+- LANDED (badbd65, FreeOrbit par.3, all clean): the complete king story:
+  * **`Bare`** (def): held ∧ the pile s hidden deck is empty (the king s seat condition - a king sits on
+    nothing, so its flat arm is exactly the hidden emptiness).
+  * Private kit: `canSitOn_ne_king` (the rank arithmetic: the sitter would need a rank above king -
+    Rank.toIdx_lt + the 12-literal), **`king_seat_inl`** (a held king is the face-up bottom: seat inl a ∧
+    below = [] - via tfc_seatOf_pair + lastOf_eq_none + the canSitOn contradiction),
+    `holding_of_seat_inl` (an inl seat determines the holding pile - the double injection through
+    Option+Sum), `hidden_eq_of_VKSet` (BOTH arms of the king orbit s fuel set have empty hidden decks:
+    VacantSpot = empty pile = hidden [] ∧ faceUp []; KingBottom = bare by def), `faceUp_of_bare`.
+  * **`pull_king_bare`**: a returning king lands BARE - the pull s inr arm is impossible (a king sits on
+    nothing), the inl arm lands the literal setPile a ⟨[], [K]⟩ - hidden = [] by construction. The
+    WF-transport trick: rw the state-equality INTO step_wf s result before rewriting the goal.
+  * **`step_king_bare`** (the per-step census): draw/raise-of-others/pull-of-others preserve the seat
+    (hence the holding via holding_of_seat_inl) and the hidden deck; the raise of the king itself
+    contradicts held-at-v (raise_notFaceUp); the pull of the king is pull_king_bare; THE SLIDE is a cargo
+    pair, and the split iff s KING CLAUSE sends every seat change to a fuel anchor - both of whose arms
+    have empty hidden decks (hidden_eq_of_VKSet), which the step s hidden invariance transports.
+  * **`walk_king_bare`** (the journey frozen form): the disjunction [not-face-up-at-u OR Bare u] closes
+    under cons - the same structure as walk_parented (rcases the disjunction + Option-cases on the
+    mid-state s pileHolding - constructive).
+  * **`king_bare_orbit_rung`**: at equal rungs, an orbit-mate preserves every king s bareness - the
+    census along both directions + faceUp_iff for the face-up transport.
+- CAMPAIGN STATUS: par.3 COMPLETE (the seat rows: non-kings + kings). REMAINING: par.4 the hatch
+  factorization (the clause as the sitter pair s parented-count via two-seat - the def-level rewrite +
+  the covered-readings), par.5 the assembly (freeCardS_orbit_rung + the CanRaiseS-set corollary).
+  THE THEOREM IS 1 SITTING OUT.
+- LEAN LESSONS: obtain/have-clearing (the hb in the orbit row - use faceUp_of_bare instead of
+  destructuring before the use); the equation-as-function trap (hking applied as ¬: get the DIRECTION
+  right - (canSitOn_ne_king ...) hking, not hking (...)); the cases-h-colon pattern REWRITES THE GOAL
+  (cases hh : e substitutes e in the goal - the goal becomes some a' = some a, so finish with rw [h3]
+  on the goal, not at the hypothesis); rw s auto-rfl fires on constructor-projection goals (drop the
+  redundant exact rfl); the by_cases negative branch gives ¬p DIRECTLY usable as Ne (no .symm dance).
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 4a - THE HATCH FACTORIZATION KIT (2026-10-27, commit dcc9fdf)
+
+- LANDED (dcc9fdf, FreeOrbit par.4, all clean):
+  * Private kit: `below_mem`/`below_irrefl` (the below-algebra basics - Classification s private rows
+    restated), `nodup_mid_notmem` (CargoRaise par.4 s row restated), `append_cancel` (fresh), 
+    `sitter_pair` (THE SITTEE-SIDE TWO-SEAT: the sitters of one sittee are a twin pair - the fit
+    equation + the color pigeonhole + card_eq_twin_of_rank_color), `canSitOn_twin_target` (the fit is
+    twin-blind in the TARGET - the sitter pair of c.twin = the sitter pair of c), `below_w_eq` (the
+    front part of a w-headed representation is the below-of-w - the excl-row one-liner).
+  * **`seat_inr_inj`** ([propext, Quot.sound]): THE SEAT S POSITIONAL UNIQUENESS - at most one card
+    sits directly on any given card (two inr w seats are the same card). THE GRIND: both seats give
+    pile-representations l = chop(below y) ++ w :: fromCard y; the nodup kills w in the front; the
+    below_w_eq identifies both fronts with below w; the append cancellation + the fromCard heads
+    give y = z. THE <=1-SITTER FACT the hatch s both-parented direction needs.
+- CRITICAL DESIGN CORRECTION (the audit s miss, caught in the planning): the hatch factorization is
+  NOT the naive not-(both-sitters-parented) - the UNHELD-TWIN case breaks it (c covered, c.twin in
+  the pool: hatch false, but only one sitter parented). The CORRECT invariant form:
+    hatch <-> (not-P and not-Q) or (H and not(P and Q))
+  where P/Q = the sitter pair s parented-ness, H = the twin s face-up membership - all four
+  orbit-rung-invariant (parented_orbit_rung, faceUp_iff). The remaining par.4 rows: the run-head
+  cover (run <> [] -> the head s seat is inr c), no-cover-of-nil-run (run = [] kills covers - the
+  fromCard-cancellation), the held-uncovered-tops row, then hatch_iff itself.
+- THEN par.5: the assembly (freeCardS_orbit_rung - case king/non-king/ace, unfold, apply the
+  factors) + the CanRaiseS-set corollary. THE THEOREM IS 1 SITTING OUT.
+- LEAN LESSONS: injection on an eq with SYNTACTICALLY-EQUAL heads drops the trivial equation (use
+  congrArg List.tail for the tail of a cons-eq); injection can close the goal it directly proves
+  (drop the redundant exact); canSitOn_eq is an IFF (Bool = true <-> ...) - useless as simp on a
+  Bool-eq goal (rw the def-body via show-rfl instead); cases on a PROJECTION (c.suit) does not
+  substitute inside other projections of c (c.twin) - destructure c itself (rcases c with <s, r>);
+  Eq.trans chains: the MIDDLE must match (hry.symm.trans (h6.trans hrz) - not hry.trans).
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 4b - THE COVER ROWS (2026-10-27, commit 63f9d95)
+
+- LANDED (63f9d95, FreeOrbit par.4, all [propext, Quot.sound]): the three covered-readings:
+  * **`cover_of_run`**: if the fromCard tail is nonempty, its head sits directly on c (seat = inr c).
+    The grind: hshape (the pile = below c ++ c :: d :: rest via tfc_below_fromCard), hresh (the
+    append-normalization), nodup kills d in the front (nodup_mid_notmem on the reshaped nodup), the
+    hcd row (c = d would double-list), **hbelod** (below d L = below c L ++ [c] - the excl-row +
+    below_cons/if_neg/below_cons_self chain), and the seat readout (tfc_seatOf_pair + getLast?-lastOf
+    + lastOf_snoc - the CargoKit line-1273 finishing chain).
+  * **`no_cover_of_nil_run`**: if fromCard c L = c :: [] then NOTHING sits on c. The y-cover gives a
+    pile-representation; the excl-row + fromCard_head_eq identify fromCard c L with c :: fromCard y L;
+    the nil-run collapses it to c :: []; injection (BOTH names - cons has two fields!) gives
+    [] = fromCard y L; hyin (y ∈ fromCard y L, via tfc_fromCard_cons_head) becomes y ∈ [] - absurd.
+  * **`tops_of_held_no_cover`**: face-up + uncovered => pileOfTop ≠ none. run = [] (else cover_of_run
+    contradicts hnocov), the top = lastOf via tfc_below_fromCard + lastOf_snoc, then some ≠ none
+    (Option.some_ne_none after the hcon rewrite).
+- THE PAR.4 KIT IS NOW COMPLETE: seat_inr_inj + sitter_pair + canSitOn_twin_target (4a) + the three
+  cover rows (4b). NEXT: **hatch_iff** - the factorization theorem, both directions per the worked plan:
+  (=>) run=[]: P => e s parent = c.twin killed by no_cover_of_nil_run, H from the seat s below-membership,
+  not-Q via seat_inr_inj; htwin case: H from pileOfTop, not-(P and Q) via tfc_seat_parent.2 (the twin-parent
+  s cover forces pileOfTop c.twin = none).
+  (<=) not-P and not-Q => run = [] (run <> [] => cover => sitter_pair => P or Q); H and not-(P and Q):
+  run <> [] => cover d => exactly one sitter parented => c.twin uncovered (else both via
+  canSitOn_twin_target + seat_inr_inj) => tops_of_held_no_cover.
+- THEN par.5: the assembly. THE THEOREM IS 1 SITTING OUT (hatch_iff + assembly).
+- LEAN LESSONS (all from this sitting, several confirmed again):
+  * An ascription with a FREE variable (obtain ... : S d rest, ... with d unbound) silently auto-binds d
+    with a WRONG type and cascades - the error appears far from the cause. Write the full S d rest.
+  * APPLICATION CONTINUATION ACROSS LINES: the argument line must start at a column > the column where
+    the APPLIED TERM starts - not merely deeper-indented than the tactic. My line-split put (Or.inr ...)
+    at col 6 under a term starting at col 42: PARSE ERROR unexpected token '('. Keep such apps on one line.
+  * injection on CONS gives BOTH equations (head + tail) - the head c = c is NOT dropped; with one name
+    you capture the useless head eq. Name BOTH (hc1 hc2) and use the second. (The earlier "drops trivial
+    equation" lesson was really about ++ NOT being a constructor at all.)
+  * rw [h] at hyp needs h s LHS to OCCUR in hyp - the direction that FAILS: rewriting the goal vs the
+    hypothesis (rw [<- hresh] at hnd, NOT rw [hresh] at hnd - the pattern must match hyp s content).
+  * Rewrite-direction on iff-lemmas: pileOfTop_eq_some_iff.2 htop gives = some a; for ≠ none finish with
+    intro hcon; rw [hcon] at hpt; exact Option.some_ne_none _ hpt.symm.
+  * Some = Some via Option.some.inj (no tactic block needed) - exact Option.some.inj (h1.symm.trans h2).
+  * subst on a = b eliminates b (the RHS variable): plan which name SURVIVES before writing post-subst code.
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 4c - THE HATCH FACTORIZATION (2026-10-27, commit 27bee7a)
+
+- LANDED (27bee7a, FreeOrbit par.4, [propext, Quot.sound]): **`hatch_iff`** - THE FACTORIZATION:
+
+    (run = [] or pileOfTop c.twin != none) <-> ALL e, canSitOn e c -> ((not-P_e and not-Q_e) or (H and not(P_e and Q_e)))
+
+  where P_e/Q_e = the sitter PAIR s parentedness (e and e.twin), H = c.twin s face-up membership. All four
+  components are orbit-rung invariants (parented_orbit_rung + faceUp_iff). Aces: VACUOUS (no card fits on an
+  ace - the quantifier never instantiates, and the theorem handles it uniformly, no ace rows needed).
+
+- THE PROOF (both directions constructive - Option/Sum/List cases only, ZERO by_cases on existentials):
+  * Helper kit (private): `canSitOn_twin_sitter` (the fit is twin-blind in the SITTER - the sitter pair is
+    twin-closed; same show-rfl shape as canSitOn_twin_target), `parent_of_seat` (a seated card s parent is a
+    fit target: parent = c or c.twin - canSitOn_twin_pair + tfc_seat_parent.1), `faceUp_of_covered` (the
+    covered card is face-up: tfc_seatOf_of_inr + lastOf_mem + below_mem), `no_top_of_seat`
+    (tfc_seat_parent.2: the cover hides the parent), `not_parented_of_no_inr`, `no_inr_of_none/inl`.
+  * (=>) Case A (run = []): no_cover_of_nil_run kills all c-covers; the CONSTRUCTIVE SEAT-CASES tree on
+    seatOf e x seatOf e.twin (via the hbranch sharing lemma taking the no-inr premise): both-unseated ->
+    Or.inl; e unseated + e.twin seated -> parent forced to c.twin (the c-arm is a c-cover, dead) -> H from
+    below-membership; e seated -> same forcing -> H + not-Q_e (both on c.twin dies by seat_inr_inj +
+    card_twin_ne; the c-parent dies by the nil-run).
+  * (=>) Case B (pileOfTop c.twin != none): H is FREE (pileOfTop -> top -> lastOf_mem); both-seated ->
+    neither parent is c.twin (no_top_of_seat + hpt), so both = c -> seat_inr_inj + card_twin_ne.
+  * (<=) cons: cover_of_run gives the run-head d on c; RHS(d) s first arm dies (P_d witnessed by the seat);
+    H extracted; cases on pileOfTop: some -> done; none -> c.twin s run cases: nil -> tops contradiction
+    (pileOfTop_eq_some_iff), cons -> the cover f of c.twin; RHS(f) -> not-Q_f; sitter_pair d f: d = f
+    (seat clash: Option.some.inj + Sum.inr.inj) or d = f.twin (Q_f IS P_d) - both die.
+- CAMPAIGN STATUS: par.4 COMPLETE (the kit + the factorization). REMAINING: **par.5 - THE ASSEMBLY**:
+  freeCardS_orbit_rung - case king/non-king, unfold freeCardS both sides via the holding/fromCard matches,
+  seat-arm via parented_iff_below (non-king) or king_seat_inl s below=[] (king), hatch-arm via hatch_iff +
+  isSome-to-ne-none bridge; then the CanRaiseS-set corollary via canRaiseS_split + nextUp-from-rungs.
+  THE THEOREM IS 1 SITTING OUT (the assembly only).
+- LEAN LESSONS: `cases h : e` WORKS with e absent from the goal (confirmed again - walk_king_bare had it;
+  the hbranch seat-cases rely on it); the hbranch-have pattern: declare the FULL conditional type
+  ((forall z, no-inr) -> RHS) or intro fails; **card_twin_ne x : x.twin <> x** (the TWIN side is the
+  inequality s LEFT) - seat_inr_inj args must be ordered so the result matches (hz_t about e.twin FIRST);
+  Eq.trans compositions: write out both endpoints BEFORE choosing .symm/.trans (the 1336 error was a
+  flipped hcv/hcv_f composition); term-mode `match h : e with` is a clean substitute when the goal lacks e
+  (used for hH s Option analysis - motive constant, equation available per branch).
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 5 - THE ASSEMBLY, THE THEOREM (2026-10-27, commit 4d46e6e)
+
+- LANDED (4d46e6e, FreeOrbit par.5, both [propext, Quot.sound]):
+  * **`freeCardS_sem`**: the probe s flat computation IS the invariant reading:
+        freeCardS st c = true <-> EXISTS a, holding = some a AND
+            ((Parented st c AND c.rank <> king) OR (Bare st c AND c.rank = king)) AND
+            (the hatch iff s sitter-census forall-form)
+    THE SEAT-ARM S SHAPE CHOICE (the sitting s design win): (Parented AND non-king) OR (Bare AND king)
+    instead of the naive Parented OR Bare-and-king - because parented_orbit_rung REQUIRES the non-king
+    hypothesis, and this shape CARRIES it: the mp derives non-king from below <> [] via king_seat_inl
+    (a king s below is [] - contradiction), and the transfer then applies parented_orbit_rung directly
+    with NO case split. The hatch-component is hatch_iff s RHS verbatim (the rw [- hatch_iff] needs
+    syntactic identity).
+  * **`freeCardS_orbit_rung`** - THE CAMPAIGN THEOREM: at equal rungs, an orbit-mate preserves every
+    card s tableau-readiness. The transfer: hiff (faceUp) carries the holdings (pileHolding_mem out,
+    pileHolding_eq_some_iff in - the anchors differ, the components do not), hpar/hking the seat arms,
+    the hatch-census componentwise (NOT-parented transfers via the contrapositive mpr; the sitters are
+    NEVER kings - canSitOn_ne_king - so parented_orbit_rung applies; e.twin s non-king via rcases + rank-defeq).
+- THE FREE-CARD ORBIT CAMPAIGN IS COMPLETE (par.1-5): two-seat, zone rows, seat census (non-kings +
+  kings), hatch factorization, assembly. `freeCardS_orbit_rung` CERTIFIED.
+- REMAINING (the residue campaign, CeilingBridge): the CanRaiseS corollary (canRaiseS_split +
+  nextUp-from-rungs via found_congr_of_rungs), then Q1 vacuity (decidable per state via the stage-6
+  checker rankSatB + the landed invariance), the SatDifferFork residue resolution, forkless_found_unique.
+- LEAN LESSONS: **cases h : e REWRITES THE GOAL S OCCURRENCES** (third confirmation!) - the mp s
+  cases hhold : pileHolding substituted the goal s holding-component into `some a = some a` - the
+  witness became rfl, NOT hhold (hhold stays the UNREDUCED equation for the downstream lemmas);
+  rcases on Bool.or_eq_true gives BOOL-EQs - decide_eq_true_iff.mp BEFORE using them as Props;
+  have-typed helper closures with explicit binders: call sites need BOTH args (hpar c hk, hpar e heng)
+  - or write the binders implicit; replaceAll edits are safe when the substring is call-site-only.
+
+## FREE-CARD ORBIT CAMPAIGN STAGE 5b - THE LICENSE COROLLARY, CAMPAIGN COMPLETE (2026-10-27, commit 3a1d364)
+
+- LANDED (3a1d364, FreeOrbit par.5, [propext, Quot.sound]): **`canRaiseS_orbit_rung`** - at equal
+  rungs, an orbit-mate preserves the FULL S-license. The composition: canRaiseS_split both sides
+  (nextUp AND freeCardS), nextUp-congruence from the rungs DIRECTLY (nextUp reads foundHeight =
+  (found suit).length = rungAt - the show-from DEFEQ bridge, NO found_congr_of_rungs needed - the
+  rung IS the height), freeCardS_orbit_rung for the tableau arm. THE LICENSE CANNOT TELL
+  ORBIT-MATES APART WITHIN A RUNG CLASS.
+- **THE FREE-CARD ORBIT CAMPAIGN IS COMPLETE** (commits ac7548..3a1d364): par.1 the two-seat,
+  par.2 the zone rows, par.3 the seat census (non-kings + kings), par.4 the hatch factorization
+  (kit + cover rows + the factorization), par.5 the assembly + the license corollary.
+  The user s instinct ("fixed tuple + same orbit => same CanRaiseS") is now THEOREM.
+- WHAT THIS UNLOCKS (the residue campaign, CeilingBridge - the next sittings):
+  1. The residue SatDifferFork s LIFO-exodus route becomes a LEMMA: the invariance confines the
+     residue to the rung ledger exactly as the route assumes.
+  2. Q1 (vacuity) - decidable per state: rankSatB (the stage-6 universe scan) + the landed
+     invariance => the saturation frontier is a rung-class property.
+  3. forkless_found_unique - the finishing theorem.
+- LEAN LESSONS: `have h := f args` with an IMPLICIT {c} NOT determined by the args - name it
+  (f (c := c) args) or the have-type fails to infer; rw [DefName] instantiates the metavars from
+  the FIRST match and rewrites only THAT instance (s.nextUp vs s'.nextUp needed TWO rws - the
+  equation is per-state); nextUp is NAMESPACED State.nextUp (rw needs the full name; dot-notation
+  terms in show-types are fine); if_neg/if_pos deprecation warnings are HOUSE-WIDE (FiberTransfer
+  et al) - leave consistent, do not fix piecemeal.
+
+## GRID CAMPAIGN SITTING 1 - THE GAME-POSITION QUOTIENT (2026-10-31, commit 278b170)
+
+- LANDED (278b170, NEW CARD Orig2/Position.lean + root registration, all [propext, Quot.sound]):
+  * **`RungEq`** (the ledger equality: every suit s rung agrees) and **`orbitRungSetoid`** - THE
+    GAME-POSITION EQUIVALENCE: the MEET of sameOrbitSetoid and RungEq, on the WF-carrier. The meet is
+    essential: raises are reversible so orbits CROSS rungs (the orbit alone collapses foundation
+    progress); the rungs alone would not glue the orbit s free rearrangements.
+  * **`Position`** := Quotient orbitRungSetoid - the rung-grid s vertex space (abbrev, mirroring
+    SameOrbit s house pattern).
+  * THE DESCENT (Quotient.lift + respect proofs that are all certified rows):
+    - `rungsOf` : Position -> Suit -> Nat (funext from the meet s ledger arm).
+    - `foundsOf` : Position -> Suit -> List Card (found_congr_of_rungs - equal rungs force equal founds).
+    - **`spec`** : Position -> Card -> Prop - THE LICENSE SPECTRUM: the possible tabToFound moves as a
+      POSITION-function. The respect proof IS the campaign theorem canRaiseS_orbit_rung, descended
+      through propext (the Prop-valued lift needs NO Bool-casing - funext fun c => propext (iff)).
+    - `specB` : the flat probe descended (bool_eq_of_iff_true helper: Bool-cases, the false/true
+      branches close via h.mpr rfl - the contradictory hypothesis proves anything).
+  * THE SOUNDNESS: `spec_sound` (the spectrum CANNOT TELL REPRESENTATIVES APART - via Quotient.sound,
+    the quotient s own soundness now load-bearing for the license), `specB_iff` (inductionOn + the
+    mk-defining equations), and the four `_mk` sanity rows (Iff.rfl / rfl - the lift-on-mk iota).
+- WHY THE SUBTYPE CARRIER: the respect proofs (found_congr, canRaiseS_orbit_rung) need WF, and WF is
+  NOT partitioned by the raw orbit (a walk from a non-WF state can reach WF states) - so the lifts
+  would fail on mixed classes of the raw State quotient. The WF-subtype carrier fixes it.
+- **COLLISION FOUND AND FIXED**: WFState already existed - Orig2/StratifiedQuotient (2026-10-26, the
+  universal-property card) defines it as THE carrier of the stratified (twin-membership) quotient.
+  Per the kit rule: import StratifiedQuotient, reuse its WFState, drop the redefinition. The two
+  cards are complementary meets on the same carrier: stratOrbit (per-card twin profile) vs
+  orbitRungSetoid (the rung ledger). CHECK StratifiedQuotient for existing rows before writing grid rows.
+- THE GRID PROGRAM REMAINING (the next sittings):
+  2. The rung-step arithmetic: raise -> +e_suit, pull -> -e_suit, free moves (draw/tabToTab/
+     wasteToTab) -> 0 (direct step computations; no registry rows exist yet).
+  3. The free moves VANISH in the quotient (reversible + rung-preserving => same position).
+  4. The raise s class-determinism: pull-back + orbit-walk + raise concatenation (all reversible via
+     tabToFound_reversibleAtW_under_wf) + the rung arithmetic => raiseQ : Position -> Card -> Position
+     (deterministic partial function on licensed cards).
+  5. Saturation descends (RankSat per position, decidable via specB) - then the residue campaign
+     (Q1 vacuity, SatDifferFork, forkless_found_unique) runs ON THE GRID.
+- LEAN LESSONS: **the bracket-quotient notation is MATHLIB-ONLY** (core Lean 4 has no the ⟦a⟧ -
+  parse error "expected token"; use explicit Quotient.mk theSetoid a, the classOf house pattern);
+  environment-collision errors surface at the ROOT import (Position built alone, failed only when
+  the root loaded both cards - check name collisions against ALL root imports, not just your own
+  card s imports); Prop-valued Quotient.lift via funext+propext is CLEANER than Bool-lifting
+  (no cases needed - the iff IS the respect); the unusedVariables linter flags binders used only
+  via expected-type unification (prefix _p / write the arg explicitly); Quotient.lift s iota
+  (mk-reduction) is Iff.rfl/rfl-provable.
+
+## GRID CAMPAIGN SITTING 2 - THE RUNG-STEP ARITHMETIC + THE PULLABLE SPECTRUM (2026-10-31, commit 49fc096)
+
+- LANDED (49fc096, Position par.5-6, all clean):
+  * **THE RUNG-STEP ARITHMETIC** (par.5, the grid s edges):
+    - `rungAt_tabToFound` [propext]: the raise climbs exactly ONE rung on the played suit, fixes the
+      others (+e_suit). Proof: step_tabToFound_inv s with-update shape, the setFound-found projection
+      (rw [hv]; rfl - plain rfl, the restricted rw-auto-rfl does NOT fire), if_pos/if_neg splits.
+    - `rungAt_foundToTab` [propext, Quot.sound]: the pull descends one rung (-e_suit). The -1 via
+      foundTop = lastOf found + lastOf_chop + congrArg List.length + omega (truncated Nat-sub).
+    - `rungAt_draw` / `rungAt_tabToTab` / `rungAt_wasteToTab`: the free moves HOLD THE LEDGER
+      (rungs fixed) - via chart_draw s foundsFixed / putRun_found + setPile_found / putCard_found.
+  * **`pullSpec`** (par.6) [propext, Quot.sound]: the PULLABLE CARDS at a position - c tops its suit s
+    foundation. THE USER S OBSERVATION, formalized: the tabToFound move-signature carries NO
+    destination (Move.tabToFound c - card only), so the license spectrum IS the raise-move-set
+    (already descended as spec); foundToTab carries a base whose canPlace is destination-sensitive
+    (piles differ between orbit-mates), so only the CARD-set descends - and it is found-determined
+    (foundTop - found_congr - foundsOf), so pullSpec is DEFINED directly from the descended founds:
+    NO LIFT NEEDED. `pullSpec_mk` (Iff.rfl): reads any representative s found tops.
+- THE QUOTIENT GAME S TWO DETERMINISTIC EDGE-FAMILIES: raise = spec (the licensed cards), pull =
+  pullSpec (the found-top cards) - both position-functions. wasteToFound remains the open
+  non-descending edge (availability reads the waste top, which orbit-mates reshuffle).
+- ALSO NOTED: CeilingBridge s battery shows `forkless_found_unique` already certified
+  [propext, Quot.sound] with `found_exodus` / `shuffle_rung_census` alongside - the residue campaign
+  machinery is deeper than the working notes suggested; before building grid-side support rows for
+  the ceiling, CHECK what those rows already consume.
+- LEAN LESSONS: **simp only [rungAt] POISONS self-equality if-conditions** - simp s built-in eq_self
+  reduction rewrites `c.suit = c.suit` to True but the ite cannot reduce (the Decidable instance is
+  stuck on the variable suit), leaving `if True then A else B` that NO if_pos-pattern matches - use
+  `unfold rungAt` (pure delta, no simp) for goals whose if-conditions become self-equalities after
+  subst; `rw [DefName]` rewrites only the FIRST instance (third confirmation: nextUp, then rungAt) -
+  count the instances or unfold; the with-update projection (rw [hv]) sometimes AUTO-closes via rw s
+  restricted rfl (the wasteToTab hfv - drop the explicit rfl) but the setFound-if-projection does not
+  (keep rfl) - asymmetry: function-projection rfls auto, if-branches do not.
+
+## GRID CAMPAIGN SITTING 3a - THE PULL S BASE-INDEPENDENCE, THE PLAN VALIDATED (2026-10-31, commit 57c8ade)
+
+- THE USER S CLAIM (validated by exploration): when we PULL (foundToTab c b), the base b does not
+  matter - any landing stays in the same POSITION class AND the same BareCargoEquiv class. The
+  rung-half is already certified (rungAt_foundToTab from the same source twice). THE ROUTE (the
+  elegant one): v1 = pull(u, c, b1) and v2 = pull(u, c, b2) are joined DIRECTLY by the SLIDE of the
+  pulled card (tabToTab c b2 - moving the singleton run [c] from the b1-landing to b2) - a reversible
+  slide IS a CargoLeg - so bareCargo_of_slide (FreeOrbit, EXISTS) gives BareCargoEquiv v1 v2, and
+  bareCargo_sameOrbit (FloatOrbit, EXISTS) then gives the orbit - the bareCargo claim SUBSUMES the
+  orbit claim. + rungs => same Position.
+- LANDED (57c8ade, Position par.7): **`putCard_eq_putRun`** (private, rfl-grade): the single-card
+  landing IS the singleton-run landing - putCard c b = putRun [c] b (defs are structurally parallel:
+  both match the base, both write the same pile-shapes; cases b + cases pileOfTop + rfl). The
+  pull-letter/slide-letter vocabulary bridge.
+- THE ROWS REMAINING for the sitting (the grind, all pieces confirmed to exist):
+  1. THE FIT-TRANSFER: canPlace (S.putCard c b1) c b2 = true from canPlace S c b2 = true + b1 <> b2.
+     canPlace s def (Orig/State:346): inl a => (piles a).isEmpty && king; inr z => pileOfTop z =
+     some _ && canSitOn c z (STATE-FREE fit). The degenerate cases collapse: b1 = b2 => v1 = v2
+     (determinism, refl); inl-vs-inr cross => z in the empty pile (impossible); inr-vs-inr same pile
+     => the unique top forces z1 = z2 => b1 = b2. Kit rows: putCard_piles_inl/inr (the landing
+     locality, rfl), putRun_piles_*_self/ne, canPlace_inl (the guard-unpack), pileOfTop_eq_some_iff
+     (Integrity - reads via (piles a).top). putCard_pileHolding_ne EXISTS (TwinSpliceComm:442, for
+     OTHER cards); the SELF-landing pileHolding row is MISSING but derivable at consumption sites
+     (pileHolding_eq_some_iff needs the state s WF - at the pull s target, step_wf supplies it).
+  2. THE STATE-EQUATION `pull_slide_pull`: step v1 (tabToTab c b2) = some v2. Via State.step s
+     tabToTab-guard (pileHolding v1 c = some a1 + canPlace v1 c b2 + fromCard c ... <> []) and the
+     composite-shape equality: the slide s setPile-restore (afterRunRemoved p (below c faceUp) - with
+     the landing s below-reading: below c (old ++ [c]) = old when c notin old (nodup) and
+     fromCard c (old ++ [c]) = [c]) + putRun [c] b2 = the other pull s setFound(chop F) + putCard c b2
+     (the bridge row + putCard_piles shapes + field-rows stock/waste/found/drawStep).
+  3. THE ASSEMBLY: pull_base_bareCargo (bareCargo_of_slide on row 2) + pull_base_position
+     (bareCargo_sameOrbit + the rungs + Quotient.sound). DELIVERABLE: the pull descends to
+     Position -> Card -> Position - the BACKWARD grid edge, base-independent.
+- BONUS (the same grind serves sitting 4): the state-equation machinery is most of the ROUND-TRIP
+  row (raise-after-pull = id) that raiseQ s class-determinism needs.
+- NOTE: pileHolding_eq_some_iff REQUIRES the state s WF (Integrity:548) - landing-readout rows on
+  modified states must carry the WF hypothesis (or be consumed where step_wf provides it).
+
+## GRID CAMPAIGN SITTINGS 3b + THE REGISTRY MOVE (2026-10-31, commits 58ca273, 040d496)
+
+- **THE REGISTRY MOVE (58ca273)**: per the owner s ruling, `RungEq`, `WFState`, `orbitRungSetoid`,
+  and `Position` moved to the VOCABULARY REGISTRY (`Orig2/Vocab.lean`, after rungAt) - Vocab s own
+  charter says every program-wide definition lives there. `WFState` was PROMOTED FROM
+  StratifiedQuotient (its def deleted, replaced by a pointer note; its content now resolves to
+  Vocab s via the import chain). Position.lean keeps the descended maps + the grid rows.
+- **SITTING 3b (040d496): THE FIT-TRANSFER LANDED** (Position par.7, all clean):
+  * `putCard_eq_putRun` [private, rfl]: the single-card landing IS the singleton-run landing.
+  * `pull_piles_inl_ne` [propext] / `pull_piles_inr_ne` [propext, Quot.sound]: the landing
+    locality - away from the landing pile, the pull s target piles are the source s (via the inv s
+    putCard-shape + putCard_eq_putRun + the Kit s putRun_piles_*_ne pointwise rows + the setFound
+    -piles rfl).
+  * `canPlace_inr_guard` [propext]: the inr-fit s guard extraction (pileOfTop = some k + the
+    state-free fit). The cases-substitution rewrites the GOAL S occurrence - the witness becomes
+    rfl, not hpt.
+  * **`canPlace_pull`** [propext, Quot.sound]: THE FIT SURVIVES THE LANDING - after pulling c onto
+    b1, the fit for a DIFFERENT base b2 still holds at the target. The four-combo grind (inl/inl,
+    inl/inr, inr/inl, inr/inr) with the degenerate exclusions: inl-vs-inr (the top-card in the empty
+    pile - Pile.isEmpty_eq_false_of_mem + lastOf_mem); inr-vs-inr same pile (the unique top - the
+    two tops equal -> z1 = z2 -> hne); all via pileOfTop_eq_some_iff (WF both ends - the source s
+    hwf + step_wf for the target).
+- THE SITTING REMAINING: (2) `pull_slide_pull` - the state-equation: the slide (tabToTab c b2) from
+  the b1-pulled state lands at the b2-pulled state (the below/fromCard landing-readings:
+  below c (old ++ [c]) = old when c notin old (nodup - mem_found_unique for the pulled card),
+  fromCard c (old ++ [c]) = [c]; afterRunRemoved restores; putRun [c] b2 = putCard c b2 via the
+  bridge); (3) the assembly: pull_base_bareCargo (bareCargo_of_slide) + pull_base_position
+  (bareCargo_sameOrbit + rungs + Quotient.sound). The pull descends to Position -> Card -> Position.
+- LEAN LESSONS: **the rw-lemma instantiation picks st from the ARGUMENT S TYPE, not the goal** - the
+  inr-locality s hpt (u-form) instantiated putRun_piles_inr_ne s st := u, mismatching the goal s
+  setFound-state - FIX: bridge a defeq-copy of the hypothesis at the setFound-type and pass the st
+  EXPLICITLY; **cases h : e substitutes the GOAL S occurrences** (including inside the goal s
+  existentials) but NOT hypotheses - an rw-at-h AFTER cases works on the hypothesis while the goal
+  is already substituted (the witness-elimination s rfl asymmetry: use rfl when the goal was
+  substituted, the hypothesis-name when only the hypothesis was rewritten); putCard_eq_putRun is
+  the bridge that lets the Kit s putRun-side pointwise rows serve the pull s putCard-side shapes.
+
+## GRID CAMPAIGN SITTING 3c - THE PULL S BASE-INDEPENDENCE CERTIFIED (2026-10-31, commit 964ee4c)
+
+- LANDED (964ee4c, Position par.7, all clean) - THE USER S CLAIM IS THEOREM:
+  * `below_append_notmem` / `fromCard_append_notmem` [propext]: the appended-top landing readings
+    (below c (old ++ [c]) = old, fromCard c (old ++ [c]) = [c] when c notin old) - by induction.
+  * `pull_setPile_restore` [propext, Quot.sound]: writing the source s pile back at the landing
+    undoes the landing - via apply State.ext (the house pattern) with the found/stock/waste/drawStep
+    field-rows and the piles-funext per-anchor locality (restated with the U-FORM hloc so the
+    putRun-side rows instantiate correctly).
+  * **`pull_slide_pull`** [propext, Quot.sound]: THE STATE-EQUATION - sliding the pulled card from
+    its b1-landing to b2 lands exactly at the b2-pull s target. The per-landing analysis: the inl
+    (below = [], the revealTop-empty computation, the empty-fit s Pile-eta) and the inr (the
+    below/fromCard append-lemmas with c-notin-old via mem_found_unique s zone-disjointness, the
+    old-ne-[] exclusion via the top-membership, the double-structure-update Pile-eq). The step
+    computation: simp only [State.step, hhold, hfit2, hrun] (simp does the iota the rws cannot),
+    then hX (the afterRunRemoved-restoration) + hrestore + the bridge + hv2 + if_pos trivial.
+  * **`pull_base_bareCargo`** [propext, Quot.sound]: THE CARGO CLASS - pulling c to any base lands
+    in the same BareCargoEquiv class. The degenerate b1 = b2 case: the deterministic step gives
+    v1 = v2, refl. The main case: the slide + ITS REVERSIBILITY VIA THE MIRRORED SLIDE (the
+    undo-play IS pull_slide_pull applied symmetrically - reversibleAtW s def-witness - avoiding
+    the tabToTabR king/hidden sub-cases entirely), then bareCargo_of_slide.
+  * **`pull_base_position`** [propext, Quot.sound]: THE POSITION - same class: bareCargo_sameOrbit
+    carries the orbit, rungAt_foundToTab x2 the ledger, Quotient.sound the quotient. THE PULL
+    DESCENDS TO Position -> Card -> Position - the backward grid edge, base-independent.
+- THE GRID PROGRAM: sittings 1 (the quotient + descent), 2 (the rung arithmetic + pullSpec),
+  3a-3c (the base-independence) COMPLETE. REMAINING: the free moves vanishing (reversible +
+  rung-preserving => same position - draws/slides/waste-placements), the raise s class-determinism
+  (the round-trip: the raise s guard at the pulled state + the state-equation - MOST of the
+  machinery now exists: the landing-readings, the restore-technique), saturation descends, then
+  the residue campaign on the grid.
+- LEAN LESSONS: **lambda-argument type inference can pick the WRONG equation direction** - the
+  if_neg-guard s fun hcon => hnc (mem (Or.inl hcon)) inferred hcon : c = x instead of the needed
+  x = c - ANNOTATE the binder (fun (hcon : x = c) => ...) or use .symm; **the expected-type can
+  drive a lemma s implicit st BEFORE the explicit args** - the hloc-instantiation failure - restate
+  helper hypotheses in the form that makes the conclusion s shape match (u-form not
+  setFound-form), or elaborate the term first; rw [putCard_eq_putRun] as a BRIDGE in the FINAL
+  chain must come BEFORE the v2-rewriting (the pattern must be present - order: hX, hrestore,
+  <- bridge, <- hv2, if_pos trivial); `Option.noConfusion` with a def-unfolded LHS can get
+  universe-stuck - prefer the membership-route (lastOf_mem + the empty-list absurd) or
+  simp [lastOf]; the `by simp` on deck-defs (lastOf) makes no progress - pass the def: simp [lastOf];
+  simp only [State.step, hyp1, hyp2, hyp3] reduces the nested step-matches (the iota) that
+  sequential rws leave stuck - ONE simp with all the guard-hypotheses beats a rw-chain when the
+  goal has nested matches; the revealTop-subtlety of afterRunRemoved (pre = [] flips the next
+  hidden card) is EXCLUDED by the landing s own fit-guards (the empty-faceUp pile has no top).
+
+## GRID CAMPAIGN SITTING 4 - THE SLIDE S VANISHING + THE SCOPING DISCOVERIES (2026-10-31, commit a5e7f1a)
+
+- LANDED (a5e7f1a, Position par.5+7, all clean):
+  * `rungAt_wasteToFound` [propext]: the waste-raise climbs one rung (+e_suit) - THE LAST LEDGER
+    ROW (the full step-family s rung arithmetic is now certified: raise/pull/draw/slide/
+    waste-placement/waste-raise).
+  * **`slide_position`** [propext, Quot.sound]: THE REVERSIBLE SLIDE VANISHES - a reversible
+    tableau slide holds the ledger (rungAt_tabToTab) and rides the cargo class
+    (bareCargo_of_slide + bareCargo_sameOrbit): it never changes the position. THE QUOTIENT S
+    OWN GLUE. Three certified rows composed - zero new grind.
+- **THE SCOPING DISCOVERIES (this sitting s investigation)**:
+  1. **wasteToTab is NEVER reversible** (`wasteToTab_not_reversibleAtW`, Classification:1644 -
+     the cycleCount monotonicity argument). The FREE moves (reversible + rung-preserving) are
+     EXACTLY the draws + the reversible slides; wasteToTab is a SECOND non-positional edge
+     (besides wasteToFound) - its availability reads the waste top which orbit-mates reshuffle.
+  2. **The raise s reversibility is R-SHAPED**: tabToFoundR requires nextUp + pileOfTop + (the
+     chop nonempty OR (lone card AND hidden empty AND king)). THE FLIP-CASE (a lone face-up card
+     over hidden cards) is IRREVERSIBLE - the reveal-flip moves a hidden card to face-up and no
+     move puts it back. So the raise s class-determinism must carry the R-shape (reversibility)
+     as a hypothesis; within the R-shape cases the undo IS a single foundToTab (the b-construction:
+     inr the below s last, or inl a for the lone king) - and the pull-back s reversibility comes
+     from the raise s own firing (the mirrored-witness construction, as in pull_slide_pull).
+  3. **The draw s vanishing needs the SWRotW cycle-construction**: the draw s undo-play is the
+     REST OF THE DRAW CYCLE (an all-draw play through the conserved pool) - sameOrbit_factor s
+     <- with z := u (NoDrawPlayW refl + the one-draw SWRotW) is the route; the cycle-construction
+     is its own sitting. DEFERRED.
+- THE GRID PROGRAM STATUS: sittings 1 (quotient+descent), 2 (rung arithmetic + pullSpec),
+  3a-3c (the pull s base-independence), 4 (the slide s vanishing + the ledger completed) DONE.
+  REMAINING: (a) the raise s class-determinism - the ROUND-TRIP grind (the R-shape s b-
+  construction + the state-equation - the pull_slide_pull technique applies directly: the
+  landing-readings, the restore, the revealTop-subtlety EXCLUDED by the R-shape s hidden-empty
+  clause); (b) the draw s vanishing (the cycle-construction); (c) saturation descends (specB
+  per position); (d) the residue campaign on the grid.
+
+## THE RESIDUE ASSESSMENT + GRID SITTING 5 - THE SATURATION DESCENT (2026-10-31, commit e6cb5b8)
+
+- **THE RESIDUE ASSESSMENT (this turn s exploration, per the user s steer)**: opened the dip, recovered
+  the full design history from the journal. THE FOG MAP (2026-10-26): F1 (the inl-emptiness read)
+  RESOLVED; F2 (runOK s full-fit) RESOLVED + certified (SeedKit.runOK_adjacent_fit); F3 (the
+  endpoint anatomy, ~1 session); F4 (the clearability chain, 1-2 sessions); F5 = C2 PREFERRED (the
+  AT-v composite: v'' := v + pull(c.twin -> g) + slide(e -> c.twin) IS the ForkWitness - THE
+  CONFINEMENT IS AN ENUMERATION: the pull s nextUp-delta is exactly +c.twin, the slide s
+  seat-deltas are +c and -c.twin, v saturated so v''s live set is a per-move delta-lemma
+  computation, NOT a hunt - two small delta lemmas) with C1 (the mate-slide pre-death state) as
+  fallback; F6 (the twin neither founded nor topping, no host g - the census-driven first-passage
+  twin-raise OR the register s flip returns) = THE DEEPEST FOG, the standing risk; F7 (the def s
+  WF premise - amend only if C2 demands). KILL CRITERIA: a forkless differing-saturated probe board
+  kills the residue. THE ATTACK ARCHITECTURE (discovered): the stuck-cover cascade / the ace
+  floor - at the saturated shallow endpoint the pulled cover is nextUp so it must be buried;
+  lower-index pulls each need a host one rank up opposite color; the cascade ends un-buryable
+  (ace: contra) or stalls (missing host: the last pulled card live: contra) - every branch closes
+  OR forces the twin into tableau play (the dip anchor). VERDICT: a real path (C2) but 2-4
+  sittings with F6 as genuine fog. The user steered: CONTINUE THE GRID PROGRAM.
+- **LANDED (e6cb5b8, Position par.8, all [propext, Quot.sound])** - THE SATURATION DESCENDS:
+  * `rankSatB_pos (k) : Position -> Bool` - THE POSITION-LEVEL FRONTIER PROBE (Quotient.lift of
+    rankSatB; the respect via rankSatB_iff both sides + the invariance per-card). Q-FAMILY NOW
+    READS ON POSITIONS: Q1 s vacuity ("can class-mates at different rungs both be saturated?") is
+    a question about two Positions; the residue s witnesses are position-data.
+  * `rankSatB_pos_mk` (rfl): any representative computes the position s frontier.
+  * `rankSat_position` / `ssaturated_position`: the grade transfers at equal rungs (the
+    invariance repackaged at the ceiling campaign s grade).
+  * `ssaturated_iff_spec`: SSaturated = the empty spectrum (the position-level reading).
+- LEAN LESSON: **left-associativity of application vs dot-projections** - `f c (.mp) hsc` parses
+  as ((f c) (.mp)) hsc - the projection UNAPPLIED becomes an argument; ALWAYS parenthesize
+  `f c ((lemma).mp hsc)`; **binder shadowing across nested lambdas** - the respect s relation
+  binder `h` shadowed the iff-constructor s RankSat witness `h` inside the by-block - rename
+  outer binders (hr) when inner blocks reuse the letter.
+- THE GRID PROGRAM STATUS: 1 (quotient+descent) 2 (rung arithmetic + pullSpec) 3a-c (pull s
+  base-independence) 4 (slide s vanishing + the ledger completed) 5 (saturation descent) DONE.
+  REMAINING: (a) the raise s class-determinism (the round-trip grind - pull_slide_pull s
+  technique: the R-shape s b-construction + the state-equation; the raise s undo is a single
+  foundToTab and the pull-back s reversibility comes from the raise s own firing); (b) the draw s
+  vanishing (the cycle-construction: SWRotW from one reversible draw + NoDrawPlayW refl +
+  sameOrbit_factor s <-); (c) the residue campaign (2-4 sittings, the fog map above).
+
+## GRID CAMPAIGN SITTING 6 - THE RAISE S ROUND-TRIP AND CLASS-DETERMINISM (2026-10-31, commit dd0f24b)
+
+- LANDED (dd0f24b, Position par.6-bis, all clean):
+  * `pileOfTop_piles` [private] + `putCard_inr_eq_setPile` [private, lineage: Classification s
+    private, restated per the kit rule].
+  * **`tabToFound_pull_back`** [propext, Quot.sound]: THE RAISE UNDOES BY A SINGLE PULL - a
+    reversible raise of c is undone by a literal foundToTab c b back to the very source. The
+    king case CITES the certified step_foundToTab_of_tabToFound_bare (Classification) - zero new
+    grind; the COVERED case is the grind: z := the last of the chop (the card directly below c);
+    canSitOn c z via SeedKit.runOK_adjacent_fit on the faceUp decomposition (chop(chop) ++ z :: c
+    via lastOf_chop twice); the pile-readings at t (htpa2 : the update-with-chop; htopz via the
+    top-lastOf); the fit-guard (canPlace inr via pileOfTop); the state-equation via putCard_inr_
+    eq_setPile + State.ext (the 5-field funexts) with hwritten (Pile.ext on the restored faceUp =
+    chop ++ [c]).
+  * **`raise_class_position`** [propext, Quot.sound]: THE RAISE S CLASS-DETERMINISM - at equal
+    rungs, two REVERSIBLE raises of the same card from orbit-mates land in the same position: the
+    round-trips (both directions), the orbit-walks between the sources, and the raises compose
+    into witness walks both ways (Walk.cons + reversible_mirrorW + ShufflePlayW_append); the
+    rungs via rungAt_tabToFound x2 + the RungEq. THE QUOTIENT GAME S FORWARD EDGE IS WELL-DEFINED
+    on the reversible raises (exactly the raises the witness journeys use).
+- THE GRID PROGRAM STATUS: 1 (quotient+descent) 2 (rung arithmetic + pullSpec) 3a-c (pull s
+  base-independence) 4 (slide s vanishing + the ledger) 5 (saturation descent) 6 (the raise s
+  class-determinism) DONE. REMAINING: (a) the draw s vanishing (the cycle-construction: SWRotW
+  from one reversible draw + NoDrawPlayW refl + sameOrbit_factor s <-); (b) the residue campaign
+  (2-4 sittings, the fog map banked at sitting 5 s journal).
+- THE QUOTIENT GAME NOW EXISTS: the positions (sitting 1), the deterministic edges (the pull
+  Position -> Card -> Position from sitting 3, the reversible raise from this sitting), the
+  vanishing glue (the slide from sitting 4), the position-properties (the spectrum, the
+  foundations, the rungs, the saturation - sittings 2 and 5). The grid program s remaining
+  content: the draw s cycle-construction and the mission-facing residue work.
+- LEAN LESSONS: **PowerShell List[string]::ReadAllLines DOES NOT EXIST** - use [IO.File]::
+  ReadAllLines (the static) - and a FAILED splice can still WriteAllLines (truncating the
+  target!) - ALWAYS git-checkpoint before splicing files programmatically; **anonymous
+  constructor arity**: the RevEqW parcel is FOUR components (play, walk, play, walk) - not two
+  (the walks) - the ∃-witness lists must be included; namespaced kit rows (SeedKit.*) must be
+  fully qualified; the show-rfl-pattern for a nonempty-list witness (show the type at the
+  obtain).
+
+## GRID CAMPAIGN SITTING 7a - THE DRAW S VANISHING SCAFFOLD (2026-10-31, commit 9c9688f)
+
+- LANDED (9c9688f, Position par.7, [propext, Quot.sound]):
+  * `NoDrawPlayW_refl` [private]: the board closure is reflexive (the empty plays).
+  * `draw_forward_DrawPlayW` [private]: one reversible draw is a forward draws-only witness
+    journey (Walk.cons + the all-draws triviality).
+  * **`draw_position_of_cycle`**: THE DRAW VANISHES, GIVEN THE CYCLE - a reversible draw holds the
+    ledger (rungAt_draw), and given the all-draw witness return, the orbit factorization
+    (sameOrbit_factor.mpr with z := u: NoDrawPlayW_refl + SWRotW u v) composes the orbit.
+    THE REMAINING GAP IS EXACTLY ONE ROW: `∃ τ, DrawPlayW v τ u` from one reversible draw -
+    the rest of the draw cycle.
+- **THE CYCLE S SCOPING (worked by hand on examples)**: from v (the post-draw state), the return
+  is: DRAIN the stock (draws; in-phase preserved while |stock| >= drawStep, the last drain-draw
+  may deal partial and break phase), then the RECYCLE at the empty base (passBase - reversible
+  with no phase condition), and the divider returns to u s position. Examples verified by hand:
+  stock=[a,b],waste=[c],drawStep=1 (cycle: 2 draws); stock=[a,b,c,d],waste=[e],drawStep=1
+  (3 drain + 1 recycle); stock=[a,b,c],waste=[d,e],drawStep=2 with |P|=5 NOT divisible by 2 (the
+  partial drain breaks phase but the passBase does not care - the recycle restores u exactly).
+  The per-leg reversibility: in-phase draws via draw_inphase_reversibleW (phase preserved while
+  whole deals), the passBase via draw_passBase_reversibleW (unconditional on phase). THE ROWS
+  THAT FEED IT: the phase kit (OrbitFactor par.1.5: inPhase, inPhase_eq_decide_of_cons,
+  inPhase_congr, the draw shapes plain_draw_shape/base_draw_shape in Kit, the drain machinery
+  drain_positions_one in OrbitFactor, selfRecycle_draw), plus chart_draw s drawPool conservation
+  for the pool bookkeeping. A REAL SITTING (~150-250 lines of careful list arithmetic).
+- THE QUOTIENT GAME S REMAINING: the cycle row (sitting 7b) + the residue campaign (the fog
+  map). Everything else is certified.
+- LEAN LESSON: the ∃∃∧-parcel arity strikes again (third time): SWRotW = ∃ρ τ, DrawPlayW ∧
+  DrawPlayW - the parcel is ⟨ρ, τ, fwd, back⟩ - NOT ⟨ρ, fwd, τ, back⟩ (witness lists come in
+  their ∃ positions, before the Prop components).
+
+## SITTING 7b DESIGN COMPLETE - THE DRAW CYCLE S DIVIDER ALGEBRA (banked for the next session)
+
+- **THE ROW**: `draw_cycle {u v} (hstep : step u draw = some v) (hrev : reversibleAtW u draw) :
+  ∃ τ, DrawPlayW v τ u` - the rest of the draw cycle, all-draw witness walk back to u.
+
+- **THE DIVIDER ALGEBRA (worked by hand, verified on examples incl. |P| NOT divisible by drawStep)**:
+  the pool P := u.stock.reverse ++ u.waste is CONSERVED (chart_draw s drawPool). A state in the cycle
+  is determined by its divider d := |stock|: stock = (P.take d).reverse, waste = P.drop d.
+  * A PLAIN draw (stock ≠ []): d -> d - min(drawStep, d) (whole deal while d >= drawStep; a PARTIAL
+    final deal lands at d = 0 - and stock = [] is in-phase TRIVIALLY, inPhase_eq_true_of_nil).
+  * The PASSBASE (stock = [], waste ≠ []): 0 -> |P| - drawStep.
+  * THE RETURN PATH from v (divider d₀ - drawStep, case b): DRAIN to 0 (whole deals, the last may
+    be partial), PASSBASE to |P| - drawStep, then PLAIN DRAWS down to d₀ (whole deals - the count
+    is whole because |P| - drawStep - d₀ = |u.waste| - drawStep ≡ 0 mod drawStep by u s in-phase
+    condition). Case (a) (u.stock = []): v sits at |P| - drawStep - the DRAIN to 0 = u directly.
+  * THE PHASE: u in-phase (case b) or stock = [] (case a); draw_keeps_inPhase preserves it through
+    every draw; partial deals land at stock = [] (trivially in-phase); the passBase lands in-phase
+    (draw_nil_inPhase). The WASTE NEVER EMPTIES along the cycle (draws only append to it; the
+    passBase takes drawStep ≥ 1 from a nonempty waste). SO EVERY LEG IS drawR = REVERSIBLE
+    (drawR_iff_reversibleAtW, both arms certified).
+
+- **THE KIT INVENTORY (all certified, nothing new needed)**:
+  * Shapes: plain_draw_shape, base_draw_shape, draw_full_shape (Kit); drain_positions_one
+    (the run of q draws drains exactly n = q·drawStep, list-exact), base_positions_one (the run of
+    k+1 base draws from the empty stock, list-exact), drain_to_pass; run_replicate_append (the
+    append-glue for pure-draw runs); run_cons_shape / run_cons.
+  * Phase: inPhase_eq_decide_of_cons, inPhase_eq_true_of_nil, inPhase_congr, draw_keeps_inPhase,
+    draw_nil_inPhase, inPhase_eq_false_iff.
+  * Reversibility: drawR_iff_reversibleAtW (the oracle), draw_inphase_reversibleW,
+    draw_passBase_reversibleW, draw_revW_congr (OrbitFactor, PRIVATE - zone-determined
+    reversibility; restate per the kit rule if needed), selfRecycle_draw (the |waste| <= drawStep
+    identity case: step = some st - v = u).
+  * The consumption side (already landed, sitting 7a): draw_position_of_cycle - the cycle row
+    plugs in and the draw vanishes.
+
+- **THE PROOF SKELETON** (estimated 200-300 lines):
+  1. From hrev: drawR u = true (the oracle s →) - extract: u.waste ≠ [], and (u.stock = [] ∨
+     in-phase u).
+  2. Case (a) u.stock = []: sub-case |u.waste| <= drawStep: v = u (selfRecycle_draw) - τ = [].
+     Sub-case >: v = {stock := waste.reverse.drop drawStep, ...} - the drain from v to divider 0
+     (= u): drain_to_pass-style run + the per-leg reversibility induction.
+  3. Case (b) u.stock ≠ [] ∧ in-phase: v = {stock := stock.drop drawStep, ...} - the full cycle:
+     drain (drain_positions_one), passBase (base_positions_one), refill (drain_positions_one
+     again) - run_replicate_append glues - the end state = u by State.ext (the pool algebra).
+  4. The per-leg reversibility: a sub-induction over the run states: each satisfies drawR (the
+     phase + nonemptiness preserved) - or use draw_revW_congr to transport from the computed
+     shapes.
+  5. Assemble: DrawPlayW v τ u = the Walk over the replicate-glued plays + the all-draws
+     triviality.
+
+- THE HONEST ASSESSMENT: one full sitting of careful list arithmetic - the divider algebra is
+  worked, the kit is complete, the skeleton is above. No design risk remains - only grind.
+
+## SITTING 7b PART 1 + THE GENERALIZATION ANSWER (2026-10-31, commit 43c8177)
+
+- **THE USER S QUESTION (why is the draw so complicated?) - THE ANSWER**: the pull/raise vanish
+  because their undos are SINGLE MOVES; the draw s undo is THE REST OF A CYCLE - a
+  variable-length return. THE CLEAN GENERALIZATION (two levels):
+  1. **THE LOOP ROW** (the interface): `draw_loop (hrev : reversibleAtW x draw) :
+     ?t, DrawPlayW x (draw :: t) x` - "the draw generates a closed witness loop". The vanishing
+     becomes a two-line corollary: decompose the loop (the Walk s cons = the leg x->v + the tail
+     DrawPlayW v t x), then SWRotW u v := [draw]-forward + t-back - done. The complication lives
+     ENTIRELY inside the loop row - the interface is clean.
+  2. **THE FACTORIZATION** (the implementation): (i) the drawR invariant (landed this commit!),
+     (ii) the drain primitives (to-zero with the pool bookkeeping; the q-deal controlled descent),
+     (iii) the loop assembly (first leg + drain + passBase + descent - unified across the
+     stock-empty/nonempty cases by the divider algebra).
+- LANDED (43c8177, Position par.7, [propext, Quot.sound]): **`drawR_invariant`** - THE PHASE TRAP:
+  `step x draw = some y -> drawR x = true -> drawR y = true`. The reversible-draw shape is CLOSED
+  under the draw. Proof: the waste s nonemptiness (the deal only appends - via base/plain_draw_shape
+  + the length arithmetic with min_def/if_pos/if_neg since omega cannot handle min) + the phase
+  (draw_keeps_inPhase, with the empty stock trivially in-phase). THIS IS THE CYCLE S
+  EVERY-LEG-REVERSIBILITY CERTIFICATE: along the whole draw cycle, every state satisfies drawR,
+  hence every leg is reversible (drawR_iff_reversibleAtW) - the induction s invariant.
+- THE 7b REMAINING (the grind, with the invariant in hand):
+  (a) `drain_zero_walk`: by induction on the stock - the drain to the empty stock as an all-draw
+  WITNESS walk, each leg reversible by drawR_invariant (the invariant maintained), the target
+  {stock := [], waste := stock.reverse ++ waste} (the pool conservation: take_append_drop).
+  (b) The controlled q-descent (whole deals only) for the return to a nonzero divider.
+  (c) The loop assembly (the divider algebra from the banked 7b design note).
+  (d) Then draw_position (the unconditional version) = draw_position_of_cycle with the loop s
+  decomposition.
+- LEAN LESSONS: **of_decide_eq_true and decide_eq_true are OPPOSITE directions** (of_decide_eq_true
+  : decide p = true -> p; decide_eq_true : p -> decide p = true) - the codebase s names are
+  counterintuitive vs core s decide_eq_true_iff - ALWAYS probe the signature first; **omega cannot
+  handle Nat.min** (treats it as an atom) - eliminate with List.length_take + Nat.min_def +
+  if_pos/if_neg by_cases before omega; the `show` after unfold+rw works when the cases-hypothesis
+  is rewritten into the UNFOLDED match scrutinee first (rw [hsty] AFTER unfold drawR - the
+  scrutinee becomes syntactic); a `have ... := by` edit that deletes the trailing newline JOINS
+  lines (parse errors far away) - check the seam after term-mode edits; congrArg List.length on a
+  structure-projection equation beats rw-into-projections for the hlen-style length facts.
+
+## SITTING 7b COMPLETE - THE DRAW VANISHES (2026-10-31, commits db0d18a/3a1a820/145aa4e/7b3d71b, all pushed)
+
+- **LANDED (Position par.7, all [propext, Quot.sound], zero sorry, zero Classical)**:
+  * db0d18a: **drain_zero_walk** - the stock drained to empty as an all-draw witness walk
+    (strong induction on the stock length; drainState def; every leg reversible via drawR_invariant).
+  * 3a1a820: **drain_q_walk** - the controlled q-descent: q whole deals to a nonzero divider
+    (drainQState def; the witness-layer mirror of Kit s drain_positions_one run row - same
+    take/drop arithmetic, legs on the drawR rail).
+  * 145aa4e: **the return row, both cases** + kit: walk_wf_end (Walk endpoints inherit WF),
+    drain_zero_self (the natural-bound wrapper), DrawPlayW_append (the draws-only glue),
+    draw_return_nil (case a: the pass-base draw s return = drain-to-zero from the recycled deal -
+    NO sub-cases needed, the trivial drain handles the short-waste case internally),
+    draw_return_cons (case b: drain-to-zero -> ONE pass-base recycle -> q-descent back to the
+    divider - the q from the in-phase multiplicity: |w| = N*ds, q = N-1, via dvd_of_mod_eq_zero).
+  * 7b3d71b: **draw_return** (the dispatch) + **draw_loop** (THE CLEAN INTERFACE: the draw
+    generates a closed witness loop - the forward leg plus the return) + **draw_position**
+    (THE VANISHING, unconditional: draw_position_of_cycle with the cycle row supplied).
+- THE FACTORIZATION AS EXECUTED (the user s generalization, now real): interface = the loop row
+  (draw_loop); implementation = drawR_invariant (7b part 1, prior commit) + the two drain
+  primitives + the case-split return. The in-phase condition does the WHOLE-DEAL honesty work:
+  |w| % ds = 0 with w ne [] forces |w| >= ds, so the pass-base s pool (|s|+|w|) always exceeds
+  the draw step and the return s last leg runs on whole deals only.
+- LEAN LESSONS (this sitting):
+  * **Multi-line structure instances in a have-TYPE fail to parse** ("unexpected identifier;
+    expected }" at the field comma) - put the {x with ...} on ONE line (Kit s style) or bind it
+    with a let first; the let + show x .field = ... from rfl pattern is the workhorse.
+  * **rw [h] rewrites only the FIRST-INSTANTIATED pattern occurrence**: a goal carrying a whole
+    mk-literal (other fields riding along) can contain TWO .reverse.reverse instances - ONE
+    List.reverse_reverse call fires on the stock s, leaving the waste s - APPLY IT TWICE (or
+    per-instance). Diagnosed by the standalone-probe method: the idealized flat goal passed
+    while the real goal stalled -> the difference was the literal s other fields.
+  * List.drop_add DOES NOT EXIST in this core - use List.drop_drop : drop i (drop j l) = drop (j+i) l.
+    List.length_reverse s implicit arg is named `as` (fully implicit - no explicit application).
+  * **Nat.succ_mul s LHS is n.succ * m** - in an induction succ-case the goal s term is
+    Nat.succ q * ds (displayed q + 1): helper equations must use the EXPLICIT Nat.succ q form,
+    NOT (q + 1) (HAdd vs succ do not keyed-match).
+  * omega cannot close LIST equalities even from length contradictions - route through
+    Nat.le_zero.mp + List.eq_nil_of_length_eq_zero for the nil-derivation.
+  * simp only [...] at h MUTATES h - `have h  := h` BEFORE the simp when the original shape is
+    needed downstream (draw_return_cons s hdR ).
+  * The waste algebra s chain (the return s final deal): shows + append_assoc + reverse_append +
+    take_drop_add (the LEFT-arrow direction!) + the length equations + reverse_append +
+    length_reverse-symm + take_append_prefix + reverse_reverse (TWICE) + append_nil.
+  * THE READ-TOOL PHANTOM: one read returned a stale version of Position.lean (a drain_zero_walk
+    draft that never hit disk) - when a read disagrees with Select-String/grep, establish ground
+    truth with [IO.File]::ReadAllLines before editing.
+- SCOREBOARD: par.7 (the draw s vanishing) COMPLETE - the grid card s sittings 1-7 all green:
+  1-6 (quotient+descent, rung arithmetic, pull base-independence, slide vanishing, saturation
+  descent, raise round-trip+class-determinism) + 7 (draw vanishing). REMAINING: the residue
+  campaign (SatDifferFork, the fog map banked 2026-10-31: F6 deepest, kill criterion = a forkless
+  differing-saturated probe board, estimate 2-4 sittings) - deferred per the user s steer.
+
+## THE KILL-PROBE, ROUND 1 + THE COVER-SEATING DISCOVERY (2026-10-31, informal, pre-sitting)
+
+- THE PROBE (two rounds, both kill-FAILURES - the residue s credibility grows):
+  1. The first board was INCOHERENT as stated: the cover of an at-rung 2 must be a rank-1 card
+     (an ACE), and a tableau ace ALWAYS tops (nothing sits on an ace) and is always at-rung when
+     its suit s rung is 0 -> CanRaise -> contra SSaturated. THE ACE FLOOR fires at the endpoint
+     itself: SATURATED BOARDS HAVE NO TABLEAU ACES (every ace is founded or pooled). 
+  2. The coherent rebuild (c = heart-4 covered by e = spade-3, c.twin = diamond-4 founded at v,
+     host = a topping black 5): the C2 composite fires verbatim (pull twin -> host, slide e onto
+     twin: S-live = the pair, twin vanilla-blocked). Kill fails.
+- **THE COVER-SEATING DISCOVERY (the real yield)**: e (rank r-1, opposite color to c) sits ONLY
+  on {c, c.twin} - the twin = SAME COLOR other suit (heart<->diamond, spade<->club), so canSitOn
+  e x (rank(x) = r, color(x) = opposite-of-e) is EXACTLY the twin pair. At the deep endpoint c is
+  FOUNDED, so e seats ON c.twin - the twin is in the TABLEAU at the deep end, unfounded; and for
+  e to arrive covering c at the shallow end, the journey MUST move e off c.twin (revealing it
+  topping, at-rung or not - the F4 analysis). F6 s "the twin must be brought in by the journey
+  (first-passage twin-raise)" is FORCED by the seating algebra whenever c is covered at the
+  shallow end - not an option a counterexample board can dodge. The dip (between c s last pull and
+  the twin s first raise) is then the NATURAL fork state; C2 s composite is the guaranteed-quiet
+  reconstruction of it.
+- FORMAL PROGRAM UNCHANGED: the endpoint bars first (the twin-top bar IS the seating argument:
+  at saturated v, c covered by e, if c.twin topped then e slides there -> c emerges -> CanRaiseS
+  -> contra). The kill-probe continues alongside the sittings.
+
+## THE PULL S CLASS-DETERMINISM - THE BACKWARD EDGE (2026-10-31, commit 797f949, pushed)
+
+- LANDED (797f949, all [propext, Quot.sound], zero sorry, zero Classical):
+  * CLASSIFICATION: **`step_tabToFound_of_foundToTab`** (PUBLIC, the promotion): a successful
+    foundToTab c b at a WF state is undone by tabToFound c of the same card, returning to the
+    origin in one move. The kit-rule promotion: foundToTab_rtp s conclusion STRENGTHENED to the
+    literal step equation (was reversibleAtW - the construction verbatim, only the final
+    reversible_mirrorW dropped); the W row (foundToTab_W_of_legal_wf) rewired to a 2-liner
+    (step_foundToTab_legal + reversible_mirrorW onto the new row); foundToTab_undo STRUCK
+    (dead after the rewire - its derivation body absorbed into the wrapper).
+  * POSITION: **`foundToTab_pull_back`** (the 1-line mirror of tabToFound_pull_back) +
+    **`pull_class_position`** (the mirror composition: the round-trips both sides, the
+    orbit-walk between the sources, the pulls compose into witness walks both ways; rungs via
+    rungAt_foundToTab s mirror edge).
+- **THE INTERESTING ASYMMETRY DISCOVERED**: the pull s round-trip is STRONGER than the raise s -
+  NO reversibility hypothesis needed: foundToTabR (the oracle) = foundTop-is-c AND canPlace =
+  THE FIRING GUARD ITSELF, so at WF every firing pull is automatically reversible. The raise
+  needs its R-shape hypothesis because the flip-case raise fires irreversibly. pull_class_position
+  therefore takes only (hwf, hwf1, horb, hrung, hstep, hstep1) - no hrev.
+- **THE MOVE-ROW TABLE IS COMPLETE** (the tableau game at the position level):
+  draw = identity (7b), slide = identity (par.6), raise = +e_suit deterministic (par.6-bis),
+  pull = -e_suit deterministic (this commit), waste moves = never reversible (certified - the
+  user s observation: the reversible restriction factors them out a priori, so the orbit never
+  sees them). THE GRID CALCULUS (the walk-level congruence: any reversible witness walk s
+  position-effect factors through its raise/pull skeleton) IS NOW PURE ASSEMBLY: the walk
+  induction over ShufflePlayW_append gluing the move rows - no fog left in it.
+- LEAN LESSONS: (1) **simp only [putCard_piles_inl] NORMALIZES the ite condition** (k = k becomes
+  True) - so `rw [ite_eq_left rfl]` fails (the pattern needs if ?m = ?m); use `rw [ite_true]`
+  (undo s own idiom). W s variant avoided simp entirely (plain rw [putCard_piles_inl] + a show)
+  which PRESERVES the `if k = k` form - when merging two proof patterns, check which tactic
+  normalizes what. (2) **The composition-mirroring trap**: swapping the moves swaps which base
+  belongs to which side - hw3 s play is s s base b and hw3 1 s is s 1 s base b1; mis-mirroring
+  both hA/hB tails costs a build cycle (the type mismatch catches it immediately). (3) The
+  strike-then-rewire for dead privates: grep consumers first, strike, rebuild.
+- NEXT: the Grid Calculus assembly (the walk induction - ~1 sitting, everything certified), or
+  back to the residue track (the endpoint bars - sitting 1 of the fog map s attack order).
+
+## THE WALK ENDPOINT CONGRUENCE - THE GRID CALCULUS, NET FORM (2026-10-31, commit 3a303be, pushed)
+
+- LANDED (3a303be, Position par.6-ter, [propext, Quot.sound], zero sorry, zero Classical):
+  * `walkNet (play) (sigma) : Int` - the signed per-suit net (raises minus pulls, as an Int ledger).
+  * **`position_net_congruence`** - THE GRID CALCULUS, ENDPOINT HALF: two witness walks from the
+    same position with the same signed per-suit net land in the same position. ~35 lines total
+    including the def - exactly as cheap as the sharpening predicted.
+- **THE DESIGN ARC (the owner-driven sharpening, banked as the pattern)**:
+  1. THE INSIGHT: the position-effect factors through the NET PER-SUIT VECTOR, not the ordered
+     skeleton - the class is constant along witness walks (each leg reversible), within a class
+     the position IS the rung tuple (the definitional meet), and the rungs move by the census.
+     Order, free-letter interleaving, and pull bases are all invisible AT THE ENDPOINT.
+  2. THE PRECISION FIX (the owner s): the net must be SIGNED - the truncated Nat difference
+     confuses (0 raises, 2 pulls) with (1 raise, 1 pull): endpoints 3 vs 5 from rung 5. walkNet : Int.
+  3. THE PREREQUISITES (all verified first-hand before writing): shuffle_rung_census s exact form
+     `rungAt w sigma + pullsOf rho sigma = rungAt st sigma + raisesOf rho sigma` (CeilingBridge, WF-free);
+     shufflePlayW_revEqW (TwinEquivariance:1325, PUBLIC - the walk-to-class bridge, no new induction);
+     orbitRungSetoid.r definitionally `sameOrbitSetoid.r p.1 p .1 AND RungEq` (Vocab:354).
+  4. THE ROLE CLARIFICATION: raise_class_position / pull_class_position are the EDGE-determinism
+     rows (per-letter) - NOT needed for the congruence at all; the census does all the work.
+- **THE HONEST BOUNDARY (the corrected slogan)**: order does not matter FOR THE ENDPOINT EFFECT;
+  it still matters for LEGALITY/REALIZABILITY. The congruence is the endpoint accounting
+  (soundness), not the completeness theorem. The function form (positionEffect : Position ->
+  List Move -> Option Position) remains the evaluation interface (BFS/machine probe), gated on the
+  canon/computability layer - the S-cascade construction for the raise action is the cost center.
+- LEAN LESSONS: (1) **top-down file order**: the theorem cited walk_wf_end before its definition -
+  autoImplicit made the failure confusing ("unknown identifier treated as implicitly bound
+  variable"); when promoting a row for a statement, MOVE it ahead of its first consumer.
+  (2) **omega does not connect Int-cast atoms with the corresponding Nat facts** (treats
+  Int.ofNat (f x) and f x as different atoms) - pre-cast the Nat facts to Int explicitly
+  (exact_mod_cast), omega on the all-Int system, then exact_mod_cast back.
+  (3) Import additions: Position += CeilingBridge + TwinEquivariance (cycle-free - nothing
+  imports Position).
+- SCOREBOARD: the grid program s calculus ENDPOINT half is DONE. REMAINING: the function form
+  (the evaluation interface + canon) and the residue campaign (the fog map s attack order -
+  the endpoint bars next).
+
+## THE FORK CRITICAL-PAIR PROMOTION + THE TWO-RESIDUE CLASS THEOREM (2026-10-31)
+
+- LANDED (Orig2, full `lake build Orig2` green): `ForkCriticalPair` (local two-raise dichotomy: `arms_never_flatJoin`, `twin_raise_square`, `canRaise_or_covered`, `forkWitness_iff_covered`, `join_of_not_covered`, `no_raise_after_twin_raise`); `ArmFiber` (cargoSetoid, SatArm, ForkLive, `ArmDichotomy` implications, `forkless_found_unique_via_fiber`); `Boundary` (vcS/vcT equal-rung certificate); `CoverLock` (`cover_top_of_fork`, `not_nextUp_cover_of_fork`, `cover_base_is_twin`, `cover_rank_ne_king`); `CoverPins` (`cover_pins_of_fork` + the cascade ledger, ported from `Orig/PairConfine.lean:185`); `ArmSplit` (`ArmDichotomy ↔ SatDifferFork ∧ SatEqualFork`, forkless normalization, draw obstruction); `ForkClass` (`fork_label_class` from `CoverToken + OneFounding`, cross-family rigidity, pair-suit founds).
+- THE CLASS THEOREM IS NOW TWO NAMED ROWS: `CoverToken` (the cover stays seated on `x` or `x.twin` along every witness play) and `OneFounding` (both pair-suit rungs never rise). Everything else is proved: cross-family rigidity is a two-sided rank squeeze via the token (no `cross_strata_exile` / `cross_found_exodus` / `cross_orphan_seat`), and the floor is the ceiling with the endpoints swapped (no `forkState_rankDrop_locked` / `crossing_door`). `twinPair_founds_of_token_and_oneFounding` gives same found on the TWO twin-pair suits only (not the full four-row vector); full found / Position equality is the `hthird` third-suit residue (`Orig/PairClassZones.lean:124`) and is NOT proved (probe running).
+- F4/F5: `ForkCoverCascade` is FALSE — the escape is `raise x`, pull `x` back, slide the cover onto `x`, raise `y` (`Temp/Cascade_counter.py`). The correct residue is `FrozenCoverRung` / `CoverToken`; `cover_top_of_fork` and `cover_pins_of_fork` are landed.
+- PARKING: the no-burial case is proved (`Temp/Parking2_Rotation.lean`, `bracketRW_eliminate_flat_of_noBurial`); `DragCase` and the burial/excursion lemma remain. Do not relax the `FlatPath` premise (`vcS1`/`vcS11` are not flat-related).
+- STEP KIT LANDED (`Orig2/ForkClassStep.lean`): `witness_raise_no_twinLive` (raising the fork witness lands with NO two live twins - the cover orphan clash at one move), `reversible_raise_eq_witness`, `canRaiseS_congr_foundPiles`, `draw_live_iff`, `cargo_live_iff`, `fork_pair_cargo`, `witness_raise_no_fork`, `witness_raise_leg_forkless`, `oneMove_draw/cargo/raise`. The ONE-MOVE ROUTE IS STRUCTURALLY INSUFFICIENT: a witness play out of a fork passes through a forkless state (`witness_raise_leg_forkless`), so the step lemma's two fork hypotheses never both hold. The class theorem needs `CoverToken + OneFounding`, not a local chase.
+- BOTH RESIDUES DISCHARGED (Orig2/LockRung.lean): cover_rung_frozen, cover_token_invariant, cover_token_holds, oneFounding_holds, orkState_one_founding_orig2, and the unconditional ork_label_class / 	winPair_founds (all [propext, Quot.sound], zero sorry). The mutual-lock invariant is structural: the cover's next-up card is the bottom of its run (LockInv), so no reversible move can raise it; the token half rides the seat-change rows. Orig2/ForkClass.lean keeps the conditional assembly; LockRung supplies the two hypotheses. Same-Position status: pair suits + cover suit are now pinned; the fourth suit (d.twin.suit) is the remaining hthird question.
+- SAME-POSITION PARTIAL: coverSuit_rung_eq_of_sameOrientation (Orig2/LockRung) proves the cover-suit rung is class-invariant in the same-orientation case; pair suits via 	winPair_founds, cover suit via cover_rung_frozen in both directions. The FOURTH suit (d.twin.suit) is the only open row of hthird; the probe (Temp/ForkPos_*) is crafting the pull-high/cover-with-pair-colour counterexample.
+- FORK POSITION: Orig2/ForkPosition.lean lands ForkPositionRigid/ForkFoundRigid/ForkThirdRigid, live_under_card, ork_under_cards (at a non-king S-fork both twins sit on opposite-family +1 cards), ungEq_iff_found_eq, position_eq_iff, ork_one_position_of_rigid. The pair half is now unconditional (orkPairClass), so ForkPositionRigid is exactly ForkThirdRigid. Probe verdict: ~317 witness classes / ~10^5 states, ZERO counterexamples; vcS and Plan-4 each carry all forks at one rung vector. The frozen weak-grade craft is NOT a fork at either end (S-live {5H,6S}). King rank (=12) is a separate shape for a proof.
+- DRAW CORRECTION + SW DICHOTOMY: Orig2/DrawBoundary.lean refutes SatEqualFork/ArmDichotomy on the all-non-king/empty-tableau/four-kings-in-stock-waste board (draw-only class, no fork, not BareCargoEquiv), and proves ArmDichotomyRung ↔ SatDifferFork (first branch RungEq). Orig2/SWDichotomy.lean lands the fiber repair: CargoSW (symmetric composite BareCargoEquiv + SWRotW), cargoSW_rung/cargoSW_found/cargoSW_sameOrbit, ArmDichotomySW, SatEqualCargoSW, rmDichotomySW_iff_split, rmDichotomySW_to_satDifferFork, orkless_found_unique_SW, and draw_cargoSW (the draw counterexample is a POSITIVE SW-fiber instance). The SW phase factorization is sameOrbit_factor (OrbitFactor). Full build 57 jobs.
+- FIBER HIERARCHY (Orig2/FiberHierarchy.lean + Vocab): the move-generated quotients are now one generic def MoveFiber M := TwoWay (RevStepOf M) over a MoveSet; instances CargoSpan = MoveFiber cargoMoves, FlatSpan = MoveFiber flatMoves, MacroSpan = MoveFiber allMoves, with CargoSpan ↔ BareCargoEquiv, FlatSpan ↔ BareFlatEquiv, MacroSpan ↔ sameOrbitSetoid.r, and inclusions cargo ⊂ flat ⊂ macro. The rung class is the separate readout quotient ungSetoid/RungClass; position_meet records Position = MacroSpan × RungClass. BareFlatEquiv is the flat two-way closure (FlatPath both ways); CargoSW is its SW alias. Full build 58 jobs.
+- CONSOLIDATION: Orig2.lean is now four umbrellas (Substrate, Fork, Fiber, Boundaries); CoverPins + CoverLock merged into Cover; the dichotomy family collapsed to ArmDichotomyFor R / SatEqualFor R / ForklessNormalFor R with instances ArmDichotomy (cargo), ArmDichotomySW (flat), ArmDichotomyRung (rung), SatEqualFork, SatEqualCargoSW, ForklessCargoNormal; the CargoSW alias removed (canonical flat fiber is BareFlatEquiv/FlatSpan); FiberHierarchy gives MoveFiber/CargoSpan/FlatSpan/MacroSpan; ungSetoid/RungClass is the readout axis and Position = MacroSpan × RungClass. MAP.md updated. Full build 61 jobs.
+- FINAL CONSOLIDATION: Boundary + DrawBoundary merged into Orig2/Boundary.lean (vcS/vcT + draw counterexample, one battery), Boundaries umbrella deleted; ForkClassStep folded into Orig2/ForkClass.lean (
+amespace ForkClass tail kit), ForkClassStep.lean deleted. Root is four umbrellas (Substrate, Fork, Fiber, Boundary); MAP.md updated. Full build 58 jobs.
+- DEAD-CODE SWEEP: moved the 480-line one-move step kit out of ForkClass to Temp/ForkClassStep.lean (the route is structurally insufficient); moved FullPlayForkCP/ForklessCargoNormalWF/no-ForkLive rows out of ArmSplit to Temp/ArmSplit_Peripheral.lean; moved the cover cascade/slide-stuck ledger out of Cover to Temp/Cover_Peripheral.lean. Kept orkWitness_forkState (Boundary consumes it). Source sizes now: ForkClass 293, ArmSplit 200, Cover 436; full build 58 jobs.
+
+## ORIG2 DUPLICATE STRIKE — the TwinSpliceComm shadows + the stale king-arm stub (2026-10-31, dedup sweep)
+
+- STRUCK three unattributed shadow copies in `Orig2/TwinSpliceComm.lean` (names preserved at their canonical homes, zero consumer rewrites): `runOK_rank_distinct` (byte-identical to `Orig2/Integrity.lean:841`; its one local cite now resolves to the root home), `run_split_disjoint` (identical to `Orig2/CargoKit.lean:2284`; DEAD locally, zero uses), and `hidden_eq_of_rev_step` (a ~50-line inline duplicate of the promoted public `rev_step_hidden_eq` at `Orig2/SeatMateStack.lean:2641`; the four local cites re-pointed at the promotion). Net -77 lines.
+- DISCHARGED the stale sorried stub `king_change_needs_king_stack` (`Orig2/ClaimsScrutiny.lean` S5.1): the identical statement has been proved as `nonFloater_king_change_needs_king_stack` (`Orig2/SeatMateStack.lean` S6) since the 2026-10-19 promotion (`Orig2/Claims.lean` S1G), but the scrutiny ledger's stub was never struck — its battery line still printed `sorryAx` under a proven claim's name. Stub deleted per the promotion rule (carded promotion note in its place); the dangling name in `nonFloater_change_demands_stack`'s docstring re-pointed; the battery line removed (the card's battery owns the head at [propext, Quot.sound]).
+- VERIFIED: full `lake build Orig2` green, 58 jobs, zero errors, zero `Classical.choice`; the ClaimsScrutiny battery is now exactly the honest debt (tombstones + candidates, all evidence in `Temp/`). LESSON (the promotion arc's own rule re-learned): a promotion is not done until the LEDGER's stub is struck too — the card landing (`Claims.lean` S1G) and the scrutiny stub (`ClaimsScrutiny.lean` S5.1) are separate rows; the battery is the detector (a sorryAx under a proven claim's name is the tell).
+- RESIDUE (flagged, not struck — kit-rule restatements, owner's call): FreeOrbit's private `lastOf_eq_none`/`nodup_mid_notmem` (lineage: CargoRaise S4); LockRung `mem_chop` vs KingOrbitFull `mem_of_mem_chop` (different DAG branches — needs a hoist or an import edge); `tfc_card_twin_twin` (CargoKit) vs `card_twin_twin` (TwinRelabel); `swappableIn_transfer_of_pairFreePath` (FiberTransfer) vs `swappableIn_transfer_point_play` (TwinSpliceComm) — same statement, two wrapper assemblies over `swappableIn_transfer_point_pairFree`. The ~100 identical 6-line proof blocks of generic List/lastOf kit across CargoKit<->Chart (44), TwinPointTransfer<->TwinSplice (18), ArmSplit<->SWDichotomy (17), CargoRaise<->FreeOrbit (15), CargoKit<->Classification (14) are the next shared-kit consolidation target (the 9e11b29 hoist pattern).
+
+## ORIG2 SHARED-KIT CONSOLIDATION — the residue sweep, five homes, twenty strikes (2026-10-31, dedup wave 2)
+
+- THE BLOCK-COUNT ILLUSION (scanner note): the "~100 identical blocks" of the residue census are SLIDING 6-line windows — each ~18-line kit lemma contributes ~13 windows, so the real worklist was ~20 declarations across 13 file pairs, enumerated by merging windows into regions and mapping each region to its owning declaration.
+- FIVE HOISTS, each to the lowest chapter that sees all bricks (the FoundKit pattern): (1) `card_twin_twin` to the REGISTRY (`Orig2/Vocab.lean` S4.5, beside `def Card.twin` — the seam policy's own "registry-owned" note); TwinRelabel's claims-layer copy STRUCK (cites resolve through the import), CargoKit's `tfc_card_twin_twin` a one-line delegate. (2) `mem_faceUp_of_seat'` (the `ne none` seat reading) to Integrity's dedup'd kit; DetourKit's `mem_faceUp_of_seat_ne_none` and SeatMateStack's `mem_faceUp_of_seatOf_ne` struck, 6 cites re-pointed. (3) `tfc_seatOf_inr_rank_ne_king` to CargoKit beside `tfc_seatOf_of_inr`/`tfc_seat_parent`; CargoRaise's and FiberTransfer's identical private copies struck, 6 cites re-pointed (the import-surface objection died with the hoist: the row's only deps are CargoKit's own seat rows plus the core `canSitOn_eq`/`Rank.toIdx_lt`). (4) `holding_splice_self`/`holding_splice_twin` extracted PUBLIC at the splice card (`Orig2/TwinSplice.lean` S2) from the inline `hnew` pins — TwinPointTransfer's private pair struck, TwinSplice's own `seatOf_splice_self/_twin` now cite them (the kit-rule direction reversed: the lower file owns the named row). (5) `chop_mem` ALREADY lived at `Orig2/Kit.lean` — LockRung's `mem_chop` and KingOrbitFull's `mem_of_mem_chop` were third and fourth copies; both struck, 3 cites re-pointed.
+- FIVE DE-PRIVATIZATIONS (Classification's founding kit public, copies struck or delegated): `below_mem` (FreeOrbit's kit-rule copy struck), `below_not_mem_self` / `below_fromCard_excl` / `runOK_append_right` (CargoKit's `tfc_` ports now one-line delegates — battery lines print through the delegate), `putCard_inr_eq_setPile` (Position's copy struck); Integrity's `mem_faceUp_of_seat`/`off_zones_of_seat` already public — TwinEquivariance's `_relabel` private copies struck, 10 cites re-pointed; CargoRaise's `lastOf_eq_none`/`nodup_mid_notmem` public — FreeOrbit's copies struck; ArmSplit's `instDecidableExistsRungNe` public — SWDichotomy's local copy struck (the `by_cases` resolves through the import).
+- ONE WRAPPER COLLAPSE: FiberTransfer's `swappableIn_transfer_of_pairFreePath` is a one-line delegate to TwinSpliceComm's `swappableIn_transfer_point_play` (identical statement; the splice-play hom supplies the orbit square the old pairFreeOrbit route re-derived).
+- NET: ~200 lines of duplicated proof bodies removed across 15 files, zero consumer rewrites (every strike preserved the cited name), battery lines added for the new public heads. VERIFIED: full `lake build Orig2` green at 59 jobs, zero errors; every new/delegated head `[propext]` or `[propext, Quot.sound]`; the battery's sorryAx set is exactly the honest debt (11 stubs, all evidence in `Temp/`), zero new `Classical.choice`.
+- TOOLCHAIN LESSONS (three, all mine): (a) the ORPHANED DOCSTRING — a strike note written as `/-- ... -/` without a following declaration is a parse error ("unexpected token '/--'"); strike notes are `/- ... -/` or `/-!` — I burned a build cycle on nine of them (the failing module masks every error above it in the DAG, so fix the CLASS not the pair the log shows). (b) the IMPLICIT-BINDER DELEGATE — Classification's kit rows carry `{c : Card}` implicit, so a positional `below_not_mem_self c` elaborates `c` as the `List Card`; historical-name delegates over implicit-binder rows need the named argument (`below_not_mem_self (c := c)`). (c) the SLIDING-WINDOW INFLATION (see above) — count REGIONS, not blocks, before pricing a consolidation.
+- RESIDUE STANDING (owner's call, both policy-guarded): Chart's 41-row `chk_` kit is the closed-seam discipline in action ("IMPORT SURFACE: exactly `Orig2.Kit`" — its header) — consolidating it means hoisting the below/fromCard/lastOf/count kit into Kit itself, the 9e11b29 pattern at Orig2 scale; and the ArmSplit/SWDichotomy split bodies (`armDichotomy_iff_split` vs `armDichotomySW_iff_split`) are the same proof shape over different subrelations — a generic-split factorization, a refactor not a strike. KingSwapStrict/KingSwapAssembly share scaffolding only (concrete swap vs generic sigma).
+
+## ORIG2 CLOSED-SEAM CONSOLIDATION — the Chart kit hoisted to Kit, plus the generic split (2026-10-31, dedup wave 3; owner-endorsed)
+
+- THE BIG ONE LANDED: Chart's 41-row private `chk_` kit and CargoKit's `tfc_` ports now have ONE home at the shared stratum leaf — 30 rows hoisted into `Orig2/Kit.lean` (the count word `tfc_cnt`/`tfc_cntFlat` + arithmetic; the below/fromCard split calculus `tfc_fromCard_cons`/`tfc_below_fromCard`/`tfc_below_mem_append_left`; the lastOf/getLast? bridge; the five seat readers `tfc_seatOf_eq`-family; the firstWhere decline `tfc_firstWhere_none`; plus Classification's founding `below_not_mem_self`, homed at Kit under its own name).  The Chart BODIES were the hoist source — they compile against Kit's cone BY CONSTRUCTION (Chart's import surface is exactly Kit), so no grade-moving was needed; the tfc_ NAMES were preserved (the FoundKit norm) so every tree-wide cite resolves with zero rewrites.  Closed-seam policy honored: Chart's import surface is STILL exactly Kit.
+- THE STRIKES: CargoKit's §A/§B/§E2 copies struck outright (~380 lines — its remaining rows cite the Kit homes through the unchanged import; the battery lines print through, the §A header noting "a theorem's profile does not depend on its declaring module"); Chart's 30 `chk_` copies struck (~420 lines), the internal cites re-pointed by uniform `chk_X → tfc_X` renames plus FOUR manual fixes where binder shapes differ — `tfc_below_mem_append_left` (drop the explicit `c`), `below_not_mem_self` (drop `c`), Kit's pre-existing `seatOf_congr_piles` (a FIFTH copy found and struck for free), and `tfc_firstWhere_none` ({p} implicit at the tfc shape — drop one `_`); Classification's `below_not_mem_self` struck (Kit hosts it; CargoKit's wave-2 delegate now resolves through the import).  Chart's staying rows: the re-parameterizations (`chk_two_mem_faceUp_absurd`, `chk_holding_pin` at the occurrence grade) and the fresh List rows (`chk_below_extend`, `chk_mem_split`, `chk_dealUpTo_split`, `chk_append_eq_split`, `chk_member_decomp`, `chk_profile_transfer`, `chk_faceUp_eq`, `chk_firstWhere_none_inv`).
+- THE GENERIC SPLIT: `armDichotomyFor_iff_split {R} (hrung : ∀ u v, R u v → RungEq u v) : ArmDichotomyFor R ↔ SatDifferFork ∧ SatEqualFor R` — the shared body factored out of ArmSplit's `armDichotomy_iff_split` and SWDichotomy's `armDichotomySW_iff_split`, which are now one-line delegates supplying their rung pin (`bareCargo_rungs` / `bareFlat_rung`); the RungEq-generic instance rides the same row.  Vocab's `ArmDichotomyFor`/`SatEqualFor` family made this a pure factorization — no new vocabulary.
+- VERIFIED: full `lake build Orig2` green at 60 jobs, zero errors; all 30 hoisted Kit heads `[propext]`/`[propext, Quot.sound]`/axiom-free at their new battery lines; the generic split `[propext]`, both instance delegates `[propext, Quot.sound]`; sorryAx count unchanged (11, the ClaimsScrutiny honest debt), Classical.choice unchanged (1, ArmSplit's documented row).  NOTE: the build ALSO compiled a concurrent session's additive CeilingBridge rows (`forkless_rungs_agree_wf`/`forkless_found_unique_wf` over `SatDifferForkWF`) — the two streams are compatible.
+- TOOLCHAIN LESSONS (the arc's own rules re-learned, harder): (a) THE FUZZY-EDIT TRAP — the edit tool's typographic/whitespace-variant retry can match a NEAR-identical block, so a mis-anchored multi-row deletion can consume MORE than intended (my §A strike ate three surviving rows' docstrings and Classification's `below_not_mem_self`); the detector is ALWAYS `git diff` against HEAD before building — the diff told me exactly which docstrings to restore (`tfc_mem_fromCard`, `tfc_runOK_two_true`, `tfc_not_mem_faceUp_of_holdNone`) and that one strike had landed unannounced.  (b) THE DOCSTRING-LINEAGE OFF-BY-ONE — when composing oldStrings from earlier reads, re-verify the docstring-to-theorem pairing in the CURRENT file (the Reach line numbers sit one row apart; `:156` is snoc, `:167` is mem_le_cnt); a mispaired oldString fails silently into the fuzzy trap.  (c) THE BINDER-SHAPE AUDIT before any uniform rename: three of the four manual cites failed on shape, not name (`(c)` explicit vs `{c}` implicit, `(p)` vs `{p}`, arity 3 vs 2) — grep the counterpart's signature FIRST, and let the compiler arbitrate the rest.
+- SESSION TOTALS (the three dedup waves): ~570 lines of duplicated proof bodies struck across 22 files, five new canonical homes (Vocab's registry row, Integrity's seat kit, CargoKit's seat row, TwinSplice's pin pair, Kit's 30-row shared kit), one generic factorization; every historical name preserved (delegates where shapes differ, straight hoists where names match); zero consumer rewrites outside Chart's private interior; builds green at every stage (58 → 59 → 60 jobs).
+- FORKTHIRD LANDED (Orig2/ForkThird.lean): seated_twin_rung_eq / ork_cover_suit_rigid (any card seated on a twin is rung-frozen; cover suit rigid with NO orientation hypothesis, generalising coverSuit_rung_eq_of_sameOrientation), lock_of_third_low / 	hird_low_first / 	hird_top_parent_is_pair (a third suit at rung ≤ r-1 is frozen via LockInv), and orkThirdRigid_of_high (ForkThirdRigidHigh → ForkThirdRigid). The naive bound 	hird rung ≤ r is FALSE: a WF fork can have non-cover third rung +1 (Temp/ThirdRigid_bound2.py). King rank is rank-uniform; no separate ork_under_cards case. Remaining residue: ForkThirdRigidHigh (rank-equal / super-rank third-suit leak). Full build 59 jobs.
+- FIRSTPASSAGE KIT LANDED (`Orig2/FirstPassage.lean`): `FirstPassage`/`firstPassage_exists`, `FirstPassage.shape`/`shape_flat`, `FirstRise`/`firstRise_of_rung_lt`/`FirstRise.card_live`, plus the changing-letter classification and the pull/raise local shapes. Also landed the `WF`-gated target `SatDifferForkWF` (Vocab) and `forkless_rungs_agree_wf`/`forkless_found_unique_wf` (CeilingBridge). NO-FORK AGENT FINDING: `forkless_rungs_equal ↔ SatDifferFork` exactly (no slack); the natural class-saturation shortcut is FALSE (`SSaturated` is not class-invariant at the WF-free grade, concrete `uFree`/`wPull` witness); fork-side machinery is vacuous on the forkless branch. So the dip route is the right one; state the residue at WF. Concurrent build fix: removed duplicate `below_not_mem_self` in Classification and the CargoKit rows already hoisted to Kit. Full build 60 jobs.
+- FIRSTFALL LANDED (`Orig2/FirstPassage.lean`, tail): `FirstFall`, `firstFall_exists`, `firstFall_of_rung_lt`, `FirstFall.shape` (pulled card is the prior `σ`-top, rank index = landing rung, `CanRaise`/`CanRaiseS` at the landing), `FirstFall.card_live`, `FirstFall.rung_step`, and `firstRise_or_firstFall_of_rung_ne` (both halves of the dip boundary). All `[propext, Quot.sound]`. The local-copy `canRaise_post_of_pull` stays private to the leaf to avoid a collision with `ForkCriticalPair.canRaise_of_foundToTab_step`.
+- DIP ROUTE REFUTED (machine evidence, `Temp/SatDiffer_Dip_Report.md`): in the Plan-4 class a 15-leg witness play connects the two saturated endpoints while avoiding all 8 fork states; the first rung crossing is `(2,0,2,2)` and is not a fork. So `SatDip`/`SatJourneyFork` are false; the fork is a side chamber, not a gateway. `SatDifferFork` itself is not refuted (the class has 8 forks), but the proof must be CLASS-GLOBAL. New agents: kernel replay of the fork-free play, and a class-global invariant hunt. Target remains `SatDifferForkWF`. Full build 60 jobs.
+- FORKTHIRDHIGH LANDED (`Orig2/ForkThirdHigh.lean`): `third_rung_le_succ` (non-king third rung ≤ r+1), the exodus/supported invariant (`pull_landing_supported`, `found_or_supported_step`, `supported_of_forked_transit`), `no_supported_nextUp_third`, and `forkThirdRigidHigh_of_not_king` — `ForkThirdRigidHigh` is PROVED for every non-king fork. King slice reduced to `ForkThirdRigidHighKing` and then to the single premise `KingExodusSeated`; `forkThirdRigidHigh_of_kingSeated` and the final `forkThirdRigid_of_kingSeated` land. The sharp non-king bound is `r ≤ third rung ≤ r+1` (the `r ≤ r` claim is false); do not chase a `k > r` descent. Remaining residue: `KingExodusSeated` (king founded deep/unfounded shallow is seated hidden-free at the shallow fork; informal proof in the report). Full build 61 jobs.

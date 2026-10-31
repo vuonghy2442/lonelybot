@@ -442,14 +442,8 @@ private theorem seatOf_ne_of_mem_faceUp' {st : State} {c : Card} {a : Anchor}
           exact absurd hse (by simp)
   exact tfc_not_mem_faceUp_of_holdNone hh a h
 
-/-- A seated card is face-up somewhere. -/
-private theorem mem_faceUp_of_seat_ne_none {st : State} {c : Card}
-    (h : seatOf st c ≠ none) : ∃ a, c ∈ (st.piles a).faceUp := by
-  have hh : st.pileHolding c ≠ none := by
-    intro hnone
-    exact h (tfc_seatOf_none hnone)
-  obtain ⟨a, ha⟩ := option_some_of_ne_none hh
-  exact ⟨a, pileHolding_mem ha⟩
+/- A seated card is face-up somewhere (Integrity kit since the
+2026-10-31 shared-kit strike: `mem_faceUp_of_seat'`). -/
 
 /-- A single-card write with a placement license never loses an existing
 face-up card. -/
@@ -582,7 +576,7 @@ private theorem pairFree_step_seated {u v : State} {x : Card} {m : Move}
     | foundToTab y b =>
         obtain ⟨-, -, -, hcp, hs⟩ := step_foundToTab_inv hstep
         have hcp' : (u.setFound y.suit (chop (u.found y.suit))).canPlace y b = true := hcp
-        obtain ⟨ap, hap⟩ := mem_faceUp_of_seat_ne_none hse
+        obtain ⟨ap, hap⟩ := mem_faceUp_of_seat' hse
         have hap' : c ∈ ((u.setFound y.suit (chop (u.found y.suit))).piles ap).faceUp := by
           rw [setFound_piles]
           exact hap
@@ -599,7 +593,7 @@ private theorem pairFree_step_seated {u v : State} {x : Card} {m : Move}
         have hmemY : y ∈ (u.piles asrc).faceUp := pileHolding_mem hhold
         have hsplit : below y (u.piles asrc).faceUp ++ run = (u.piles asrc).faceUp := by
           simpa only [run] using tfc_below_fromCard y (u.piles asrc).faceUp
-        obtain ⟨ap, hap⟩ := mem_faceUp_of_seat_ne_none hse
+        obtain ⟨ap, hap⟩ := mem_faceUp_of_seat' hse
         have hsurvive : (∃ ap, c ∈ (inter.piles ap).faceUp) → seatOf v c ≠ none := by
           rintro ⟨ap, hap⟩
           have hinl : ∀ a', b = Sum.inl a' → a' ≠ ap := by

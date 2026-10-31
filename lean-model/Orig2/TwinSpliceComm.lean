@@ -93,37 +93,6 @@ theorem below_append_eq {c : Card} {A B : List Card} (h : c ∉ A) :
     below c (A ++ B) = A ++ below c B :=
   (tfc_below_fromCard_excl c A B h).1
 
-theorem runOK_rank_distinct {l : List Card} (hok : runOK l = true)
-    {u v : Card} (hu : u ∈ l) (hv : v ∈ l) (hr : u.rank = v.rank) : u = v := by
-  induction l with
-  | nil => cases hu
-  | cons c t ih =>
-      cases t with
-      | nil =>
-          rw [List.mem_singleton] at hu hv
-          rw [hu, hv]
-      | cons d t' =>
-          have hok' : runOK (d :: t') = true := runOK_cons_tail hok
-          rcases List.mem_cons.mp hu with rfl | hu'
-          · rcases List.mem_cons.mp hv with rfl | hv'
-            · rfl
-            · have hlt := runOK_head_gt hok hv'
-              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
-              omega
-          · rcases List.mem_cons.mp hv with rfl | hv'
-            · have hlt := runOK_head_gt hok hu'
-              have hidx : u.rank.toIdx = v.rank.toIdx := congrArg Rank.toIdx hr
-              omega
-            · exact ih hok' hu' hv'
-
-theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
-    {c y : Card} (hyP : y ∈ below c l) (hyR : y ∈ fromCard c l) : False := by
-  have hrun : runOK (below c l ++ fromCard c l) = true := by
-    rw [tfc_below_fromCard c l]
-    exact hok
-  have hlt := runOK_desc hrun hyP hyR
-  omega
-
 section SpliceSetup
 
 variable (s : State) (x : Card) (a b : Anchor)
@@ -1105,47 +1074,6 @@ theorem reversibleAtW_splice_tabToTab {s : State} {x y : Card} {a b : Anchor} {b
   exact (reversibleOf_iff_reversibleAtW hwfS (Move.tabToTab y base)).mp
     (by simpa [reversibleOf] using hRS)
 
-theorem hidden_eq_of_rev_step {u v : State} {m : Move}
-    (hwf : u.WF) (hstep : State.step u m = some v)
-    (hrev : reversibleAtW u m) :
-    ∀ a : Anchor, (v.piles a).hidden = (u.piles a).hidden := by
-  intro a
-  cases m with
-  | draw => rw [stepDraw_piles hstep]
-  | wasteToFound x =>
-      obtain ⟨-, y, ys, -, hs⟩ := step_wasteToFound_inv hstep
-      rw [hs]
-      rfl
-  | wasteToTab x base =>
-      exact absurd hrev (wasteToTab_not_reversibleAtW u x base)
-  | tabToFound x =>
-      obtain ⟨hnxt, a', hpa, hs⟩ := step_tabToFound_inv hstep
-      rw [hs]
-      dsimp only
-      by_cases ha : a = a'
-      · rw [ite_eq_left ha, ha]
-        rcases afterRunRemoved_hidden (u.piles a') (chop (u.piles a').faceUp) with
-          ⟨-, h⟩ | ⟨-, hhid0, h⟩ | ⟨hchop, hhidne, -⟩
-        · exact h
-        · exact h
-        · exfalso
-          have hR : tabToFoundR u x = true :=
-            (tabToFoundR_iff_reversibleAtW hwf x).mpr hrev
-          cases hh : (u.piles a').hidden with
-          | nil => exact hhidne hh
-          | cons g gs =>
-              simp only [tabToFoundR, hnxt, hpa, hchop, hh] at hR
-              exact Bool.noConfusion hR
-      · rw [ite_eq_right ha]
-  | foundToTab x base =>
-      obtain ⟨c', htop, hc'c, hcp, hs⟩ := step_foundToTab_inv hstep
-      rw [hs]
-      exact putCard_hidden_eq
-        (st := u.setFound x.suit (chop (u.found x.suit)))
-        (c := x) (b := base) hcp a
-  | tabToTab x base =>
-      exact ((tfa_slide_conserves hwf hstep hrev).1.1 a).symm
-
 theorem seatOf_tabToFound_mover_none {u v : State} {y : Card}
     (hwf : u.WF) (hstep : State.step u (Move.tabToFound y) = some v) :
     seatOf v y = none := by
@@ -1391,8 +1319,8 @@ theorem splice_step_comm_rev {s t : State} {x : Card} {m : Move}
       have hbf : boardFixed t u := by
         refine ⟨?_, ?_⟩
         · intro a'
-          rw [hidden_eq_of_rev_step hwf hstep hrev a',
-            hidden_eq_of_rev_step hwfS hu_step hrevS a',
+          rw [rev_step_hidden_eq hwf hstep hrev a',
+            rev_step_hidden_eq hwfS hu_step hrevS a',
             spliceTwinRuns_hidden ha hb hab a']
         · simp [hs_t, hs_u]
           exact (spliceTwinRuns_drawStep ha hb hab).symm
@@ -1454,9 +1382,9 @@ theorem splice_step_comm_rev {s t : State} {x : Card} {m : Move}
         refine ⟨?_, ?_⟩
         · intro a'
           have h1 : (t.piles a').hidden = (s.piles a').hidden :=
-            hidden_eq_of_rev_step hwf hstep hrev a'
+            rev_step_hidden_eq hwf hstep hrev a'
           have h2 : (u.piles a').hidden = (s.piles a').hidden := by
-            rw [hidden_eq_of_rev_step hwfS hu_step hrevS a',
+            rw [rev_step_hidden_eq hwfS hu_step hrevS a',
               spliceTwinRuns_hidden ha hb hab a']
           exact h1.trans h2.symm
         · rw [hs_t, hs_u]

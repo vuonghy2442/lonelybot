@@ -161,21 +161,10 @@ theorem canRaiseS_bareCargo_iff {st : State} (hwf : st.WF) {c : Card} :
 
 /-! ## §3. The seat-diff readings (the wave's stage 4) -/
 
-/-- A card seated `.inr` on a card parent is not a king.  Lineage:
-`Archive/TwinFoundationRow.lean:180`, restated private at
-`Orig2/FiberTransfer.lean:531`; re-landed here (the wave's card,
-over the public CargoKit seat rows) rather than widening the
-import surface to the fiber-transfer card. -/
-private theorem seatOf_inr_rank_ne_king {s : State} {c r : Card}
-    (hwf : s.WF) (hseat : seatOf s c = some (Sum.inr r)) :
-    c.rank ≠ Rank.king := by
-  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hseat
-  have hfit : canSitOn c r = true := (tfc_seat_parent hwf hhold hlast).1
-  intro hking
-  have hlt := ((canSitOn_eq c r).mp hfit).1
-  have hidx : c.rank.toIdx = 12 := by rw [hking]; rfl
-  have hlt' := Rank.toIdx_lt r.rank
-  omega
+/- A card seated `.inr` on a card parent is not a king.  Lineage:
+`Archive/TwinFoundationRow.lean:180`; HOISTED 2026-10-31 to CargoKit
+(`tfc_seatOf_inr_rank_ne_king`, beside its seat rows) — one home, this
+copy and FiberTransfer's `seated_inr_rank_ne_king` struck. -/
 
 /-- **THE COVER LEAVES ONLY TO THE TWIN** — within a bare-cargo
 pair, a card seated on `c` at `st` that moves at all lands on
@@ -188,7 +177,7 @@ theorem bareCargo_cover_to {st w : State} (hwfst : st.WF) (hw : w.WF)
     (hchg : seatOf st y ≠ seatOf w y) :
     seatOf w y = some (Sum.inr c.twin) := by
   obtain ⟨⟨-, hnon⟩, -⟩ := (bareCargo_iff_split hwfst hw).mp h
-  have hk : y.rank ≠ Rank.king := seatOf_inr_rank_ne_king hwfst hy
+  have hk : y.rank ≠ Rank.king := tfc_seatOf_inr_rank_ne_king hwfst hy
   obtain ⟨z', hz1, hz2⟩ := hnon y hk hchg
   rw [hy] at hz1
   injection hz1 with hz1'
@@ -230,7 +219,7 @@ theorem bareCargo_cover_license {st w : State} (hwfst : st.WF) (hw : w.WF)
     (hchg : seatOf st y ≠ seatOf w y) :
     st.pileOfTop c.twin ≠ none := by
   obtain ⟨⟨hking, hnon⟩, hlic, hro⟩ := (bareCargo_iff_split hwfst hw).mp h
-  have hk : y.rank ≠ Rank.king := seatOf_inr_rank_ne_king hwfst hy
+  have hk : y.rank ≠ Rank.king := tfc_seatOf_inr_rank_ne_king hwfst hy
   have hfsp : FloaterSpec st y := hlic y hchg
   unfold FloaterSpec at hfsp
   rcases hfsp with
@@ -264,8 +253,9 @@ theorem bareCargo_nextUp {st w : State} (hwfst : st.WF) (hw : w.WF)
 /-- The custom `lastOf` never answers `none` on a nonempty list
 (the seat map's `none` arm reads through `tfc_getLast?_lastOf`).
 Lineage: the core `getLast?`-side dichotomy restated at the
-custom function — fresh, kept local to this card. -/
-private theorem lastOf_eq_none : ∀ (l : List Card), lastOf l = none → l = [] := by
+custom function.  PUBLIC since the 2026-10-31 shared-kit strike
+(FreeOrbit's kit-rule copy struck; the cites re-point here). -/
+theorem lastOf_eq_none : ∀ (l : List Card), lastOf l = none → l = [] := by
   intro l
   cases l with
   | nil => intro _; rfl
@@ -282,9 +272,10 @@ private theorem lastOf_eq_none : ∀ (l : List Card), lastOf l = none → l = []
 
 /-- A card strictly inside a nodup append is not in the front part.
 Lineage: `Orig/ForkStateS.lean:141` (private there, the frozen
-flat characterization's own kit — the closed-seam policy restates
-it here rather than importing the frozen card). -/
-private theorem nodup_mid_notmem (d : Card) :
+flat characterization's own kit).  PUBLIC since the 2026-10-31
+shared-kit strike (FreeOrbit's kit-rule copy struck; the cites
+re-point here). -/
+theorem nodup_mid_notmem (d : Card) :
     ∀ (l rest : List Card), (l ++ d :: rest).Nodup → d ∉ l := by
   intro l
   induction l with

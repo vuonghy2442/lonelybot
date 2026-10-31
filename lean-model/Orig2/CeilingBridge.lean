@@ -110,6 +110,35 @@ theorem forkless_rungs_agree (hres : SatDifferFork) {s s' : State}
       hres s s' hsat hsat' hclass ⟨σ, (Nat.ne_of_lt h).symm⟩
     exact absurd (forkState_iff.mpr ⟨x, hfx⟩) (hfrk F hF)
 
+/-- **THE `WF`-GATED RUNG HALF** — `SatDifferForkWF` suffices: the
+endpoint `WF` is threaded through the same trichotomy. -/
+theorem forkless_rungs_agree_wf (hres : SatDifferForkWF) {s s' : State}
+    (hwf : s.WF)
+    (hclass : sameOrbitSetoid.r s s')
+    (hfrk : ∀ u, sameOrbitSetoid.r s u → ¬ forkState u)
+    (hsat : SSaturated s) (hsat' : SSaturated s') :
+    ∀ σ, rungAt s σ = rungAt s' σ := by
+  intro σ
+  rcases Nat.lt_trichotomy (rungAt s σ) (rungAt s' σ) with h | h | h
+  · obtain ⟨F, x, hF, hfx⟩ :=
+      hres s s' hwf hsat hsat' hclass ⟨σ, Nat.ne_of_lt h⟩
+    exact absurd (forkState_iff.mpr ⟨x, hfx⟩) (hfrk F hF)
+  · exact h
+  · obtain ⟨F, x, hF, hfx⟩ :=
+      hres s s' hwf hsat hsat' hclass ⟨σ, (Nat.ne_of_lt h).symm⟩
+    exact absurd (forkState_iff.mpr ⟨x, hfx⟩) (hfrk F hF)
+
+/-- The campaign theorem from the `WF`-gated residue. -/
+theorem forkless_found_unique_wf (hres : SatDifferForkWF) {s s' : State}
+    (hwf : s.WF) (hwf' : s'.WF)
+    (hclass : sameOrbitSetoid.r s s')
+    (hfrk : ∀ u, sameOrbitSetoid.r s u → ¬ forkState u)
+    (hsat : SSaturated s) (hsat' : SSaturated s') :
+    s.found = s'.found := by
+  have hrungs := forkless_rungs_agree_wf hres hwf hclass hfrk hsat hsat'
+  funext σ
+  exact found_congr_of_rungs hwf hwf' (hrungs σ)
+
 /-- **THE CAMPAIGN THEOREM, REDUCED** — in a forkless macro class,
 two saturated endpoints share their foundations verbatim, one
 `SatDifferFork` away: the residue kills the rung disagreement, and
@@ -314,6 +343,8 @@ theorem found_exodus {st w : State} {ρ : List Move}
 #print axioms ssaturated_iff
 #print axioms forkless_rungs_agree
 #print axioms forkless_found_unique
+#print axioms forkless_rungs_agree_wf
+#print axioms forkless_found_unique_wf
 #print axioms rung_diff_exhibit
 #print axioms shuffle_rung_census
 #print axioms shuffle_rung_fall_pulls

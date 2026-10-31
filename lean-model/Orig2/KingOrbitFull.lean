@@ -223,19 +223,9 @@ theorem chop_cons_of_tail_ne_nil {c : Card} {t : List Card} (ht : t ≠ []) :
   | nil => exact absurd rfl ht
   | cons y ys => rfl
 
-theorem mem_of_mem_chop {d : Card} : ∀ {l : List Card}, d ∈ chop l → d ∈ l := by
-  intro l
-  induction l with
-  | nil => intro h; simp [chop] at h
-  | cons x xs ih =>
-      cases xs with
-      | nil => intro h; simp [chop] at h
-      | cons y ys =>
-          intro h
-          simp only [chop] at h
-          rcases List.mem_cons.mp h with h | h
-          · rw [h]; exact List.mem_cons_self ..
-          · exact List.mem_cons_of_mem x (ih h)
+/- `chop` only removes cards — one home at the shared kit
+(`Orig2/Kit.lean`'s `chop_mem`) since the 2026-10-31 shared-kit
+strike; this copy struck (the cite re-points there). -/
 
 theorem below_chop_eq_of_mem {d : Card} : ∀ {l : List Card}, d ∈ chop l →
     below d (chop l) = below d l := by
@@ -411,7 +401,7 @@ theorem vk_raise {u v : State} {x : Card} (hwf : u.WF)
             rw [← hnewface]; exact hbelow_new
           have hbelow_old : below d (u.piles a).faceUp = [] := by
             rw [← below_chop_eq_of_mem hd_mem_chop]; exact hbelow_chop
-          have hd_mem_old : d ∈ (u.piles a).faceUp := mem_of_mem_chop hd_mem_chop
+          have hd_mem_old : d ∈ (u.piles a).faceUp := chop_mem hd_mem_chop
           have hhold_old : u.pileHolding d = some a :=
             (pileHolding_eq_some_iff hwf).mpr hd_mem_old
           have hhidden_old : (u.piles a).hidden = [] := by

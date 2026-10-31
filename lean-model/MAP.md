@@ -13,6 +13,33 @@ system, and the deferred physical re-tree proposal. Placement ground
 truth = each file's import lines; headers quoted as each file states
 them.
 
+## Orig2 — the rebuild root (topic umbrellas)
+
+`Orig2.lean` is four umbrellas over the certified substrate:
+
+```text
+Orig2
+├─ Substrate    game core, fiber transfer, claims ledger, orbit factor,
+│               cargo bridge, free orbit, Position grid
+├─ Fork         ForkCriticalPair, Cover, ForkClass,
+│               LockRung, ForkPosition
+├─ Fiber        ArmFiber, ArmSplit, SWDichotomy, FiberHierarchy
+└─ Boundary     vcS/vcT certificate and draw refutation
+```
+
+The two quotient axes:
+
+```text
+move-generated:   CargoSpan ⊂ FlatSpan ⊂ MacroSpan
+                  (MoveFiber cargoMoves / flatMoves / allMoves)
+readout:          RungClass = State / RungEq
+meet:             Position = MacroSpan × RungClass
+```
+
+The live campaign targets are `SatDifferFork`, `ForkPositionRigid`
+(reduced to `ForkThirdRigid`), and `ArmDichotomySW` (the flat-fiber,
+draw-corrected arm dichotomy).
+
 ## The strata (bottom → top)
 
 **S0 — kernel & state physics** (the deck, the piles, conservation,

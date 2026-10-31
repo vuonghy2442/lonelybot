@@ -564,16 +564,9 @@ private theorem pileOfTop_piles {u v : State} (h : u.piles = v.piles) (z : Card)
   unfold State.pileOfTop
   rw [htop]
 
-/-- Lineage: Classification's private `putCard_inr_eq_setPile` —
-restated per the kit rule. -/
-private theorem putCard_inr_eq_setPile {st : State} {c z : Card} {k : Anchor}
-    (hz : st.pileOfTop z = some k) :
-    st.putCard c (Sum.inr z) =
-      { st with piles := fun a' =>
-          if a' = k then { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }
-          else st.piles a' } := by
-  simp only [State.putCard, hz]
-  rfl
+/- Lineage: Classification's `putCard_inr_eq_setPile` — PUBLIC there
+since the 2026-10-31 shared-kit strike; this copy struck (the cite
+re-points at the founding card's row). -/
 
 /-- **THE RAISE UNDOES BY A SINGLE PULL** - a reversible raise of
 `c` is undone by a literal `foundToTab c b` back to the very

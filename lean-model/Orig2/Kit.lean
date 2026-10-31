@@ -2388,6 +2388,358 @@ theorem below_snoc_not_mem {x : Card} :
 
 theorem universe_nodup : Card.universe.Nodup := by decide
 
+/-! ## The hoisted occurrence & seat kit  (2026-10-31, the closed-seam
+consolidation)
+
+One home for the rows Chart's discharge card (import surface: exactly
+this kit) and the cargo card both carried — the Chart bodies verbatim
+(they compile against this import cone by construction), the NAMES
+preserved from the cargo card's `tfc_` kit (the FoundKit hoist norm:
+tree-wide cites resolve through the import; the copies strike
+file-by-file with the compiler as reachability judge).  Lineage frozen
+homes: `Orig/Reach.lean:131-329` (the count word), `Orig/Classify.lean`
+(the below/fromCard split calculus), `Orig/State.lean` (the seat
+unpacks' pack).  The `below_not_mem_self` row keeps Classification's
+name — it is the founding card's row, now homed here. -/
+
+theorem tfc_fromCard_cons (c x : Card) (t : List Card) :
+    fromCard c (x :: t) = if x = c then x :: t else fromCard c t := rfl
+
+theorem tfc_below_fromCard (c : Card) : ∀ (l : List Card),
+    below c l ++ fromCard c l = l := by
+  intro l
+  induction l with
+  | nil => rfl
+  | cons x t ih =>
+      rw [below_cons, tfc_fromCard_cons]
+      by_cases hxc : x = c
+      · rw [ite_eq_left hxc, ite_eq_left hxc, List.nil_append]
+      · rw [ite_eq_right hxc, ite_eq_right hxc]
+        exact congrArg (x :: ·) ih
+
+/-- `below` never hosts its own card: the first occurrence truncates.
+One home (Classification's founding row, Chart's kit copy struck). -/
+theorem below_not_mem_self {c : Card} : ∀ (l : List Card), c ∉ below c l := by
+  intro l
+  induction l with
+  | nil => intro h; exact absurd h (by simp [below])
+  | cons x t ih =>
+      intro h
+      rw [below_cons] at h
+      by_cases hxc : x = c
+      · rw [ite_eq_left hxc] at h; exact absurd h List.not_mem_nil
+      · rw [ite_eq_right hxc] at h
+        rcases List.mem_cons.mp h with h' | h'
+        · exact hxc h'.symm
+        · exact ih h'
+
+theorem tfc_below_mem_append_left {c : Card} : ∀ (A B : List Card), c ∈ A →
+    below c (A ++ B) = below c A := by
+  intro A
+  induction A with
+  | nil => intro Y h; exact absurd h List.not_mem_nil
+  | cons x t ih =>
+      intro Y h
+      rw [List.cons_append, below_cons, below_cons]
+      by_cases hxc : x = c
+      · rw [ite_eq_left hxc, ite_eq_left hxc]
+      · rw [ite_eq_right hxc, ite_eq_right hxc]
+        rcases List.mem_cons.mp h with h' | h'
+        · exact absurd h'.symm hxc
+        · rw [ih Y h']
+
+theorem tfc_flatMap_id_append : ∀ (A B : List (List Card)),
+    (A ++ B).flatMap id = (A.flatMap id) ++ (B.flatMap id) := by
+  intro A B
+  induction A with
+  | nil => rfl
+  | cons z t ih =>
+      show (z ++ ((t ++ B).flatMap id)) = (z ++ (t.flatMap id)) ++ (B.flatMap id)
+      rw [show (t ++ B).flatMap id = (t.flatMap id) ++ (B.flatMap id) from ih]
+      exact (List.append_assoc z (t.flatMap id) (B.flatMap id)).symm
+
+theorem tfc_getLast?_lastOf : ∀ (l : List Card), l.getLast? = lastOf l := by
+  intro l
+  cases l with
+  | nil => rfl
+  | cons x t =>
+      cases t with
+      | nil => rfl
+      | cons y t' => exact tfc_getLast?_lastOf (y :: t')
+
+theorem tfc_lastOf_append_ne : ∀ (A : List Card) {r : List Card},
+    r ≠ [] → lastOf (A ++ r) = lastOf r := by
+  intro A
+  induction A with
+  | nil => intro r _; rfl
+  | cons x t ih =>
+      intro r hr
+      have hne : t ++ r ≠ [] := by
+        intro hc
+        have hl := congrArg List.length hc
+        rw [List.length_append, List.length_nil] at hl
+        exact hr (List.length_eq_zero_iff.mp (show r.length = 0 by omega))
+      have hlast : lastOf (x :: (t ++ r)) = lastOf (t ++ r) := by
+        obtain ⟨y, ys, hc⟩ := list_cons_of_ne_nil hne
+        rw [hc]
+        rfl
+      rw [List.cons_append, hlast]
+      exact ih hr
+
+theorem tfc_lastOf_cons_ne : ∀ (t : List Card) (y : Card), lastOf (y :: t) ≠ none := by
+  intro t
+  induction t with
+  | nil => intro y; exact (by simp [lastOf])
+  | cons z t' ih =>
+      intro y
+      show (lastOf (y :: z :: t') = none) → False
+      rw [show lastOf (y :: z :: t') = lastOf (z :: t') from rfl]
+      exact ih z
+
+theorem tfc_seatOf_eq (st : State) (c : Card) :
+    seatOf st c =
+      match st.pileHolding c with
+      | none => none
+      | some a => match List.getLast? (below c (st.piles a).faceUp) with
+        | none => some (Sum.inl a)
+        | some z => some (Sum.inr z) := rfl
+
+theorem tfc_seatOf_none {st : State} {c : Card} (hh : st.pileHolding c = none) :
+    seatOf st c = none := by rw [tfc_seatOf_eq, hh]
+
+theorem tfc_seatOf_pair {st : State} {c : Card} {a : Anchor}
+    (hh : st.pileHolding c = some a) :
+    seatOf st c = match List.getLast? (below c (st.piles a).faceUp) with
+      | none => some (Sum.inl a)
+      | some z => some (Sum.inr z) := by rw [tfc_seatOf_eq, hh]
+
+theorem tfc_seatOf_of_inl {st : State} {c : Card} {a : Anchor}
+    (h : seatOf st c = some (Sum.inl a)) :
+    st.pileHolding c = some a ∧ below c (st.piles a).faceUp = [] := by
+  rw [tfc_seatOf_eq] at h
+  cases hh : st.pileHolding c with
+  | none =>
+      rw [hh] at h
+      exact absurd h (by simp)
+  | some a₀ =>
+      simp only [hh] at h
+      cases hg : List.getLast? (below c (st.piles a₀).faceUp) with
+      | some q =>
+          rw [hg] at h
+          exact absurd h (by simp)
+      | none =>
+          simp only [hg] at h
+          have haeq : a₀ = a := by
+            injection h with h1
+            cases h1
+            rfl
+          subst haeq
+          have hbl : below c (st.piles a₀).faceUp = [] := by
+            cases hc : below c (st.piles a₀).faceUp with
+            | nil => rfl
+            | cons y ys =>
+                rw [hc, tfc_getLast?_lastOf] at hg
+                exact absurd hg (tfc_lastOf_cons_ne _ _)
+          exact ⟨rfl, hbl⟩
+
+theorem tfc_seatOf_of_inr {st : State} {c z : Card}
+    (h : seatOf st c = some (Sum.inr z)) :
+    ∃ a, st.pileHolding c = some a ∧ below c (st.piles a).faceUp ≠ [] ∧
+      lastOf (below c (st.piles a).faceUp) = some z := by
+  rw [tfc_seatOf_eq] at h
+  cases hh : st.pileHolding c with
+  | none =>
+      rw [hh] at h
+      exact absurd h (by simp)
+  | some a =>
+      simp only [hh] at h
+      cases hg : List.getLast? (below c (st.piles a).faceUp) with
+      | none =>
+          rw [hg] at h
+          exact absurd h (by simp)
+      | some q =>
+          simp only [hg] at h
+          have hqz : q = z := by
+            injection h with h1
+            cases h1
+            rfl
+          subst hqz
+          refine ⟨a, rfl, ?_, ?_⟩
+          · intro hc
+            rw [hc, tfc_getLast?_lastOf] at hg
+            exact absurd hg (by simp [lastOf])
+          · rw [tfc_getLast?_lastOf] at hg
+            exact hg
+
+def tfc_cnt (c : Card) : List Card → Nat
+  | [] => 0
+  | x :: t => (if x = c then 1 else 0) + tfc_cnt c t
+
+theorem tfc_cnt_nil (c : Card) : tfc_cnt c [] = 0 := rfl
+
+theorem tfc_cnt_def (c x : Card) (t : List Card) :
+    tfc_cnt c (x :: t) = (if x = c then 1 else 0) + tfc_cnt c t := rfl
+
+theorem tfc_cnt_app (c : Card) : ∀ (l₁ l₂ : List Card),
+    tfc_cnt c (l₁ ++ l₂) = tfc_cnt c l₁ + tfc_cnt c l₂ := by
+  intro l₁ l₂
+  induction l₁ with
+  | nil => rw [List.nil_append, tfc_cnt_nil]; omega
+  | cons x t ih =>
+      show (if x = c then 1 else 0) + tfc_cnt c (t ++ l₂) = _
+      rw [ih, tfc_cnt_def]
+      omega
+
+theorem tfc_mem_le_cnt {c : Card} : ∀ (l : List Card), c ∈ l → 1 ≤ tfc_cnt c l := by
+  intro l
+  induction l with
+  | nil => intro h; exact absurd h List.not_mem_nil
+  | cons x t ih =>
+      intro h
+      show 1 ≤ (if x = c then 1 else 0) + tfc_cnt c t
+      rcases List.mem_cons.mp h with h' | h'
+      · rw [ite_eq_left h'.symm]
+        omega
+      · have h1 : 1 ≤ tfc_cnt c t := ih h'
+        by_cases hx : x = c
+        · rw [ite_eq_left hx]; omega
+        · rw [ite_eq_right hx]; omega
+
+theorem tfc_cnt_filter (c : Card) : ∀ (l : List Card),
+    tfc_cnt c l = (l.filter fun x => decide (x = c)).length := by
+  intro l
+  induction l with
+  | nil => rfl
+  | cons x t ih =>
+      show ((if x = c then 1 else 0) + tfc_cnt c t) = _
+      rw [List.filter_cons]
+      by_cases hxc : x = c
+      · rw [decide_eq_true hxc, ite_eq_left rfl, List.length_cons, ite_eq_left hxc, ih]
+        omega
+      · have hdec : (decide (x = c)) = false := by rw [decide_false_of_not hxc]
+        rw [hdec, ite_eq_right (fun h => Bool.noConfusion h),
+          ite_eq_right hxc, ih]
+        omega
+
+theorem tfc_cardCount_eq_cnt (st : State) (c : Card) :
+    st.cardCount c = tfc_cnt c (st.zones.flatMap id) :=
+  (tfc_cnt_filter c (st.zones.flatMap id)).symm
+
+def tfc_cntFlat (c : Card) : List (List Card) → Nat
+  | [] => 0
+  | z :: zs => tfc_cnt c z + tfc_cntFlat c zs
+
+theorem tfc_cntFlat_cons (c : Card) (z : List Card) (zs : List (List Card)) :
+    tfc_cntFlat c (z :: zs) = tfc_cnt c z + tfc_cntFlat c zs := rfl
+
+theorem tfc_cntFlat_flatMap (c : Card) : ∀ (zs : List (List Card)),
+    tfc_cntFlat c zs = tfc_cnt c (zs.flatMap id) := by
+  intro zs
+  induction zs with
+  | nil => rfl
+  | cons z t ih =>
+      rw [tfc_cntFlat_cons, List.flatMap_cons, tfc_cnt_app c, ih]
+      rfl
+
+theorem tfc_cardCount_zones (st : State) (c : Card) :
+    st.cardCount c =
+      tfc_cntFlat c (Suit.all.map st.found)
+      + tfc_cntFlat c (Anchor.all.map fun a => (st.piles a).hidden ++ (st.piles a).faceUp)
+      + (tfc_cnt c st.stock + tfc_cnt c st.waste) := by
+  rw [tfc_cardCount_eq_cnt]
+  have h2 : ([st.stock, st.waste] : List (List Card)).flatMap id
+      = st.stock ++ st.waste :=
+    congrArg (st.stock ++ ·) (List.append_nil st.waste)
+  show tfc_cnt c ((Suit.all.map st.found ++ (Anchor.all.map
+      (fun a => (st.piles a).hidden ++ (st.piles a).faceUp) ++ [st.stock, st.waste])).flatMap id) = _
+  rw [tfc_flatMap_id_append, tfc_flatMap_id_append, h2, tfc_cnt_app c, tfc_cnt_app c,
+    tfc_cnt_app c, tfc_cntFlat_flatMap c, tfc_cntFlat_flatMap c]
+  omega
+
+theorem tfc_cntFlat_list_mem_ge {c : Card} {zn : List Card} :
+    ∀ (zs : List (List Card)), zn ∈ zs → tfc_cnt c zn ≤ tfc_cntFlat c zs := by
+  intro zs
+  induction zs with
+  | nil => intro hmem; exact absurd hmem (by simp)
+  | cons z t ih =>
+      intro hmem
+      rcases List.mem_cons.mp hmem with h' | h'
+      · rw [h']
+        exact Nat.le_add_right _ _
+      · have h1 : tfc_cnt c zn ≤ tfc_cntFlat c t := ih h'
+        show tfc_cnt c zn ≤ tfc_cnt c z + tfc_cntFlat c t
+        omega
+
+theorem tfc_cntFlat_map_ge1 {α : Type} {z : Card} (F : α → List Card) :
+    ∀ (L : List α) (b : α), b ∈ L → z ∈ F b → 1 ≤ tfc_cntFlat z (L.map F) := by
+  intro L
+  induction L with
+  | nil => intro b h; exact absurd h List.not_mem_nil
+  | cons x t ih =>
+      intro b hmem hz
+      rw [List.map_cons, tfc_cntFlat_cons]
+      rcases List.mem_cons.mp hmem with h' | h'
+      · rw [h'] at hz
+        have := tfc_mem_le_cnt _ hz
+        omega
+      · have := ih b h' hz
+        omega
+
+theorem tfc_cntFlat_map_two_mem {α : Type} {z : Card} (F : α → List Card) :
+    ∀ (L : List α) (b₁ b₂ : α), b₁ ∈ L → b₂ ∈ L → b₁ ≠ b₂ →
+      z ∈ F b₁ → z ∈ F b₂ → 2 ≤ tfc_cntFlat z (L.map F) := by
+  intro L
+  induction L with
+  | nil => intro b₁ b₂ h₁; exact absurd h₁ List.not_mem_nil
+  | cons x t ih =>
+      intro b₁ b₂ h₁ h₂ hne hz₁ hz₂
+      rw [List.map_cons, tfc_cntFlat_cons]
+      rcases List.mem_cons.mp h₁ with h₁' | h₁'
+      · rw [h₁'] at hne hz₁
+        rcases List.mem_cons.mp h₂ with h₂' | h₂'
+        · exact absurd h₂'.symm hne
+        · have e₁ : 1 ≤ tfc_cnt z (F x) := tfc_mem_le_cnt _ hz₁
+          have e₂ : 1 ≤ tfc_cntFlat z (List.map F t) := tfc_cntFlat_map_ge1 F t b₂ h₂' hz₂
+          omega
+      · rcases List.mem_cons.mp h₂ with h₂' | h₂'
+        · rw [h₂'] at hz₂
+          have e₂ : 1 ≤ tfc_cnt z (F x) := tfc_mem_le_cnt _ hz₂
+          have e₁ : 1 ≤ tfc_cntFlat z (List.map F t) := tfc_cntFlat_map_ge1 F t b₁ h₁' hz₁
+          omega
+        · have := ih b₁ b₂ h₁' h₂' hne hz₁ hz₂
+          omega
+
+theorem tfc_two_pile_zone_absurd {st : State} {z : Card} {j k : Anchor} (hjk : j ≠ k)
+    (hcc : st.cardCount z = 1)
+    (hzj : z ∈ (st.piles j).hidden ++ (st.piles j).faceUp)
+    (hzk : z ∈ (st.piles k).hidden ++ (st.piles k).faceUp) : False := by
+  rw [tfc_cardCount_zones] at hcc
+  have h2 := tfc_cntFlat_map_two_mem
+    (fun a => (st.piles a).hidden ++ (st.piles a).faceUp) Anchor.all j k
+    (Anchor.mem_all j) (Anchor.mem_all k) hjk hzj hzk
+  omega
+
+theorem tfc_faceUp_cnt_le_cardCount {st : State} {x : Card} {a : Anchor} :
+    tfc_cnt x (st.piles a).faceUp ≤ st.cardCount x := by
+  have h1 : tfc_cnt x (st.piles a).faceUp
+      ≤ tfc_cnt x ((st.piles a).hidden ++ (st.piles a).faceUp) := by
+    rw [tfc_cnt_app x]
+    omega
+  have h2 : tfc_cnt x ((st.piles a).hidden ++ (st.piles a).faceUp)
+      ≤ tfc_cntFlat x (Anchor.all.map fun a' => (st.piles a').hidden ++ (st.piles a').faceUp) :=
+    tfc_cntFlat_list_mem_ge
+      (Anchor.all.map fun a' => (st.piles a').hidden ++ (st.piles a').faceUp)
+      (List.mem_map.2 ⟨a, Anchor.mem_all a, rfl⟩)
+  have h3 := tfc_cardCount_zones st x
+  omega
+
+theorem tfc_firstWhere_none {α : Type} {p : α → Bool} : ∀ (L : List α),
+    (∀ y ∈ L, p y = false) → firstWhere p L = none
+  | [], _ => rfl
+  | x :: t, h => by
+      rw [firstWhere, h x (by simp)]
+      exact tfc_firstWhere_none t (fun y hy => h y (by simp [hy]))
+
 /-! ## The audit battery
 
 Per promoted head, this kit.  Expected profile: `[propext]` or
@@ -2397,6 +2749,36 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 #print axioms mono_run
 #print axioms step_phaseMeasure_le
 #print axioms draw_D_le
+#print axioms tfc_fromCard_cons
+#print axioms tfc_below_fromCard
+#print axioms below_not_mem_self
+#print axioms tfc_below_mem_append_left
+#print axioms tfc_flatMap_id_append
+#print axioms tfc_getLast?_lastOf
+#print axioms tfc_lastOf_append_ne
+#print axioms tfc_lastOf_cons_ne
+#print axioms tfc_seatOf_eq
+#print axioms tfc_seatOf_none
+#print axioms tfc_seatOf_pair
+#print axioms tfc_seatOf_of_inl
+#print axioms tfc_seatOf_of_inr
+#print axioms tfc_cnt
+#print axioms tfc_cnt_nil
+#print axioms tfc_cnt_def
+#print axioms tfc_cnt_app
+#print axioms tfc_mem_le_cnt
+#print axioms tfc_cnt_filter
+#print axioms tfc_cardCount_eq_cnt
+#print axioms tfc_cntFlat
+#print axioms tfc_cntFlat_cons
+#print axioms tfc_cntFlat_flatMap
+#print axioms tfc_cardCount_zones
+#print axioms tfc_cntFlat_list_mem_ge
+#print axioms tfc_cntFlat_map_ge1
+#print axioms tfc_cntFlat_map_two_mem
+#print axioms tfc_two_pile_zone_absurd
+#print axioms tfc_faceUp_cnt_le_cardCount
+#print axioms tfc_firstWhere_none
 #print axioms not_W_of_desc
 #print axioms not_W_of_step_none
 #print axioms reversible_mirrorW

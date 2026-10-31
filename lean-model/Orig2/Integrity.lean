@@ -809,6 +809,16 @@ theorem mem_faceUp_of_seat {st : State} {c : Card} {b : Base}
       exact absurd h (by simp)
   | some a => exact ⟨a, pileHolding_mem hh⟩
 
+/-- A seated card, in the `≠ none` reading, is face up somewhere.
+HOISTED 2026-10-31 to one home — DetourKit's `mem_faceUp_of_seat_ne_none`
+and SeatMateStack's `mem_faceUp_of_seatOf_ne` (same statement, private
+kit-rule copies) were struck; the cites re-point here. -/
+theorem mem_faceUp_of_seat' {st : State} {c : Card}
+    (h : seatOf st c ≠ none) : ∃ a, c ∈ (st.piles a).faceUp := by
+  cases hb : seatOf st c with
+  | none => exact absurd hb h
+  | some b => exact mem_faceUp_of_seat hb
+
 /-- A face-up card is absent from every hidden deck, the stock, the
 waste, and every foundation (occurrence uniqueness at `WF`). -/
 theorem off_zones_of_seat {st : State} (hwf : st.WF) {c : Card}
@@ -907,6 +917,7 @@ Per promoted head, this card.  Expected profile: `[]`,
 #print axioms canPlace_inl_target_pile_ne
 #print axioms ne_of_canSitOn
 #print axioms mem_faceUp_of_seat
+#print axioms mem_faceUp_of_seat'
 #print axioms off_zones_of_seat
 #print axioms holdNone_of_seatNone
 #print axioms runOK_rank_distinct

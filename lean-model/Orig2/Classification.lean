@@ -143,8 +143,10 @@ private theorem putCard_inl_eq_setPile {st : State} {c : Card} {a : Anchor} :
   rfl
 
 /-- A placement onto a located card base, as one state update.
-PORTED verbatim from `Orig/Irreversible.lean:1308`. -/
-private theorem putCard_inr_eq_setPile {st : State} {c : Card} {z : Card} {k : Anchor}
+PORTED verbatim from `Orig/Irreversible.lean:1308`.  PUBLIC since the
+2026-10-31 shared-kit strike (Position's kit-rule copy struck; the
+cites re-point here). -/
+theorem putCard_inr_eq_setPile {st : State} {c : Card} {z : Card} {k : Anchor}
     (hz : st.pileOfTop z = some k) :
     st.putCard c (Sum.inr z) =
       { st with piles := fun a' =>
@@ -424,8 +426,9 @@ private theorem runOK_append_left : ∀ (A B : List Card),
       exact ih B (runOK_cons_tail h)
 
 /-- Every prefix of a legal run is legal.  PORTED verbatim from
-`Orig/Classify.lean:392`. -/
-private theorem runOK_append_right : ∀ (A B : List Card),
+`Orig/Classify.lean:392`.  PUBLIC since the 2026-10-31 shared-kit
+strike (CargoKit's `tfc_runOK_prefix` port is a one-line delegate). -/
+theorem runOK_append_right : ∀ (A B : List Card),
     runOK (A ++ B) = true → runOK A = true := by
   intro A
   induction A with
@@ -1117,8 +1120,9 @@ relocation round trips (`tabToTab_bare_rtp` at :1297 and
 -/
 
 /-- Every element of `below c` is an element.  PORTED verbatim from
-`Orig/Classify.lean:233`. -/
-private theorem below_mem {c : Card} : ∀ {l : List Card} {x : Card},
+`Orig/Classify.lean:233`.  PUBLIC since the 2026-10-31 shared-kit
+strike (FreeOrbit's kit-rule copy struck; the cites re-point here). -/
+theorem below_mem {c : Card} : ∀ {l : List Card} {x : Card},
     x ∈ below c l → x ∈ l := by
   intro l
   induction l with
@@ -1162,25 +1166,16 @@ private theorem below_join {c : Card} : ∀ (l : List Card),
       · rfl
       · rw [List.cons_append, ih]
 
-/-- `c` never lies strictly below itself.  PORTED verbatim from
-`Orig/Classify.lean:294`. -/
-private theorem below_not_mem_self {c : Card} : ∀ (l : List Card), c ∉ below c l := by
-  intro l
-  induction l with
-  | nil => intro h; cases h
-  | cons y t ih =>
-      rw [below]
-      split
-      · intro h; cases h
-      · rename_i hy
-        intro h
-        rcases List.mem_cons.1 h with hyc | hm
-        · exact absurd hyc.symm hy
-        · exact ih hm
+/- `c` never lies strictly below itself — HOISTED 2026-10-31 to the
+shared stratum leaf (`Orig2/Kit.lean`'s `below_not_mem_self`, one home
+for the closed-seam consolidation); this founding card's copy struck,
+its internal cites resolving through the import. -/
 
 /-- With `c` absent from a prefix, below and fromCard only look
-past it.  PORTED verbatim from `Orig/Classify.lean:310`. -/
-private theorem below_fromCard_excl {c : Card} : ∀ (X l : List Card), c ∉ X →
+past it.  PORTED verbatim from `Orig/Classify.lean:310`.  PUBLIC since
+the 2026-10-31 shared-kit strike (CargoKit's `tfc_below_fromCard_excl`
+port is a one-line delegate). -/
+theorem below_fromCard_excl {c : Card} : ∀ (X l : List Card), c ∉ X →
     below c (X ++ l) = X ++ below c l ∧ fromCard c (X ++ l) = fromCard c l := by
   intro X
   induction X with

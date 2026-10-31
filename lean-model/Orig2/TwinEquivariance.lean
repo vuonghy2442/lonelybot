@@ -518,33 +518,12 @@ theorem afterRunRemoved_piles_relabelTwin (x : Card) (st : State) (a : Anchor)
     ((State.relabelTwin x st).piles a).afterRunRemoved (pre.map (Card.relabelTwin x)) =
       ((st.piles a).afterRunRemoved pre).relabelTwin x :=
   Pile.afterRunRemoved_relabelTwin x (st.piles a) pre
-/-! ## §7. The pair sits outside every non-tableau zone -/
+/-! ## §7. The pair sits outside every non-tableau zone
 
-/-- A seated card lies face up in some pile. -/
-private theorem mem_faceUp_of_seat_relabel {st : State} {c : Card} {b : Base}
-    (h : seatOf st c = some b) : ∃ a, c ∈ (st.piles a).faceUp := by
-  unfold seatOf at h
-  cases hh : st.pileHolding c with
-  | none =>
-      rw [hh] at h
-      exact absurd h (by simp)
-  | some a => exact ⟨a, pileHolding_mem hh⟩
-
-/-- A face-up card is absent from every hidden deck, the stock, the waste,
-and every foundation (the `off_zones_of_seat` restatement). -/
-private theorem off_zones_of_seat_relabel {st : State} (hwf : st.WF) {c : Card}
-    (hse : ∃ b, seatOf st c = some b) :
-    (∀ a, c ∉ (st.piles a).hidden) ∧ c ∉ st.stock ∧ c ∉ st.waste ∧
-      ∀ s, c ∉ st.found s := by
-  obtain ⟨b, hb⟩ := hse
-  obtain ⟨a, hmem⟩ := mem_faceUp_of_seat_relabel hb
-  obtain ⟨hother, hown, hstock, hwaste, hfound⟩ := mem_faceUp_only hwf hmem
-  refine ⟨?_, hstock, hwaste, hfound⟩
-  intro a'
-  by_cases ha : a' = a
-  · subst ha
-    exact hown
-  · exact (hother a' ha).1
+The two zone rows `mem_faceUp_of_seat` / `off_zones_of_seat` are
+Integrity kit since its dedup pass; this chapter's `_relabel` private
+copies were struck at the 2026-10-31 shared-kit sweep (the cites
+re-point at Integrity's rows). -/
 
 /-- A list all of whose entries are fixed by `f` is unchanged by `List.map f`. -/
 private theorem map_eq_self_generic {α : Type} (f : α → α) :
@@ -560,8 +539,8 @@ theorem state_relabelTwin_found_eq {st : State} {x : Card} (hwf : st.WF)
     (hx : ∃ b, seatOf st x = some b) (hxt : ∃ b, seatOf st x.twin = some b)
     (s : Suit) :
     (State.relabelTwin x st).found s = st.found s := by
-  obtain ⟨-, -, -, hxfo⟩ := off_zones_of_seat_relabel hwf hx
-  obtain ⟨-, -, -, hxtfo⟩ := off_zones_of_seat_relabel hwf hxt
+  obtain ⟨-, -, -, hxfo⟩ := off_zones_of_seat hwf hx
+  obtain ⟨-, -, -, hxtfo⟩ := off_zones_of_seat hwf hxt
   simp only [state_relabelTwin_found]
   exact map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (fun h => hxfo s (h ▸ hc)) (fun h => hxtfo s (h ▸ hc)))
@@ -571,8 +550,8 @@ theorem state_relabelTwin_hidden_eq {st : State} {x : Card} (hwf : st.WF)
     (hx : ∃ b, seatOf st x = some b) (hxt : ∃ b, seatOf st x.twin = some b)
     (a : Anchor) :
     ((State.relabelTwin x st).piles a).hidden = (st.piles a).hidden := by
-  obtain ⟨hxhid, -, -, -⟩ := off_zones_of_seat_relabel hwf hx
-  obtain ⟨hxthid, -, -, -⟩ := off_zones_of_seat_relabel hwf hxt
+  obtain ⟨hxhid, -, -, -⟩ := off_zones_of_seat hwf hx
+  obtain ⟨hxthid, -, -, -⟩ := off_zones_of_seat hwf hxt
   simp only [state_relabelTwin_piles_hidden]
   exact map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (fun h => hxhid a (h ▸ hc)) (fun h => hxthid a (h ▸ hc)))
@@ -581,8 +560,8 @@ theorem state_relabelTwin_hidden_eq {st : State} {x : Card} (hwf : st.WF)
 theorem state_relabelTwin_stock_eq {st : State} {x : Card} (hwf : st.WF)
     (hx : ∃ b, seatOf st x = some b) (hxt : ∃ b, seatOf st x.twin = some b) :
     (State.relabelTwin x st).stock = st.stock := by
-  obtain ⟨-, hxst, -, -⟩ := off_zones_of_seat_relabel hwf hx
-  obtain ⟨-, hxtst, -, -⟩ := off_zones_of_seat_relabel hwf hxt
+  obtain ⟨-, hxst, -, -⟩ := off_zones_of_seat hwf hx
+  obtain ⟨-, hxtst, -, -⟩ := off_zones_of_seat hwf hxt
   simp only [state_relabelTwin_stock]
   exact map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (fun h => hxst (h ▸ hc)) (fun h => hxtst (h ▸ hc)))
@@ -591,8 +570,8 @@ theorem state_relabelTwin_stock_eq {st : State} {x : Card} (hwf : st.WF)
 theorem state_relabelTwin_waste_eq {st : State} {x : Card} (hwf : st.WF)
     (hx : ∃ b, seatOf st x = some b) (hxt : ∃ b, seatOf st x.twin = some b) :
     (State.relabelTwin x st).waste = st.waste := by
-  obtain ⟨-, -, hxwa, -⟩ := off_zones_of_seat_relabel hwf hx
-  obtain ⟨-, -, hxtwa, -⟩ := off_zones_of_seat_relabel hwf hxt
+  obtain ⟨-, -, hxwa, -⟩ := off_zones_of_seat hwf hx
+  obtain ⟨-, -, hxtwa, -⟩ := off_zones_of_seat hwf hxt
   simp only [state_relabelTwin_waste]
   exact map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (fun h => hxwa (h ▸ hc)) (fun h => hxtwa (h ▸ hc)))
@@ -815,8 +794,8 @@ theorem step_comm_of_not_foundPair {st st' : State} {x : Card} {m : Move}
     (hstep : State.step st m = some st')
     (hno : NotFoundPair x m) :
     State.step (State.relabelTwin x st) (Move.relabelTwin x m) = some (State.relabelTwin x st') := by
-  obtain ⟨hxhid, hxst, hxwa, hxfo⟩ := off_zones_of_seat_relabel hwf hx
-  obtain ⟨hxthid, hxtst, hxtwa, hxtfo⟩ := off_zones_of_seat_relabel hwf hxt
+  obtain ⟨hxhid, hxst, hxwa, hxfo⟩ := off_zones_of_seat hwf hx
+  obtain ⟨hxthid, hxtst, hxtwa, hxtfo⟩ := off_zones_of_seat hwf hxt
   have hfound := state_relabelTwin_found_eq hwf hx hxt
   have hhidden := state_relabelTwin_hidden_eq hwf hx hxt
   have hstock := state_relabelTwin_stock_eq hwf hx hxt

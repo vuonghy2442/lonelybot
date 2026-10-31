@@ -269,23 +269,10 @@ theorem faceUp_iff {s s' : State} (hwf : s.WF)
 
 /-! ## §3. The seat rows — parented-ness and the class census -/
 
-/-- The custom `lastOf` never answers `none` on a nonempty list.
-Lineage: CargoRaise §4's private row — restated here per the kit
-rule. -/
-private theorem lastOf_eq_none : ∀ (l : List Card), lastOf l = none → l = [] := by
-  intro l
-  cases l with
-  | nil => intro _; rfl
-  | cons w t =>
-      cases t with
-      | nil =>
-          intro h
-          rw [show lastOf [w] = some w from rfl] at h
-          exact absurd h (Option.some_ne_none w)
-      | cons w2 t2 =>
-          intro h
-          rw [show lastOf (w :: w2 :: t2) = lastOf (w2 :: t2) from rfl] at h
-          exact absurd (lastOf_eq_none (w2 :: t2) h) (List.cons_ne_nil w2 t2)
+/- The custom `lastOf` never answers `none` on a nonempty list.
+Lineage: CargoRaise §4's private row — PUBLIC there since the
+2026-10-31 shared-kit strike; this copy struck (the cites re-point at
+CargoRaise's row). -/
 
 /-- **Parented st c** — the card sits on some parent (a non-king's
 seat condition; a king sits on nothing by the rank arithmetic, so
@@ -883,24 +870,11 @@ theorem king_bare_orbit_rung {s s' : State} (hwf : s.WF)
   · intro hb
     exact walk_king_bare hwf' hj1 c hking ((hiff c).mpr (faceUp_of_bare hb)) (Or.inr hb)
 
-/-! ## §4. The hatch factorization -/
+/-! ## §4. The hatch factorization
 
-/-- `below` membership is membership.  Lineage: Classification's
-private `below_mem` — restated per the kit rule. -/
-private theorem below_mem {c : Card} : ∀ {l : List Card} {x : Card},
-    x ∈ below c l → x ∈ l := by
-  intro l
-  induction l with
-  | nil => intro x h; cases h
-  | cons y t ih =>
-      intro x h
-      rw [below_cons] at h
-      by_cases hyc : y = c
-      · rw [if_pos hyc] at h; cases h
-      · rw [if_neg hyc] at h
-        rcases List.mem_cons.mp h with rfl | h'
-        · exact List.mem_cons_self ..
-        · exact List.mem_cons.mpr (Or.inr (ih h'))
+`below_mem` is Classification kit since the 2026-10-31 shared-kit
+strike (the copy here struck, the cites re-point at the founding
+card's row). -/
 
 /-- No card is below itself. -/
 private theorem below_irrefl {c : Card} : ∀ {l : List Card}, c ∉ below c l := by
@@ -917,19 +891,10 @@ private theorem below_irrefl {c : Card} : ∀ {l : List Card}, c ∉ below c l :
         · exact hyc rfl
         · exact ih h'
 
-/-- A card strictly inside a nodup append is not in the front part.
-Lineage: CargoRaise §4's private row — restated per the kit rule. -/
-private theorem nodup_mid_notmem (d : Card) :
-    ∀ (l rest : List Card), (l ++ d :: rest).Nodup → d ∉ l := by
-  intro l
-  induction l with
-  | nil => intro rest _ hm; exact absurd hm (by simp)
-  | cons x xs ih =>
-      intro rest hnd hm
-      rcases List.mem_cons.mp hm with rfl | hin
-      · exact absurd (List.mem_append.mpr (Or.inr (List.mem_cons_self ..)))
-          ((List.nodup_cons.mp hnd).1)
-      · exact ih rest ((List.nodup_cons.mp hnd).2) hin
+/- A card strictly inside a nodup append is not in the front part.
+Lineage: CargoRaise §4's private row — PUBLIC there since the
+2026-10-31 shared-kit strike; this copy struck (the cites re-point at
+CargoRaise's row). -/
 
 /-- Append cancellation. -/
 private theorem append_cancel {α : Type} : ∀ (l₁ t₁ t₂ : List α),

@@ -80,7 +80,7 @@ The owner's last-return route in ONE card.  This is the whole proof:
   plus the transfer home; right is the first-seat-change argument
   (the fitting class is the two buried parents,
   `tfc_seat_parent`). No rank restriction — a king cannot sit on
-  a parent (`seated_inr_rank_ne_king`), so the non-king premise
+  a parent (`tfc_seatOf_inr_rank_ne_king`), so the non-king premise
   was always derivable from the seats.
 
 The card rides ONLY the certified tracked substrate (the fifteen
@@ -100,7 +100,7 @@ carries its source citation, per the per-file private-kit norm:
   `Orig2/TwinSelfArm.lean`).
 * §5 — the seat & parent kit: `walk_cons_inv`,
   `seatOf_none_of_mem_found` (from `Orig2/TwinForcedCancel.lean`),
-  `raise_found_self`, `seated_inr_rank_ne_king` (from
+  `raise_found_self`, `tfc_seatOf_inr_rank_ne_king` (from
   `Orig2/TwinFoundationRow.lean`), `canSitOn_twin_left'`,
   `not_twin_same_parent`, `twin_parent_eq_of_seats` (from
   `Orig2/TwinPreludeFunctor.lean`), and the two foundation-membership
@@ -455,7 +455,10 @@ If the twins are seated on `.inr` parents at both ends of a `NotFoundPair`
 witness play `s → t`, then `SwappableIn` transfers — the point-hom
 square of `swappableIn_transfer_point_pairFree` follows from the play by
 the splice functor.
-(restated from `Archive/TwinPairFreeTransfer.lean:60` — the per-file kit norm) -/
+(restated from `Archive/TwinPairFreeTransfer.lean:60`; a one-line
+delegate since the 2026-10-31 shared-kit strike — TwinSpliceComm's
+`swappableIn_transfer_point_play` is the one home of this statement,
+its splice-play hom supplying the orbit square). -/
 theorem swappableIn_transfer_of_pairFreePath
     {s t : State} {x : Card} {play : List Move}
     (hwf : s.WF) (hwf' : t.WF)
@@ -466,11 +469,8 @@ theorem swappableIn_transfer_of_pairFreePath
     (hplay : ShufflePlayW s play t)
     (hno : ∀ m ∈ play, NotFoundPair x m)
     (hswap : SwappableIn s x) :
-    SwappableIn t x := by
-  obtain ⟨play', hplay', -⟩ :=
-    pairFreeOrbit_splice_of_pairFree hwf hxs hxts hplay hno
-  exact swappableIn_transfer_point_pairFree hwf hwf' hxs hxts hxt hxtt hplay hno
-    (sameOrbitSetoid.symm (shufflePlayW_revEqW hplay')) hswap
+    SwappableIn t x :=
+  swappableIn_transfer_point_play hwf hwf' hxs hxts hxt hxtt hplay hno hswap
 
 #print axioms swappableIn_transfer_of_pairFreePath
 
@@ -528,18 +528,10 @@ private theorem raise_found_self {s s1 : State} {c : Card}
   rw [hs1]
   exact setFound_found_self
 
-/-- A card seated `.inr` on a card parent is not a king.
-(restated from `Archive/TwinFoundationRow.lean:180` — the per-file kit norm) -/
-private theorem seated_inr_rank_ne_king {s : State} {c r : Card}
-    (hwf : s.WF) (hseat : seatOf s c = some (Sum.inr r)) :
-    c.rank ≠ Rank.king := by
-  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hseat
-  have hfit : canSitOn c r = true := (tfc_seat_parent hwf hhold hlast).1
-  intro hking
-  have hlt := ((canSitOn_eq c r).mp hfit).1
-  have hidx : c.rank.toIdx = 12 := by rw [hking]; rfl
-  have hlt' := Rank.toIdx_lt r.rank
-  omega
+/- A card seated `.inr` on a card parent is not a king.
+HOISTED 2026-10-31 to CargoKit (`tfc_seatOf_inr_rank_ne_king`, beside
+its seat rows) — this private copy struck, the cites re-point there.
+(restated lineage: `Archive/TwinFoundationRow.lean:180`.) -/
 
 /-- The twin-left fitting law, copied from the seam-private rows: the
 mover's suit twin does not change the pile-fit predicate.
@@ -1057,7 +1049,7 @@ private theorem firstTouchRestart_aux {w w' v : State} {x T : Card}
       exact ⟨z, hz⟩
   have ⟨zx, hzx⟩ := hxw
   have hxnr : x.rank ≠ Rank.king :=
-    seated_inr_rank_ne_king hwf hzx
+    tfc_seatOf_inr_rank_ne_king hwf hzx
   have hTfound : T ∈ w'.found T.suit := by
     rw [raise_found_self hstep]
     exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
@@ -1905,7 +1897,7 @@ theorem seat_inl_of_seated_king {s : State} {x : Card}
   obtain ⟨bx, hbx⟩ := hbx
   cases bx with
   | inl a => exact ⟨a, hbx⟩
-  | inr z => exact absurd hking (seated_inr_rank_ne_king hwf hbx)
+  | inr z => exact absurd hking (tfc_seatOf_inr_rank_ne_king hwf hbx)
 
 #print axioms not_swappableIn_of_frozen
 #print axioms seat_inl_of_seated_king
@@ -2748,7 +2740,7 @@ THE IFF the recipe buys: at the `.inr` twin-parent seats,
 `SwappableIn` is exactly the REACHABLE license - a raise of either
 twin, at some class-mate where the twins sit (together) on twin
 parents.  NO rank restriction: a king cannot sit on a parent at
-all (`seated_inr_rank_ne_king` - the king's fit equation `12 + 1 =
+all (`tfc_seatOf_inr_rank_ne_king` - the king's fit equation `12 + 1 =
 13` has no solution), so the non-king premise was always derivable
 from the seat hypotheses.  The raw at-`s` license is refuted by
 the dance (the witness can ARM the license mid-journey - the RHS
@@ -2831,7 +2823,7 @@ private theorem no_twin_slide {u u' : State} {x z : Card} {b : Base}
     (hx : seatOf u x = some (Sum.inr z))
     (hxt : seatOf u x.twin = some (Sum.inr z.twin))
     (hstep : State.step u (Move.tabToTab x b) = some u') : False := by
-  have hnk : x.rank ≠ Rank.king := seated_inr_rank_ne_king hwf hx
+  have hnk : x.rank ≠ Rank.king := tfc_seatOf_inr_rank_ne_king hwf hx
   obtain ⟨-, -, hcp, -, -⟩ := step_tabToTab_inv hstep
   cases b with
   | inl a =>
@@ -2852,7 +2844,7 @@ twin-parent seats, the pair is swappable exactly when the raise
 license is reachable at some class-mate where the twins sit
 (together) on twin parents - possibly the SWAPPED pair, since the
 fitting class is exactly two cards.  No rank restriction: a king
-cannot sit on a parent at all (`seated_inr_rank_ne_king` - the
+cannot sit on a parent at all (`tfc_seatOf_inr_rank_ne_king` - the
 king's fit equation `12 + 1 = 13` has no solution), so the non-king
 premise was always derivable from the seat hypotheses. -/
 theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
@@ -2867,7 +2859,7 @@ theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
           reversibleAtW u (Move.tabToFound x.twin)) := by
   constructor
   · rintro ⟨v, hstrict, horb⟩
-    have hnk : x.rank ≠ Rank.king := seated_inr_rank_ne_king hwf hx
+    have hnk : x.rank ≠ Rank.king := tfc_seatOf_inr_rank_ne_king hwf hx
     obtain ⟨-, -, ρ, hback⟩ := horb
     have hne : seatOf v x ≠ some (Sum.inr z) := by
       rw [hstrict.1, hxt]

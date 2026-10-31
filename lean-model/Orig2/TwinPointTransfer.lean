@@ -300,55 +300,11 @@ def pointObjFlip (x : Card) : TwinObjInr x → TwinObjInr x := fun s =>
     · obtain ⟨z, hz⟩ := s.2.2.1
       exact ⟨z.twin, by rw [hstrict.2.1, hz, card_twin_twin]⟩⟩
 
-/-! ## §1. Holding pins after the first splice -/
+/-! ## §1. Holding pins after the first splice
 
-private theorem holding_splice_self {st : State} {x : Card} {a b : Anchor}
-    (hwf : st.WF)
-    (ha : st.pileHolding x = some a) (hb : st.pileHolding x.twin = some b)
-    (hab : a ≠ b) :
-    (st.spliceTwinRuns x).pileHolding x = some b := by
-  have hxmem : x ∈ (st.piles a).faceUp := pileHolding_mem ha
-  have hxB : x ∉ (st.piles b).faceUp :=
-    (mem_faceUp_unique hwf hxmem b (Ne.symm hab)).1
-  obtain ⟨rA, hrunA⟩ := tfc_fromCard_cons_head (c := x) _ hxmem
-  refine tfc_pileHolding_pin ?_ ?_
-  · rw [spliceTwinRuns_piles_second ha hb hab]
-    exact List.mem_append.mpr
-      (Or.inr (by rw [hrunA]; exact List.mem_cons_self))
-  · intro j hj
-    by_cases hja : j = a
-    · subst hja
-      rw [spliceTwinRuns_piles_self ha hb hab]
-      intro hm
-      rcases List.mem_append.mp hm with hpre | hrun
-      · exact tfc_below_not_mem_self x _ hpre
-      · exact hxB (tfc_mem_fromCard _ hrun)
-    · rw [spliceTwinRuns_piles_other ha hb hab hja hj]
-      exact (mem_faceUp_unique hwf hxmem j hja).1
-
-private theorem holding_splice_twin {st : State} {x : Card} {a b : Anchor}
-    (hwf : st.WF)
-    (ha : st.pileHolding x = some a) (hb : st.pileHolding x.twin = some b)
-    (hab : a ≠ b) :
-    (st.spliceTwinRuns x).pileHolding x.twin = some a := by
-  have htmem : x.twin ∈ (st.piles b).faceUp := pileHolding_mem hb
-  have htA : x.twin ∉ (st.piles a).faceUp :=
-    (mem_faceUp_unique hwf htmem a hab).1
-  obtain ⟨rB, hrunB⟩ := tfc_fromCard_cons_head (c := x.twin) _ htmem
-  refine tfc_pileHolding_pin ?_ ?_
-  · rw [spliceTwinRuns_piles_self ha hb hab]
-    exact List.mem_append.mpr
-      (Or.inr (by rw [hrunB]; exact List.mem_cons_self))
-  · intro j hj
-    by_cases hjb : j = b
-    · subst hjb
-      rw [spliceTwinRuns_piles_second ha hb hab]
-      intro hm
-      rcases List.mem_append.mp hm with hpre | hrun
-      · exact tfc_below_not_mem_self x.twin _ hpre
-      · exact htA (tfc_mem_fromCard _ hrun)
-    · rw [spliceTwinRuns_piles_other ha hb hab hj hjb]
-      exact (mem_faceUp_unique hwf htmem j hjb).1
+The pin pair `holding_splice_self` / `holding_splice_twin` lives at
+the splice card (`Orig2/TwinSplice.lean` §2) since the 2026-10-31
+shared-kit strike; this chapter cites them. -/
 
 /-! ## §2. The run-splice involution -/
 

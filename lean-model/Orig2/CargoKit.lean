@@ -48,91 +48,20 @@ a theorem's profile does not depend on its declaring module (the
 2026-10-17 build confirmed, per head, before and after the move).
 -/
 
-/-! ## §A. The occurrence-count kit  (PORT: `Orig/Reach.lean:131-329`) -/
+/-! ## §A. The occurrence-count kit  (PORT: `Orig/Reach.lean:131-329`)
 
-/-- PORT verbatim from `Orig/Reach.lean:131`. -/
-def tfc_cnt (c : Card) : List Card → Nat
-  | [] => 0
-  | x :: t => (if x = c then 1 else 0) + tfc_cnt c t
-
-/-- PORT verbatim from `Orig/Reach.lean:135`. -/
-theorem tfc_cnt_nil (c : Card) : tfc_cnt c [] = 0 := rfl
-
-/-- PORT verbatim from `Orig/Reach.lean:138`. -/
-theorem tfc_cnt_def (c x : Card) (t : List Card) :
-    tfc_cnt c (x :: t) = (if x = c then 1 else 0) + tfc_cnt c t := rfl
-
-/-- PORT verbatim from `Orig/Reach.lean:146`. -/
-theorem tfc_cnt_app (c : Card) : ∀ (l₁ l₂ : List Card),
-    tfc_cnt c (l₁ ++ l₂) = tfc_cnt c l₁ + tfc_cnt c l₂ := by
-  intro l₁ l₂
-  induction l₁ with
-  | nil => rw [List.nil_append, tfc_cnt_nil]; omega
-  | cons x t ih =>
-      show (if x = c then 1 else 0) + tfc_cnt c (t ++ l₂) = _
-      rw [ih, tfc_cnt_def]
-      omega
+HOIST NOTE (2026-10-31, the closed-seam consolidation): the count
+word and its arithmetic now live at the shared stratum leaf
+(`Orig2/Kit.lean`, `tfc_` names preserved — Chart's discharge card,
+whose import surface is exactly that kit, rode identical private
+copies).  This section keeps only the rows with no Chart consumer:
+the snoc, the delta family, and the two sum rows.  The battery below
+re-prints every head — a theorem's profile does not depend on its
+declaring module. -/
 
 /-- PORT verbatim from `Orig/Reach.lean:156`. -/
 theorem tfc_cnt_snoc (c x : Card) (l : List Card) :
     tfc_cnt c (l ++ [x]) = tfc_cnt c l + tfc_cnt c [x] := tfc_cnt_app c l [x]
-
-/-- PORT verbatim from `Orig/Reach.lean:167`. -/
-theorem tfc_mem_le_cnt {c : Card} : ∀ (l : List Card), c ∈ l → 1 ≤ tfc_cnt c l := by
-  intro l
-  induction l with
-  | nil => intro h; exact absurd h List.not_mem_nil
-  | cons x t ih =>
-      intro h
-      show 1 ≤ (if x = c then 1 else 0) + tfc_cnt c t
-      rcases List.mem_cons.mp h with h' | h'
-      · rw [ite_eq_left h'.symm]
-        omega
-      · have h1 : 1 ≤ tfc_cnt c t := ih h'
-        by_cases hx : x = c
-        · rw [ite_eq_left hx]; omega
-        · rw [ite_eq_right hx]; omega
-
-/-- PORT from `Orig/Reach.lean:190` (`cnt_filter`). -/
-theorem tfc_cnt_filter (c : Card) : ∀ (l : List Card),
-    tfc_cnt c l = (l.filter fun x => decide (x = c)).length := by
-  intro l
-  induction l with
-  | nil => rfl
-  | cons x t ih =>
-      show ((if x = c then 1 else 0) + tfc_cnt c t) = _
-      rw [List.filter_cons]
-      by_cases hxc : x = c
-      · rw [decide_eq_true hxc, ite_eq_left rfl, List.length_cons, ite_eq_left hxc, ih]
-        omega
-      · have hdec : (decide (x = c)) = false := by rw [decide_false_of_not hxc]
-        rw [hdec, ite_eq_right (fun h => Bool.noConfusion h),
-          ite_eq_right hxc, ih]
-        omega
-
-/-- PORT verbatim from `Orig/Reach.lean:206` (`cardCount_eq_cnt`). -/
-theorem tfc_cardCount_eq_cnt (st : State) (c : Card) :
-    st.cardCount c = tfc_cnt c (st.zones.flatMap id) :=
-  (tfc_cnt_filter c (st.zones.flatMap id)).symm
-
-/-- PORT verbatim from `Orig/Reach.lean:211`. -/
-def tfc_cntFlat (c : Card) : List (List Card) → Nat
-  | [] => 0
-  | z :: zs => tfc_cnt c z + tfc_cntFlat c zs
-
-/-- PORT verbatim from `Orig/Reach.lean:215`. -/
-theorem tfc_cntFlat_cons (c : Card) (z : List Card) (zs : List (List Card)) :
-    tfc_cntFlat c (z :: zs) = tfc_cnt c z + tfc_cntFlat c zs := rfl
-
-/-- PORT verbatim from `Orig/Reach.lean:218`. -/
-theorem tfc_cntFlat_flatMap (c : Card) : ∀ (zs : List (List Card)),
-    tfc_cntFlat c zs = tfc_cnt c (zs.flatMap id) := by
-  intro zs
-  induction zs with
-  | nil => rfl
-  | cons z t ih =>
-      rw [tfc_cntFlat_cons, List.flatMap_cons, tfc_cnt_app c, ih]
-      rfl
 
 /-- PORT verbatim from `Orig/Reach.lean:248`. -/
 theorem tfc_cntFlat_map_delta (c : Card) : ∀ {α : Type} (F G : α → List Card)
@@ -186,164 +115,8 @@ theorem tfc_sum_map_single {α : Type} [DecidableEq α] :
             (fun j hj hne2 => hzero j (List.mem_cons_of_mem _ hj) hne2)
           omega
 
-/-- PORT verbatim from `Orig/Reach.lean:312`.  DEDUP UPDATE
-(2026-10-18): the split below rides `flatMapAppend` at `f = id`
-(`Orig2/Integrity.lean`, public since the search-integrity split)
-— this kit's former `tfc_flatMap_id_append` twin (a port of
-`Orig/Reach.lean:299`, the `f = id` instance of the general row)
-is STRUCK per the dedup sweep. -/
-theorem tfc_cardCount_zones (st : State) (c : Card) :
-    st.cardCount c =
-      tfc_cntFlat c (Suit.all.map st.found)
-      + tfc_cntFlat c (Anchor.all.map fun a => (st.piles a).hidden ++ (st.piles a).faceUp)
-      + (tfc_cnt c st.stock + tfc_cnt c st.waste) := by
-  rw [tfc_cardCount_eq_cnt]
-  have h2 : ([st.stock, st.waste] : List (List Card)).flatMap id
-      = st.stock ++ st.waste :=
-    congrArg (st.stock ++ ·) (List.append_nil st.waste)
-  show tfc_cnt c ((Suit.all.map st.found
-      ++ (Anchor.all.map
-      (fun a => (st.piles a).hidden ++ (st.piles a).faceUp) ++ [st.stock, st.waste])).flatMap id) = _
-  rw [flatMapAppend id, flatMapAppend id, h2, tfc_cnt_app c, tfc_cnt_app c,
-    tfc_cnt_app c, tfc_cntFlat_flatMap c, tfc_cntFlat_flatMap c]
-  omega
-
-/-- A zone's count is bounded by the pile-flat total (the single-member
-companion of `Orig/Reach.lean:1569`'s family). -/
-theorem tfc_cntFlat_list_mem_ge {c : Card} {zn : List Card} : ∀ (zs : List (List Card)),
-    zn ∈ zs → tfc_cnt c zn ≤ tfc_cntFlat c zs := by
-  intro zs
-  induction zs with
-  | nil => intro hmem; exact absurd hmem (by simp)
-  | cons z t ih =>
-      intro hmem
-      rcases List.mem_cons.mp hmem with h' | h'
-      · rw [h']
-        exact Nat.le_add_right _ _
-      · have h1 : tfc_cnt c zn ≤ tfc_cntFlat c t := ih h'
-        show tfc_cnt c zn ≤ tfc_cnt c z + tfc_cntFlat c t
-        omega
-
-/-- A pile's face-up count is bounded by the state's card count
-(the WF-free reading of the count lane). -/
-theorem tfc_faceUp_cnt_le_cardCount {st : State} {x : Card} {a : Anchor} :
-    tfc_cnt x (st.piles a).faceUp ≤ st.cardCount x := by
-  have h1 : tfc_cnt x (st.piles a).faceUp
-      ≤ tfc_cnt x ((st.piles a).hidden ++ (st.piles a).faceUp) := by
-    rw [tfc_cnt_app x]
-    omega
-  have h2 : tfc_cnt x ((st.piles a).hidden ++ (st.piles a).faceUp)
-      ≤ tfc_cntFlat x (Anchor.all.map fun a' => (st.piles a').hidden ++ (st.piles a').faceUp) :=
-    tfc_cntFlat_list_mem_ge
-      (Anchor.all.map fun a' => (st.piles a').hidden ++ (st.piles a').faceUp)
-      (List.mem_map.2 ⟨a, Anchor.mem_all a, rfl⟩)
-  have h3 := tfc_cardCount_zones st x
-  omega
-
-/-- PORT verbatim from `Orig/Reach.lean:1569`. -/
-theorem tfc_cntFlat_map_ge1 {α : Type} {z : Card} (F : α → List Card) :
-    ∀ (L : List α) (b : α), b ∈ L → z ∈ F b → 1 ≤ tfc_cntFlat z (L.map F) := by
-  intro L
-  induction L with
-  | nil => intro b h; exact absurd h List.not_mem_nil
-  | cons x t ih =>
-      intro b hmem hz
-      rw [List.map_cons, tfc_cntFlat_cons]
-      rcases List.mem_cons.mp hmem with h' | h'
-      · rw [h'] at hz
-        have := tfc_mem_le_cnt _ hz
-        omega
-      · have := ih b h' hz
-        omega
-
-/-- PORT verbatim from `Orig/Reach.lean:1586`. -/
-theorem tfc_cntFlat_map_two_mem {α : Type} {z : Card} (F : α → List Card) :
-    ∀ (L : List α) (b₁ b₂ : α), b₁ ∈ L → b₂ ∈ L → b₁ ≠ b₂ →
-      z ∈ F b₁ → z ∈ F b₂ → 2 ≤ tfc_cntFlat z (L.map F) := by
-  intro L
-  induction L with
-  | nil => intro b₁ b₂ h₁; exact absurd h₁ List.not_mem_nil
-  | cons x t ih =>
-      intro b₁ b₂ h₁ h₂ hne hz₁ hz₂
-      rw [List.map_cons, tfc_cntFlat_cons]
-      rcases List.mem_cons.mp h₁ with h₁' | h₁'
-      · rw [h₁'] at hne hz₁
-        rcases List.mem_cons.mp h₂ with h₂' | h₂'
-        · exact absurd h₂'.symm hne
-        · have e₁ : 1 ≤ tfc_cnt z (F x) := tfc_mem_le_cnt _ hz₁
-          have e₂ : 1 ≤ tfc_cntFlat z (List.map F t) := tfc_cntFlat_map_ge1 F t b₂ h₂' hz₂
-          omega
-      · rcases List.mem_cons.mp h₂ with h₂' | h₂'
-        · rw [h₂'] at hz₂
-          have e₂ : 1 ≤ tfc_cnt z (F x) := tfc_mem_le_cnt _ hz₂
-          have e₁ : 1 ≤ tfc_cntFlat z (List.map F t) := tfc_cntFlat_map_ge1 F t b₁ h₁' hz₁
-          omega
-        · have := ih b₁ b₂ h₁' h₂' hne hz₁ hz₂
-          omega
-
-/-- PORT verbatim from `Orig/Reach.lean:1612`.  KINSHIP (2026-10-18):
-the WF-graded twin, over the zones-split kit rather than the count
-kit, is `Orig2/Integrity.lean`'s `wf_two_piles_ne` — different grade
-and engine (count premise vs `State.WF`, split-lemma vs `tfc_cnt`
-arithmetic), one row home each by the grade-distinction rule. -/
-theorem tfc_two_pile_zone_absurd {st : State} {z : Card} {j k : Anchor} (hjk : j ≠ k)
-    (hcc : st.cardCount z = 1)
-    (hzj : z ∈ (st.piles j).hidden ++ (st.piles j).faceUp)
-    (hzk : z ∈ (st.piles k).hidden ++ (st.piles k).faceUp) : False := by
-  rw [tfc_cardCount_zones] at hcc
-  have h2 := tfc_cntFlat_map_two_mem
-    (fun a => (st.piles a).hidden ++ (st.piles a).faceUp) Anchor.all j k
-    (Anchor.mem_all j) (Anchor.mem_all k) hjk hzj hzk
-  omega
-
 /-! ## §B. The list/run kit  (PORT: `Orig/Reach.lean:350-553`, `:1071-1164`
 plus `Orig/Classify.lean:294, :310, :392` via `Orig2/Classification.lean`) -/
-
-/-- The `getLast?`/`lastOf` bridge (fresh row over the seam's
-`Orig/State.lean:116`: the two recursions are the same). -/
-theorem tfc_getLast?_lastOf : ∀ (l : List Card), l.getLast? = lastOf l
-  | [] => rfl
-  | [_] => rfl
-  | _ :: y :: t => tfc_getLast?_lastOf (y :: t)
-
-/-- The last lands in an appended nonempty suffix (fresh row, the
-`Orig/Classify.lean:195` pattern). -/
-theorem tfc_lastOf_append_ne : ∀ (A : List Card) {r : List Card},
-    r ≠ [] → lastOf (A ++ r) = lastOf r := by
-  intro A
-  induction A with
-  | nil => intro r _; rfl
-  | cons x t ih =>
-      intro r hr
-      show lastOf (x :: (t ++ r)) = lastOf r
-      have hne : t ++ r ≠ [] := by
-        intro hc
-        have hl := congrArg List.length hc
-        rw [List.length_append, List.length_nil] at hl
-        exact hr (List.length_eq_zero_iff.mp (show r.length = 0 by omega))
-      have hlast : lastOf (x :: (t ++ r)) = lastOf (t ++ r) := by
-        obtain ⟨y, ys, hc⟩ := list_cons_of_ne_nil hne
-        rw [hc]
-        rfl
-      rw [hlast]
-      exact ih hr
-
-/-- PORT verbatim from `Orig/Reach.lean:357`. -/
-theorem tfc_fromCard_cons (c x : Card) (t : List Card) :
-    fromCard c (x :: t) = if x = c then x :: t else fromCard c t := rfl
-
-/-- PORT of `Orig2/Classification.lean:1383` (`below_join`, frozen home
-`Orig/Classify.lean:282`; Reach's `below_fromCard` at `:360` identical). -/
-theorem tfc_below_fromCard (c : Card) : ∀ (l : List Card),
-    below c l ++ fromCard c l = l := by
-  intro l
-  induction l with
-  | nil => rfl
-  | cons x t ih =>
-      rw [below_cons, tfc_fromCard_cons]
-      by_cases hxc : x = c
-      · rw [ite_eq_left hxc, ite_eq_left hxc]; rfl
-      · rw [ite_eq_right hxc, ite_eq_right hxc, List.cons_append, ih]
 
 /-- PORT verbatim from `Orig/Reach.lean:371`. -/
 theorem tfc_mem_fromCard {c x : Card} : ∀ (l : List Card), x ∈ fromCard c l → x ∈ l := by
@@ -374,57 +147,20 @@ theorem tfc_fromCard_cons_head {c : Card} : ∀ (l : List Card), c ∈ l →
       · obtain ⟨r, hr⟩ := ih (List.mem_cons.mp h |>.resolve_left (fun h' => hxc h'.symm))
         exact ⟨r, by rw [tfc_fromCard_cons, ite_eq_right hxc, hr]⟩
 
-/-- PORT of `Orig2/Classification.lean:1396` (`below_not_mem_self`,
-frozen home `Orig/Classify.lean:294`). -/
-theorem tfc_below_not_mem_self (c : Card) : ∀ (l : List Card), c ∉ below c l := by
-  intro l
-  induction l with
-  | nil => intro h; cases h
-  | cons y t ih =>
-      rw [below_cons]
-      split
-      · intro h; cases h
-      · rename_i hy
-        intro h
-        rcases List.mem_cons.1 h with hyc | hm
-        · exact absurd hyc.symm hy
-        · exact ih hm
+/-- PORT of `Orig2/Classification.lean` (`below_not_mem_self`,
+frozen home `Orig/Classify.lean:294`).  A one-line delegate since the
+2026-10-31 shared-kit strike (Classification's row is public, one home
+at the founding card). -/
+theorem tfc_below_not_mem_self (c : Card) : ∀ (l : List Card), c ∉ below c l :=
+  below_not_mem_self (c := c)
 
-/-- PORT of `Orig2/Classification.lean:1412` (`below_fromCard_excl`,
-frozen home `Orig/Classify.lean:310`). -/
+/-- PORT of `Orig2/Classification.lean` (`below_fromCard_excl`,
+frozen home `Orig/Classify.lean:310`).  A one-line delegate since the
+2026-10-31 shared-kit strike (Classification's row is public, one home
+at the founding card). -/
 theorem tfc_below_fromCard_excl (c : Card) : ∀ (X l : List Card), c ∉ X →
-    below c (X ++ l) = X ++ below c l ∧ fromCard c (X ++ l) = fromCard c l := by
-  intro X
-  induction X with
-  | nil => intro l _; exact ⟨rfl, rfl⟩
-  | cons y t ih =>
-      intro l hc
-      have hy : y ≠ c := fun heq => hc (List.mem_cons.2 (Or.inl heq.symm))
-      have hcT : c ∉ t := fun hm => hc (List.mem_cons.2 (Or.inr hm))
-      constructor
-      · show below c (y :: (t ++ l)) = y :: (t ++ below c l)
-        rw [below_cons, ite_eq_right hy]
-        exact congrArg (y :: ·) (ih l hcT).1
-      · show fromCard c (y :: (t ++ l)) = fromCard c l
-        rw [tfc_fromCard_cons, ite_eq_right hy]
-        exact (ih l hcT).2
-
-/-- A member of the front list stops `below` there (fresh row). -/
-theorem tfc_below_mem_append_left {c : Card} : ∀ (A B : List Card), c ∈ A →
-    below c (A ++ B) = below c A := by
-  intro A B
-  induction A with
-  | nil => intro h; cases h
-  | cons x t ih =>
-      intro h
-      show below c (x :: (t ++ B)) = below c (x :: t)
-      rw [below_cons, below_cons]
-      by_cases hxc : x = c
-      · rw [ite_eq_left hxc, ite_eq_left hxc]
-      · rw [ite_eq_right hxc, ite_eq_right hxc]
-        rcases List.mem_cons.mp h with heq | h'
-        · exact absurd heq.symm hxc
-        · exact congrArg (x :: ·) (ih h')
+    below c (X ++ l) = X ++ below c l ∧ fromCard c (X ++ l) = fromCard c l :=
+  below_fromCard_excl (c := c)
 
 /-- PORT verbatim from `Orig/Reach.lean:479`. -/
 theorem tfc_runOK_two_true {x y : Card} {t : List Card}
@@ -495,21 +231,13 @@ theorem tfc_runOK_append_fit : ∀ (l : List Card) (c z : Card) (r : List Card),
       exact tfc_runOK_append_fit (y :: t) c z r h2 hc
         (show lastOf (y :: t) = some z from hlast) hfit
 
-/-- PORT of `Orig2/Classification.lean:679` (`runOK_append_right`,
-frozen home `Orig/Classify.lean:392`). -/
+/-- PORT of `Orig2/Classification.lean` (`runOK_append_right`,
+frozen home `Orig/Classify.lean:392`).  A one-line delegate since the
+2026-10-31 shared-kit strike (Classification's row is public, one home
+at the founding card). -/
 theorem tfc_runOK_prefix : ∀ (A B : List Card),
-    runOK (A ++ B) = true → runOK A = true := by
-  intro A
-  induction A with
-  | nil => intro _ _; rfl
-  | cons y t ih =>
-      intro B h
-      match t with
-      | [] => rfl
-      | w :: t' =>
-          have h' : runOK (y :: w :: (t' ++ B)) = true := h
-          rw [runOK, Bool.and_eq_true] at h' ⊢
-          exact ⟨h'.1, ih B h'.2⟩
+    runOK (A ++ B) = true → runOK A = true :=
+  runOK_append_right
 
 /-- PORT verbatim from `Orig/Reach.lean:1118`. -/
 theorem tfc_runOK_tail_lt : ∀ (t : List Card) (x y : Card),
@@ -1149,14 +877,6 @@ theorem tfc_firstWhere_mem_true {α : Type} {p : α → Bool} : ∀ (L : List α
           exact absurd hpx (by simp)
         · exact ih y hta hp
 
-/-- Fresh row: the completed search's converse (all false, none found). -/
-theorem tfc_firstWhere_none {α : Type} {p : α → Bool} : ∀ (L : List α),
-    (∀ y ∈ L, p y = false) → firstWhere p L = none
-  | [], _ => rfl
-  | x :: t, h => by
-      rw [firstWhere, h x (by simp)]
-      exact tfc_firstWhere_none t (fun y hy => h y (by simp [hy]))
-
 /-- A hidden card is not face-up anywhere: the holding search sees
 face-up content only (fresh row over `Orig/State.lean:339`). -/
 theorem tfc_not_mem_faceUp_of_holdNone {st : State} {x : Card}
@@ -1172,100 +892,6 @@ theorem tfc_not_mem_faceUp_of_holdNone {st : State} {x : Card}
 
 /-! ### §E2. The seat readers (fresh unfolds at `Orig2/Vocab.lean §9`) -/
 
-/-- The canonical form of the seat map (fresh; `rfl` at the registry def). -/
-theorem tfc_seatOf_eq (st : State) (c : Card) :
-    seatOf st c = match st.pileHolding c with
-      | none => none
-      | some a => match List.getLast? (below c (st.piles a).faceUp) with
-        | none => some (Sum.inl a)
-        | some z => some (Sum.inr z) := rfl
-
-/-- No holding pile: no seat (the `none` arm). -/
-theorem tfc_seatOf_none {st : State} {c : Card} (hh : st.pileHolding c = none) :
-    seatOf st c = none := by
-  rw [tfc_seatOf_eq, hh]
-
-/-- The located pair form: with the holding pile pinned, the seat is
-the below-parts readout (fresh). -/
-theorem tfc_seatOf_pair {st : State} {c : Card} {a : Anchor}
-    (hh : st.pileHolding c = some a) :
-    seatOf st c = match List.getLast? (below c (st.piles a).faceUp) with
-      | none => some (Sum.inl a)
-      | some z => some (Sum.inr z) := by
-  rw [tfc_seatOf_eq]
-  rw [hh]
-
-/-- Fresh row: a cons always has a last (the `Orig/State.lean:116`
-recursion never answers `none` on nonempty input). -/
-theorem tfc_lastOf_cons_ne : ∀ (t : List Card) (y : Card), lastOf (y :: t) ≠ none := by
-  intro t
-  induction t with
-  | nil => intro y; exact (by simp [lastOf])
-  | cons z t' ih =>
-      intro y
-      show (lastOf (y :: z :: t') = none) → False
-      rw [show lastOf (y :: z :: t') = lastOf (z :: t') from rfl]
-      exact ih z
-
-theorem tfc_seatOf_of_inr {st : State} {c z : Card}
-    (h : seatOf st c = some (Sum.inr z)) :
-    ∃ a, st.pileHolding c = some a ∧ below c (st.piles a).faceUp ≠ [] ∧
-      lastOf (below c (st.piles a).faceUp) = some z := by
-  rw [tfc_seatOf_eq] at h
-  cases hh : st.pileHolding c with
-  | none =>
-      rw [hh] at h
-      exact absurd h (by simp)
-  | some a =>
-      simp only [hh] at h
-      cases hg : List.getLast? (below c (st.piles a).faceUp) with
-      | none =>
-          rw [hg] at h
-          exact absurd h (by simp)
-      | some q =>
-          simp only [hg] at h
-          have hqz : q = z := by
-            injection h with h1
-            cases h1
-            rfl
-          subst hqz
-          refine ⟨a, rfl, ?_, ?_⟩
-          · intro hc
-            rw [hc, tfc_getLast?_lastOf] at hg
-            exact absurd hg (by simp [lastOf])
-          · rw [tfc_getLast?_lastOf] at hg
-            exact hg
-
-theorem tfc_seatOf_of_inl {st : State} {c : Card} {a : Anchor}
-    (h : seatOf st c = some (Sum.inl a)) :
-    st.pileHolding c = some a ∧ below c (st.piles a).faceUp = [] := by
-  rw [tfc_seatOf_eq] at h
-  cases hh : st.pileHolding c with
-  | none =>
-      rw [hh] at h
-      exact absurd h (by simp)
-  | some a₀ =>
-      simp only [hh] at h
-      cases hg : List.getLast? (below c (st.piles a₀).faceUp) with
-      | some q =>
-          rw [hg] at h
-          exact absurd h (by simp)
-      | none =>
-          simp only [hg] at h
-          have haeq : a₀ = a := by
-            injection h with h1
-            cases h1
-            rfl
-          subst haeq
-          have hbl : below c (st.piles a₀).faceUp = [] := by
-            cases hc : below c (st.piles a₀).faceUp with
-            | nil => rfl
-            | cons y ys =>
-                rw [hc, tfc_getLast?_lastOf] at hg
-                exact absurd hg (tfc_lastOf_cons_ne _ _)
-          exact ⟨rfl, hbl⟩
-
-/-- The `.inr` introduction. -/
 theorem tfc_seatOf_inr_intro {st : State} {c z : Card} {a : Anchor}
     (hh : st.pileHolding c = some a)
     (hz : lastOf (below c (st.piles a).faceUp) = some z) :
@@ -1284,10 +910,12 @@ theorem tfc_seatOf_inl_intro {st : State} {c : Card} {a : Anchor}
 (the claim-side involution rows `Orig2/Vocab.lean §4.5` anticipated:
 "The involution lemmas ride at the Claims layer when needed"). -/
 
-/-- The card-level twin involution (fresh; rides `Suit.twin_twin`,
-`Orig/Basic.lean:39`). -/
-theorem tfc_card_twin_twin (c : Card) : c.twin.twin = c := by
-  simp [Card.twin]
+/-- The card-level twin involution.  A one-line delegate since the
+2026-10-31 shared-kit strike: the row is registry-owned at
+`Orig2/Vocab.lean` §4.5 (`card_twin_twin`, beside `def Card.twin`);
+rides `Suit.twin_twin`, `Orig/Basic.lean:39`. -/
+theorem tfc_card_twin_twin (c : Card) : c.twin.twin = c :=
+  card_twin_twin c
 
 /-- Same-color suits are equal-or-twin (fresh 16-way kernel row at
 `Orig/Basic.lean:28-45`). -/
@@ -1400,6 +1028,24 @@ theorem tfc_seat_parent {st : State} {c z : Card} {a : Anchor}
         have hzK : z ∈ (st.piles k).hidden ++ (st.piles k).faceUp :=
           List.mem_append.mpr (Or.inr (lastOf_mem hlzk))
         exact tfc_two_pile_zone_absurd (fun h => hka h.symm) hccz hzA hzK
+
+/-- A card seated `.inr` on a card parent is not a king.  HOISTED
+2026-10-31 to one home beside its seat rows (the two identical private
+copies — CargoRaise's `seatOf_inr_rank_ne_king` and FiberTransfer's
+`seated_inr_rank_ne_king`, both lineage `Archive/TwinFoundationRow.lean:180`
+— were struck; the cites re-point here).  Lineage: a king cannot sit on
+a parent (`canSitOn` would need `12 + 1 = 13`, and no rank has `toIdx`
+13). -/
+theorem tfc_seatOf_inr_rank_ne_king {s : State} {c r : Card}
+    (hwf : s.WF) (hseat : seatOf s c = some (Sum.inr r)) :
+    c.rank ≠ Rank.king := by
+  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hseat
+  have hfit : canSitOn c r = true := (tfc_seat_parent hwf hhold hlast).1
+  intro hking
+  have hlt := ((canSitOn_eq c r).mp hfit).1
+  have hidx : c.rank.toIdx = 12 := by rw [hking]; rfl
+  have hlt' := Rank.toIdx_lt r.rank
+  omega
 
 /-- The run head never lands a located `inr`-base on its own holding
 pile: the descent exclusion behind `tfc_tabToTab_wf`'s `hak` (fresh

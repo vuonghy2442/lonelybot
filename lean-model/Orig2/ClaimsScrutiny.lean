@@ -439,24 +439,20 @@ def ParentOf (s : State) (d : Card) : Option Card :=
 /-- `Blocker s z d` — `d` sits directly on `z` (the card covering `z`). -/
 def Blocker (s : State) (z d : Card) : Prop := ParentOf s d = some z
 
-/-- **CANDIDATE (surviving king arm) `king_change_needs_king_stack`** — a
-non-Floater king whose seat changes forces a KING stack: either it is raised
-itself, or fuel must be manufactured, and the only reversible fuel-creating
-raise is a king's (W2's retraction).  PRICE: the exact-return argument at
-`reversibleAtW` (a non-king cannot be restored to an emptied pile), the
-per-leg support rows, then the chain induction over `ShufflePlayW`. -/
-theorem king_change_needs_king_stack
-    {st w : State} (hwfst : st.WF) (hw : w.WF)
-    {c : Card} (hking : c.rank = Rank.king)
-    (htab : ∃ b, seatOf st c = some b)
-    (hnf : ¬ FloaterSpec st c)
-    (hchg : seatOf w c ≠ seatOf st c) :
-    ∀ play : List Move, ShufflePlayW st play w →
-      ∃ x : Card, x.rank = Rank.king ∧ Move.tabToFound x ∈ play := by
-  sorry
+/-! **CLAIM `king_change_needs_king_stack` (PROMOTED — the card landed
+2026-10-19, per `Orig2/Claims.lean` §1G)** — the surviving king arm of
+the seat-mate stack claim: a non-Floater king whose seat changes forces
+a KING stack (either it is raised itself, or fuel must be manufactured,
+and the only reversible fuel-creating raise is a king's — W2's
+retraction).  DISCHARGED at `Orig2/SeatMateStack.lean` §6 as
+`nonFloater_king_change_needs_king_stack`, exactly as stated (the
+`ka_hasKingRaise` search row plus the seat-const assembly; the card's
+battery carries the head at `[propext, Quot.sound]`, zero sorryAx, zero
+`Classical.choice`).  The stub is deleted per the promotion rule (never
+duplicated); the Claims battery line for this claim moved to the card. -/
 
 /-- **CANDIDATE `nonFloater_change_demands_stack`** — the repaired general
-shape: kings force a king stack (`king_change_needs_king_stack`); ordinary
+shape: kings force a king stack (`nonFloater_king_change_needs_king_stack`); ordinary
 cards stack themselves or the BLOCKER above their parent's twin.  PRICE: the
 per-leg support rows (slide/stack/pull named subjects), blocker
 immovability (W1's mechanism), then the chain induction over
@@ -498,5 +494,4 @@ the stub is deleted per the claims-layer rule. -/
 #print axioms fiber_product_schematic
 #print axioms fiber_transfer
 #print axioms tombstone_seatmate_stack
-#print axioms king_change_needs_king_stack
 #print axioms nonFloater_change_demands_stack

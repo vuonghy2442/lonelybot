@@ -536,12 +536,8 @@ private theorem seatOf_ne_of_mem_faceUp {st : State} {c : Card} {a : Anchor}
   have hh : st.pileHolding c = none := (seatOf_eq_none_iff_holding st c).mp hse
   exact (tfc_not_mem_faceUp_of_holdNone hh a) h
 
-/-- A seated card is face-up somewhere. -/
-private theorem mem_faceUp_of_seatOf_ne {st : State} {c : Card}
-    (h : seatOf st c ≠ none) : ∃ a, c ∈ (st.piles a).faceUp := by
-  have hh : st.pileHolding c ≠ none := fun hh => h ((seatOf_eq_none_iff_holding st c).mpr hh)
-  obtain ⟨a, ha⟩ := option_some_of_ne_none hh
-  exact ⟨a, pileHolding_mem ha⟩
+/- A seated card is face-up somewhere (Integrity kit since the
+2026-10-31 shared-kit strike: `mem_faceUp_of_seat'`). -/
 
 /-- **A reversible letter cannot take a seated card off the tableau except by
 raising that card.**  Draws and `wasteToFound` leave the piles alone; a
@@ -944,7 +940,7 @@ private theorem hfound_step_invariant {u v : State} {m : Move} {c z0 : Card}
               rw [hc'c] at htop
               exact htop
             have hcfin : c ∈ u.found c.suit := lastOf_mem hlast
-            have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seatOf_ne (by rw [hsome]; simp)
+            have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seat' (by rw [hsome]; simp)
             obtain ⟨a, ha⟩ := hcface
             exact ((mem_found_unique hwf hcfin).1 a).2 ha
           · refine Or.inr ?_
@@ -967,7 +963,7 @@ private theorem hfound_step_invariant {u v : State} {m : Move} {c z0 : Card}
               rw [hc'c] at htop
               exact htop
             have hcfin : c ∈ u.found c.suit := lastOf_mem hlast
-            have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seatOf_ne (by rw [hsome]; simp)
+            have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seat' (by rw [hsome]; simp)
             obtain ⟨a, ha⟩ := hcface
             exact ((mem_found_unique hwf hcfin).1 a).2 ha
           · have h := pull_seat_change hstep c (fun hcon => hxc hcon.symm)
@@ -1317,7 +1313,7 @@ private theorem stack_seat_change {u v : State} {m : Move} {c z0 : Card}
           rw [hc'c] at htop
           exact htop
         have hcfin : c ∈ u.found c.suit := lastOf_mem hlast
-        have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seatOf_ne (by rw [hse]; simp)
+        have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seat' (by rw [hse]; simp)
         obtain ⟨a, ha⟩ := hcface
         exact ((mem_found_unique hwf hcfin).1 a).2 ha
       · have h := pull_seat_change hstep c (fun hcon => hxc hcon.symm)
@@ -1950,7 +1946,7 @@ private theorem bottom_seat_step {u v : State} {m : Move} {c : Card} {a0 : Ancho
           rw [hc'c] at htop
           exact htop
         have hcfin : c ∈ u.found c.suit := lastOf_mem hlast
-        have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seatOf_ne (by rw [hse]; simp)
+        have hcface : ∃ a, c ∈ (u.piles a).faceUp := mem_faceUp_of_seat' (by rw [hse]; simp)
         obtain ⟨a, ha⟩ := hcface
         exact ((mem_found_unique hwf hcfin).1 a).2 ha
       · exact Or.inl (by

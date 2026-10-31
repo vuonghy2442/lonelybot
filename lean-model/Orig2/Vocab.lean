@@ -48,6 +48,14 @@ annex's "future saturation cards write their own grade", written)
 and `SatDifferFork` (the campaign's single named residue, the
 witness-journey dip) — §5.1 below, with their routes.
 
+(2026-10-31, the fork critical-pair promotion): `CoveredAt` (the
+chart's cover read, §9 beside `coverOf`) and `ArmDichotomy` (the
+arm-level residue, §8 beside `BareCargoEquiv`; strictly stronger than
+`SatDifferFork`, and the equal-rung `vcS/vcT` boundary is
+`Orig2/Boundary.lean`).  The local fork rows are
+`Orig2/ForkCriticalPair.lean`; the cargo-fiber machinery is
+`Orig2/ArmFiber.lean`.
+
 ## §1. PLAY-TAXONOMY COUNTERS (live, ported)
 
 Ported verbatim from `Orig/BracketDecomp.lean:254-275` — pure play
@@ -513,6 +521,16 @@ collide with the registry's `reversibleAtW`; the involution
 lemmas ride at the Claims layer when needed). -/
 def Card.twin (c : Card) : Card := ⟨c.suit.twin, c.rank⟩
 
+/-- The twin relabeling is an involution (the registry-owned one-line
+row, beside its def; rides the core `Suit.twin_twin`,
+`Orig/Basic.lean:39`).  HOISTED 2026-10-31 to one home — the former
+claims-layer (`TwinRelabel.lean` §1) and cargo-kit
+(`tfc_card_twin_twin`) copies are delegates/strikes per the shared-kit
+norm. -/
+theorem card_twin_twin (c : Card) : c.twin.twin = c := by
+  cases c with
+  | mk s r => simp [Card.twin]
+
 /-- **SeatMate c x** — the cards that can take `c`'s seat under the class
 symmetry, INCLUDING `c` itself: for an ordinary card the twin-pair
 `{c, c.twin}`, for a king the whole quad (every bare king reaches every fuel
@@ -614,6 +632,17 @@ def SatDifferFork : Prop :=
     (∃ σ : Suit, rungAt u σ ≠ rungAt v σ) →
     ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x
 
+/-- **SatDifferForkWF** — the `WF`-gated form of the campaign residue.
+Every available step-algebra row (the cover token, one-founding, the
+reversible-raise bridge) is `WF`-gated, and `forkless_found_unique`
+consumes the residue at `WF` endpoints, so this is the version to prove.
+The registered `SatDifferFork` implies it (`satDifferForkWF_of_satDifferFork`);
+the converse is not needed for the campaign theorem. -/
+def SatDifferForkWF : Prop :=
+  ∀ u v : State, u.WF → SSaturated u → SSaturated v → sameOrbitSetoid.r u v →
+    (∃ σ : Suit, rungAt u σ ≠ rungAt v σ) →
+    ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x
+
 /-!
 ## §6. THE PHASE ROTATION COMPONENTS  (live, KEPT 2026-10-17;
 the orbit-factor migration's vocabulary, owner-approved clean cut)
@@ -703,6 +732,132 @@ tier (`cargoSetoid`, `CargoOrbit`, the fiber rows) is not ported
 def BareCargoEquiv (A B : State) : Prop :=
   CargoPath A B ∧ CargoPath B A
 
+/-- **BareFlatEquiv** — THE FLAT FIBER: two positions joined by
+`FlatPath` both ways, i.e. the reversible moves `tabToTab` and `draw`
+are both allowed, in any order.  This is the natural “cargo fiber up to
+the SW cycle” relation:
+
+```text
+BareCargoEquiv  ⊂  BareFlatEquiv  ⊂  sameOrbitSetoid
+(cargo slides)     (+ draws)          (+ raises/pulls)
+```
+
+`FlatStep` is exactly the two reversible letters (`cargo` and `draw`),
+so this is the two-way closure of the flat alphabet.  The draw
+counterexample (`Orig2/Boundary.lean`) shows the first inclusion is
+strict.  The SW-corrected dichotomy uses this relation as its first
+branch (`Orig2/SWDichotomy.lean`). -/
+def BareFlatEquiv (A B : State) : Prop :=
+  FlatPath A B ∧ FlatPath B A
+
+/-- **MoveSet** — a predicate on moves: the alphabet of a fiber. -/
+abbrev MoveSet := Move → Prop
+
+/-- **RevStepOf M** — the reversible one-step relation of a move-set:
+some move in `M` fires and carries a return witness. -/
+def RevStepOf (M : MoveSet) (u v : State) : Prop :=
+  ∃ m, M m ∧ u.step m = some v ∧ reversibleAtW u m
+
+/-- **TwoWay Q** — the symmetric closure of a state-pair letter. -/
+def TwoWay (Q : State → State → Prop) (u v : State) : Prop :=
+  Steps Q u v ∧ Steps Q v u
+
+/-- **MoveFiber M** — THE GENERIC FIBER: the two-way reversible closure
+of the moves in `M`.  Every quotient in the hierarchy is an instance:
+
+```text
+CargoSpan = MoveFiber cargoMoves   (tabToTab only)
+FlatSpan  = MoveFiber flatMoves    (tabToTab + draw)
+MacroSpan = MoveFiber allMoves     (every reversible move)
+```
+-/
+def MoveFiber (M : MoveSet) : State → State → Prop :=
+  TwoWay (RevStepOf M)
+
+/-- The cargo alphabet: reversible `tabToTab` moves. -/
+def cargoMoves : MoveSet := fun m => ∃ c b, m = Move.tabToTab c b
+
+/-- The flat alphabet: reversible `tabToTab` and `draw` moves. -/
+def flatMoves : MoveSet := fun m =>
+  m = Move.draw ∨ ∃ c b, m = Move.tabToTab c b
+
+/-- The macro alphabet: every move (reversibility is carried per leg). -/
+def allMoves : MoveSet := fun _ => True
+
+/-- The cargo fiber as a move-set instance. -/
+abbrev CargoSpan : State → State → Prop := MoveFiber cargoMoves
+
+/-- The flat fiber as a move-set instance. -/
+abbrev FlatSpan : State → State → Prop := MoveFiber flatMoves
+
+/-- The macro fiber as a move-set instance. -/
+abbrev MacroSpan : State → State → Prop := MoveFiber allMoves
+
+/-- **rungSetoid** — THE READOUT QUOTIENT: two states are equivalent
+when they have the same rung vector (hence, at `WF`, the same `found`
+tuple).  This is not a move-generated fiber; it is the kernel of the
+rung observation. -/
+def rungSetoid : Setoid State where
+  r u v := RungEq u v
+  iseqv :=
+    ⟨fun _ _ => rfl,
+     fun h σ => (h σ).symm,
+     fun h1 h2 σ => (h1 σ).trans (h2 σ)⟩
+
+/-- The rung class: a rung vector, quotiented. -/
+abbrev RungClass : Type := Quotient rungSetoid
+
+/-- **ArmDichotomyFor R** — THE ARM DICHOTOMY AT A FIBER RELATION `R`:
+two `SSaturated` class-mates are either `R`-related, or the class
+contains a fork.  Every concrete dichotomy is an instance:
+
+```text
+ArmDichotomy      = ArmDichotomyFor BareCargoEquiv   (draw-free cargo fiber)
+ArmDichotomySW    = ArmDichotomyFor BareFlatEquiv    (cargo + draw)
+ArmDichotomyRung  = ArmDichotomyFor RungEq           (the rung readout)
+```
+
+`ArmDichotomyRung` is exactly `SatDifferFork`
+(`Orig2/Boundary.lean`); `ArmDichotomySW` is the
+`BareFlatEquiv` instance (`Orig2/SWDichotomy.lean`). -/
+def ArmDichotomyFor (R : State → State → Prop) : Prop :=
+  ∀ u v : State, SSaturated u → SSaturated v → sameOrbitSetoid.r u v →
+    R u v ∨
+      ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x
+
+/-- **SatEqualFor R** — the equal-rung half of `ArmDichotomyFor R`. -/
+def SatEqualFor (R : State → State → Prop) : Prop :=
+  ∀ u v : State, SSaturated u → SSaturated v → sameOrbitSetoid.r u v →
+    RungEq u v →
+    R u v ∨
+      ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x
+
+/-- **ForklessNormalFor R** — the forkless-normalization target at `R`:
+in a class with no `forkState`, two saturated class-mates are
+`R`-related. -/
+def ForklessNormalFor (R : State → State → Prop) : Prop :=
+  ∀ u v : State, SSaturated u → SSaturated v → sameOrbitSetoid.r u v →
+    (∀ F, sameOrbitSetoid.r u F → ¬ forkState F) → R u v
+
+/-- The draw-free cargo-fiber arm dichotomy.  DRAW CAVEAT: false with a
+live draw zone (`Orig2/Boundary.lean`); use `ArmDichotomySW`. -/
+abbrev ArmDichotomy : Prop := ArmDichotomyFor BareCargoEquiv
+
+/-- The SW name for the flat-fiber arm dichotomy. -/
+abbrev ArmDichotomySW : Prop := ArmDichotomyFor BareFlatEquiv
+
+/-- The rung-level repair: exactly `SatDifferFork`. -/
+abbrev ArmDichotomyRung : Prop := ArmDichotomyFor RungEq
+
+/-- The draw-free equal-rung half. -/
+abbrev SatEqualFork : Prop := SatEqualFor BareCargoEquiv
+
+/-- The flat-fiber equal-rung half. -/
+abbrev SatEqualCargoSW : Prop := SatEqualFor BareFlatEquiv
+
+/-- The draw-free forkless-normal target. -/
+abbrev ForklessCargoNormal : Prop := ForklessNormalFor BareCargoEquiv
+
 /-!
 ## §9. THE CHART  (live, direction FINAL by owner 2026-10-17:
 the beneath map `seatOf` is the chart — mover-keyed; the cover
@@ -752,6 +907,15 @@ def coverOf (st : State) (c : Card) : Option Card :=
       | [] => none
       | [_] => none
       | _ :: d :: _ => some d
+
+/-- **CoveredAt st c** — the cover read of the chart: some card sits
+directly on `c` in the face-up tableau (`seatOf st d = some (.inr c)`).
+At a fork this is the blocked twin's exact obstruction: a covered card
+tops no pile, so it is not vanilla-raisable.  The local fork/cover
+equivalence is `forkWitness_iff_covered`
+(`Orig2/ForkCriticalPair.lean` §4). -/
+def CoveredAt (st : State) (c : Card) : Prop :=
+  ∃ d, seatOf st d = some (Sum.inr c)
 
 /-- **cutOf st** — the pool split: the stock's length (with the
 pool and the cut, the stock and the waste are determined up to the

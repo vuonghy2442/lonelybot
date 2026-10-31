@@ -50,12 +50,11 @@ def relabelTwin (x : Card) (st : State) : State :=
 
 end State
 
-/-! ## §1. The card involution -/
+/-! ## §1. The card involution
 
-/-- The twin involution on cards. -/
-theorem card_twin_twin (c : Card) : c.twin.twin = c := by
-  cases c with
-  | mk s r => simp [Card.twin]
+The one-line involution row `card_twin_twin` is registry-owned
+(`Orig2/Vocab.lean` §4.5, beside `def Card.twin`) since the 2026-10-31
+shared-kit strike; this chapter's relabeling rows below cite it. -/
 
 /-- The relabeling sends `x` to its twin. -/
 @[simp] theorem card_relabelTwin_self (x : Card) :
