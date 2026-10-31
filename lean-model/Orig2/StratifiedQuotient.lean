@@ -113,8 +113,70 @@ theorem swappableStratum_unique (x : Card) :
   stratOrbit_universal x (fun s => SwappableIn s.val x)
     (fun _ _ h => propext (swappable_stratum_invariant x h))
 
+/-! ## The pair-free journey link (2026-10-31, the owner's unification ask)
+
+The transfer routes unified at the STATEMENT level: a pair-free
+witness journey (never raises or pulls either twin) gives the
+stratum data - the class from the play (`shufflePlayW_revEqW`), the
+twins' membership profile from the two preservation rows (no pull
+keeps a member a member, `found_mem_play_of_not_pull`; no raise
+keeps a non-member a non-member, `found_not_mem_play_of_not_raise`).
+The engine routes (the splice functor, the first-touch machinery)
+remain the low-level proof inputs; every EXTERNAL consumer of the
+pair-free shape cites the unified row below. -/
+
+/-- **PAIR-FREE JOURNEYS STAY IN THE STRATUM** - a witness play that
+never raises or pulls either twin relates the endpoints by the
+stratified orbit: the class from the play, the twins' membership
+profile from the two preservation rows. -/
+theorem stratOrbit_of_pairFreePlay (x : Card) {s t : State} {play : List Move}
+    (hwf : s.WF) (hplay : ShufflePlayW s play t)
+    (hno : ∀ m ∈ play, NotFoundPair x m) :
+    (stratOrbit x).r ⟨s, hwf⟩ ⟨t, run_wf hwf (Walk_run _ hplay)⟩ := by
+  have hwft : t.WF := run_wf hwf (Walk_run _ hplay)
+  refine ⟨?_, ?_, ?_⟩
+  · show sameOrbitSetoid.r s t
+    exact RevEqW_symm (shufflePlayW_revEqW hplay)
+  · show x ∈ s.found x.suit ↔ x ∈ t.found x.suit
+    constructor
+    · intro hmem
+      exact found_mem_play_of_not_pull hplay hmem
+        (fun k hk b hb => (hno k hk).2.2.1 b hb)
+    · intro hmem
+      by_cases hmems : x ∈ s.found x.suit
+      · exact hmems
+      · exact absurd hmem
+          (found_not_mem_play_of_not_raise hplay hmems
+            (fun k hk => (hno k hk).1))
+  · show x.twin ∈ s.found x.twin.suit ↔ x.twin ∈ t.found x.twin.suit
+    constructor
+    · intro hmem
+      exact found_mem_play_of_not_pull hplay hmem
+        (fun k hk b hb => (hno k hk).2.2.2 b hb)
+    · intro hmem
+      by_cases hmems : x.twin ∈ s.found x.twin.suit
+      · exact hmems
+      · exact absurd hmem
+          (found_not_mem_play_of_not_raise hplay hmems
+            (fun k hk => (hno k hk).2.1))
+
+/-- **THE UNIFIED TRANSFER** - swappability is invariant under
+pair-free witness journeys: NO seat premises, BOTH directions (the
+stratum constancy applied to the pair-free stratum data).  This
+subsumes the pair-free transfer statement for every external
+consumer: the old shape (`.inr` seats at both ends, one direction)
+is the engine-grade special case. -/
+theorem swappable_of_pairFreePlay (x : Card) {s t : State} {play : List Move}
+    (hwf : s.WF) (hplay : ShufflePlayW s play t)
+    (hno : ∀ m ∈ play, NotFoundPair x m) :
+    SwappableIn s x ↔ SwappableIn t x :=
+  swappable_stratum_invariant x
+    (stratOrbit_of_pairFreePlay x hwf hplay hno)
+
 #print axioms swappable_stratum_invariant
 #print axioms SwappableStratum
 #print axioms swappableStratum_mk
 #print axioms stratOrbit_universal
 #print axioms swappableStratum_unique
+#print axioms stratOrbit_of_pairFreePlay
+#print axioms swappable_of_pairFreePlay

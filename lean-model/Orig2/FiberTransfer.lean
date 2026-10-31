@@ -887,7 +887,7 @@ private theorem found_mem_step {u v : State} {m : Move} {y : Card}
 pulls it.  Restated private port of
 `TwinExcursionClosure.found_mem_play_of_not_pull`
 (`Orig2/TwinExcursionClosure.lean:832`), proved from the step row above. -/
-private theorem found_mem_play_of_not_pull {u t : State} {play : List Move} {y : Card}
+theorem found_mem_play_of_not_pull {u t : State} {play : List Move} {y : Card}
     (hplay : ShufflePlayW u play t)
     (hmem : y ∈ u.found y.suit)
     (hno : ∀ k ∈ play, ∀ b : Base, k ≠ Move.foundToTab y b) :
@@ -898,6 +898,78 @@ private theorem found_mem_play_of_not_pull {u t : State} {play : List Move} {y :
       obtain ⟨u1, hrevK, hstepK, hrest⟩ := walk_cons_inv hplay
       have hmem1 : y ∈ u1.found y.suit :=
         found_mem_step hstepK hmem (hno k (by simp))
+      exact ih hrest hmem1
+        (fun n hn => hno n (List.mem_cons_of_mem k hn))
+
+/-- Non-membership in the foundation row survives every reversible
+letter except the raise of that very card (the dual of
+`found_mem_step`; the waste letters are killed by reversibility). -/
+private theorem found_not_mem_step {u v : State} {m : Move} {y : Card}
+    (hstep : State.step u m = some v)
+    (hrev : reversibleAtW u m)
+    (hmem : y ∉ u.found y.suit)
+    (hnot : m ≠ Move.tabToFound y) :
+    y ∉ v.found y.suit := by
+  cases m with
+  | draw =>
+      rw [← (chart_draw hstep).2.1 y.suit]
+      exact hmem
+  | wasteToFound c => exact absurd hrev (wasteToFound_not_reversibleAtW u c)
+  | wasteToTab c b => exact absurd hrev (wasteToTab_not_reversibleAtW u c b)
+  | tabToFound c =>
+      obtain ⟨-, a, hpa, hs⟩ := step_tabToFound_inv hstep
+      rw [hs]
+      by_cases hys : c.suit = y.suit
+      · rw [← hys]
+        rw [← hys] at hmem
+        rw [setFound_found_self]
+        have hyc : y ≠ c := by
+          intro hyc
+          exact hnot (by rw [hyc])
+        intro hmem'
+        rcases List.mem_append.mp hmem' with h | h
+        · exact hmem h
+        · rw [List.mem_singleton] at h
+          exact hyc h
+      · rw [setFound_found_ne (fun h => hys h.symm)]
+        exact hmem
+  | foundToTab c b =>
+      obtain ⟨c', htop, hc'c, hcp, hs⟩ := step_foundToTab_inv hstep
+      rw [hs]
+      have hfound : ((u.setFound c.suit (chop (u.found c.suit))).putCard c b).found
+          = (u.setFound c.suit (chop (u.found c.suit))).found := by
+        cases b with
+        | inl t => rw [putCard_inl_found]
+        | inr z => rw [putCard_inr_found]
+      rw [hfound]
+      by_cases hys : c.suit = y.suit
+      · rw [← hys]
+        rw [← hys] at hmem
+        rw [setFound_found_self]
+        exact fun hc => hmem (chop_mem hc)
+      · rw [setFound_found_ne (fun h => hys h.symm)]
+        exact hmem
+  | tabToTab c b =>
+      obtain ⟨a, hhold, hcp, -, hs⟩ := step_tabToTab_inv hstep
+      rw [hs]
+      rw [putRun_found, setPile_found]
+      exact hmem
+
+/-- A card off its foundation row stays off across any reversible
+play that never raises it (the dual of `found_mem_play_of_not_pull`;
+together the two rows give the membership IFF along pair-free
+journeys - the stratum data of the unified transfer). -/
+theorem found_not_mem_play_of_not_raise {u t : State} {play : List Move} {y : Card}
+    (hplay : ShufflePlayW u play t)
+    (hmem : y ∉ u.found y.suit)
+    (hno : ∀ k ∈ play, k ≠ Move.tabToFound y) :
+    y ∉ t.found y.suit := by
+  induction play generalizing u t with
+  | nil => cases hplay; exact hmem
+  | cons k rest ih =>
+      obtain ⟨u1, hrevK, hstepK, hrest⟩ := walk_cons_inv hplay
+      have hmem1 : y ∉ u1.found y.suit :=
+        found_not_mem_step hstepK hrevK hmem (hno k (by simp))
       exact ih hrest hmem1
         (fun n hn => hno n (List.mem_cons_of_mem k hn))
 
@@ -2520,6 +2592,8 @@ theorem fiber_transfer_seat_free :
 #print axioms seated_of_orbit
 #print axioms unseated_of_orbit
 #print axioms fiber_transfer_seat_free
+#print axioms found_mem_play_of_not_pull
+#print axioms found_not_mem_play_of_not_raise
 
 /-- **THE ORIGINAL `fiber_transfer`, DISCHARGED.**  The
 ledger stub's statement VERBATIM — every hypothesis, the conclusion
