@@ -698,19 +698,19 @@ theorem king_keep_step {st s1 : State} {m : Move} {c : Card}
   | wasteToTab y b => exact absurd hrev (wasteToTab_not_reversibleAtW st y b)
   | tabToFound d =>
       obtain ⟨-, a, hpa, hsV⟩ := step_tabToFound_inv hstep
-      rcases hcur with hf | ⟨a', hseat, hhid⟩
+      by_cases hcd : c = d
       · left
         rw [hsV]
-        by_cases hcs : c.suit = d.suit
-        · rw [hcs.symm, setFound_found_self]
-          exact List.mem_append_left _ hf
-        · rw [setFound_found_ne hcs]
-          exact hf
-      · by_cases hcd : c = d
+        rw [hcd.symm, setFound_found_self]
+        exact List.mem_append_right _ (List.mem_singleton_self c)
+      · rcases hcur with hf | ⟨a', hseat, hhid⟩
         · left
           rw [hsV]
-          rw [hcd.symm, setFound_found_self]
-          exact List.mem_append_right _ (List.mem_singleton_self c)
+          by_cases hcs : c.suit = d.suit
+          · rw [hcs.symm, setFound_found_self]
+            exact List.mem_append_left _ hf
+          · rw [setFound_found_ne hcs]
+            exact hf
         · right
           refine ⟨a', ?_, ?_⟩
           · rw [raise_seat_change_of_seated hstep hrev (by rw [hseat]; simp) hcd]
@@ -719,19 +719,19 @@ theorem king_keep_step {st s1 : State} {m : Move} {c : Card}
             exact hhid
   | foundToTab y b =>
       obtain ⟨c', htop, hc', hcp, hsV⟩ := step_foundToTab_inv hstep
-      rcases hcur with hf | ⟨a, hseat, hhid⟩
-      · by_cases hcy : c = y
-        · right
-          subst hcy
-          obtain ⟨t, rfl⟩ := king_base_inl hk hcp
-          have hpile : s1.piles t = (⟨[], [c]⟩ : Pile) := by
-            rw [hsV, putCard_piles_inl]
-            simp
-          have hwf1 : s1.WF := step_wf hwf hstep
-          have hmem : c ∈ (s1.piles t).faceUp := by rw [hpile]; simp
-          have hhold : s1.pileHolding c = some t := (pileHolding_eq_some_iff hwf1).2 hmem
-          have hbelow : below c (s1.piles t).faceUp = [] := by rw [hpile, below_cons, ite_eq_left rfl]
-          exact ⟨t, tfc_seatOf_inl_intro hhold hbelow, by rw [hpile]⟩
+      by_cases hcy : c = y
+      · right
+        subst hcy
+        obtain ⟨t, rfl⟩ := king_base_inl hk hcp
+        have hpile : s1.piles t = (⟨[], [c]⟩ : Pile) := by
+          rw [hsV, putCard_piles_inl]
+          simp
+        have hwf1 : s1.WF := step_wf hwf hstep
+        have hmem : c ∈ (s1.piles t).faceUp := by rw [hpile]; simp
+        have hhold : s1.pileHolding c = some t := (pileHolding_eq_some_iff hwf1).2 hmem
+        have hbelow : below c (s1.piles t).faceUp = [] := by rw [hpile, below_cons, ite_eq_left rfl]
+        exact ⟨t, tfc_seatOf_inl_intro hhold hbelow, by rw [hpile]⟩
+      · rcases hcur with hf | ⟨a, hseat, hhid⟩
         · left
           rw [hsV, putCard_found]
           by_cases hcs : c.suit = y.suit
@@ -746,18 +746,6 @@ theorem king_keep_step {st s1 : State} {m : Move} {c : Card}
             · exact absurd (List.mem_singleton.mp h) hcy
           · rw [setFound_found_ne hcs]
             exact hf
-      · by_cases hcy : c = y
-        · right
-          subst hcy
-          obtain ⟨t, rfl⟩ := king_base_inl hk hcp
-          have hpile : s1.piles t = (⟨[], [c]⟩ : Pile) := by
-            rw [hsV, putCard_piles_inl]
-            simp
-          have hwf1 : s1.WF := step_wf hwf hstep
-          have hmem : c ∈ (s1.piles t).faceUp := by rw [hpile]; simp
-          have hhold : s1.pileHolding c = some t := (pileHolding_eq_some_iff hwf1).2 hmem
-          have hbelow : below c (s1.piles t).faceUp = [] := by rw [hpile, below_cons, ite_eq_left rfl]
-          exact ⟨t, tfc_seatOf_inl_intro hhold hbelow, by rw [hpile]⟩
         · right
           refine ⟨a, ?_, ?_⟩
           · rw [pull_seat_change hstep c hcy]
@@ -773,16 +761,10 @@ theorem king_keep_step {st s1 : State} {m : Move} {c : Card}
       · right
         by_cases hcy : c = y
         · subst hcy
-          cases b with
-          | inl t =>
-              refine ⟨t, ?_, ?_⟩
-              · rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_left rfl]
-              · rw [hsV, putRun_piles_inl_self]
-          | inr z =>
-              exfalso
-              obtain ⟨-, -, hfit⟩ := canPlace_inr hcp
-              rw [canSitOn_king_false hk] at hfit
-              exact Bool.noConfusion hfit
+          obtain ⟨t, rfl⟩ := king_base_inl hk hcp
+          refine ⟨t, ?_, ?_⟩
+          · rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_left rfl]
+          · rw [hsV, putRun_piles_inl_self]
         · refine ⟨a, ?_, ?_⟩
           · rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_right hcy]
             exact hseat

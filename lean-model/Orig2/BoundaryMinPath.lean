@@ -99,7 +99,6 @@ theorem run_prefix6 : s1.run prefix6 = some N6 := by rfl
 def bracketCount (l : List Move) : Nat := raiseTotal l + pullTotal l
 
 theorem bracketCount_minPlay : bracketCount minPlay = 9 := by decide
-theorem bracketCount_prefix6 : bracketCount prefix6 = 4 := by decide
 theorem play_length : play.length = 14 := rfl
 theorem bracketCount_play : bracketCount play = 11 := by decide
 

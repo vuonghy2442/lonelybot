@@ -194,8 +194,6 @@ theorem wf_12 : F12.WF := step_wf wf_11 step_12
 theorem wf_13 : F13.WF := step_wf wf_12 step_13
 theorem wf_14 : F14.WF := step_wf wf_13 step_14
 
-theorem wf_t1 : t1.WF := t1_wf
-
 /-! ## §6. Saturation of the two endpoints -/
 
 theorem s1_sat : SSaturated s1 := by
@@ -509,12 +507,6 @@ theorem rungs_F7 :
 
 theorem rungs_F8_club : rungAt F8 .club = 3 := by decide
 
-theorem rungs_before_club :
-    rungAt F0 .club = 2 ∧ rungAt F1 .club = 2 ∧ rungAt F2 .club = 2 ∧
-      rungAt F3 .club = 2 ∧ rungAt F4 .club = 2 ∧ rungAt F5 .club = 2 ∧
-      rungAt F6 .club = 2 ∧ rungAt F7 .club = 2 := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> decide
-
 /-- The first crossing of the club rung: the verbatim split. -/
 theorem first_passage_club :
     play = p7 ++ Move.tabToFound (crd .club .three) :: q8 ∧
@@ -528,8 +520,6 @@ theorem first_passage_club :
     rfl
   · show ShufflePlayW F7 q7 F14
     exact shuffle_7_14
-
-theorem first_passage_not_fork : ¬ forkState F7 := no_fork_7
 
 /-! ## §12. The journey-local forms and their refutation -/
 
