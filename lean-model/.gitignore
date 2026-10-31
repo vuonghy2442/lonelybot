@@ -1,1 +1,4 @@
 .lake/
+blueprint/web/
+blueprint/print/
+*.paux

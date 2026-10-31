@@ -1,0 +1,829 @@
+% In this file you should put the actual content of the blueprint.
+% It will be used both by the web and the print version.
+%
+% Blueprint of Orig2 --- the rebuild library of the Klondike
+% macro-state program (lean-model/Orig2), drawn from the live
+% cards: MAP.md, the umbrella docstrings, and the source heads.
+% Every \lean name was verified against the Orig2 sources.
+
+\chapter{The program}
+\label{chap:program}
+
+This blueprint maps \texttt{Orig2}, the rebuild library of the
+Klondike macro-state program, and the campaign that is running on
+top of it.
+
+The game is Klondike solitaire compressed to its macro-state
+physics.  A \emph{state} is a full board: foundations, tableau
+piles, stock and waste.  A \emph{witness journey} is a play in
+which every letter is reversible.  The \emph{macro class} of a
+state is the set of states joined to it by witness journeys both
+ways.  The program's question is the \emph{saturation ceiling}:
+when the board admits no further reversible progress, how much of
+the foundation layout is forced by the class alone?
+
+The certified substrate (Chapter~\ref{chap:substrate}) carries
+the game model, the fiber transfer, and the decidability bridge.
+The fork theory (Chapter~\ref{chap:fork}) develops the local
+obstruction that any class-level difference must pass through.
+The fiber hierarchy (Chapter~\ref{chap:fiber}) assembles the
+dichotomy family and the campaign payoff.  The boundary cases
+(Chapter~\ref{chap:boundary}) are the counterexamples that fix the
+target shapes.  The campaign target (Chapter~\ref{chap:campaign})
+is the open summit \texttt{SatDifferFork}, standing at the
+flat-fiber vertex with the valley route as the live attack
+front; fork-position rigidity is closed unconditionally.
+
+\paragraph{How to read the graph.}  A green border means the
+statement is formalized in Lean; a light green fill means the
+proof is formalized; a light blue fill means the proof is ready to
+be formalized (all prerequisites done); a dark green fill means
+the result and all its ancestors are formalized.  The open
+summit is exactly the node with a green border and no proof fill
+at the top of the graph.
+
+\chapter{The substrate}
+\label{chap:substrate}
+
+\section{The game model}
+
+\begin{definition}[The game model]\label{def:model}
+\lean{State, State.WF, rungAt, RungEq}
+\leanok
+A state of the game is the full board.  A state is \emph{well
+formed} (\texttt{WF}) when every zone obeys the conservation laws.
+The \emph{rung} $\mathrm{rungAt}(st, \sigma)$ of a suit $\sigma$
+is the height of its foundation row; two states are
+\emph{rung-equal} when all four rungs agree.
+\end{definition}
+
+\begin{definition}[The reversible orbit]\label{def:orbit}
+\lean{ShufflePlayW, RevEqW, sameOrbitSetoid}
+\leanok
+\uses{def:model}
+A \emph{witness shuffle} is a play whose every letter is
+reversible at the weight grade.  Two states are \emph{same-orbit}
+mates when witness shuffles join them both ways; this is the
+macro class of a state.
+\end{definition}
+
+\begin{definition}[S-saturation]\label{def:ssaturated}
+\lean{CanRaiseS, SSaturated}
+\leanok
+\uses{def:model}
+A card is \emph{S-raisable} when it can be raised outright or
+after any cascade of reversible slides.  A state is
+\emph{S-saturated} when no card is S-raisable: the board admits
+no further reversible progress.
+\end{definition}
+
+\begin{definition}[Move fibers]\label{def:fibers}
+\lean{MoveFiber, CargoSpan, FlatSpan, MacroSpan}
+\leanok
+\uses{def:orbit}
+The two-way closure of a move set $M$ is the \emph{move fiber}
+$\mathrm{MoveFiber}(M)$.  The cargo moves give the cargo span,
+the flat moves the flat span, and all moves the macro span, with
+inclusions cargo $\subset$ flat $\subset$ macro.
+\end{definition}
+
+\begin{definition}[The position grid]\label{def:position}
+\lean{WFState, position_meet}
+\leanok
+\uses{def:fibers, def:model}
+The readout quotient by rung equality is the rung class.  The
+\emph{Position} of a well-formed state is its macro span paired
+with its rung class: the meet of the move-generated and readout
+axes.
+\end{definition}
+
+\section{The fiber transfer}
+
+The transfer theorem is the substrate's crown: the original ledger
+stub, discharged verbatim.  Its route passes through the pair-free
+stepping stone, the first-touch restart, and the non-king/king
+split.
+
+\begin{theorem}[The pair-free transfer]\label{thm:pairFree}
+\lean{swappableIn_transfer_of_pairFreePath}
+\leanok
+\uses{def:orbit}
+If the class journey never seats the twin pair, the strict swap
+transfers along the class: a swappable pair at the source state
+stays swappable at every class-mate with the same foundations.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[First-touch restart]\label{thm:firstTouch}
+\lean{firstTouchRestart, FirstTouchRestart}
+\leanok
+\uses{thm:pairFree}
+The first-touch restart property holds: the class journey can be
+restarted at the first touch of either twin, so the pair-free
+play splices onto the run splices.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The last-return route]\label{thm:lastReturn}
+\lean{fiber_transfer_of_last_return}
+\leanok
+\uses{thm:firstTouch}
+The corrected fiber transfer via the last return: every class
+journey can be re-threaded so that the pair-free reading applies
+at the last return of the twin.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The non-king transfer]\label{thm:nonking}
+\lean{fiber_transfer_of_nonking}
+\leanok
+\uses{thm:lastReturn}
+The transfer for a non-king pair: the non-king twin cannot hide
+(its seat pins it), so the strict swap transfers.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The king transfer]\label{thm:king}
+\lean{fiber_transfer_of_king}
+\leanok
+\uses{thm:lastReturn}
+The transfer for a king pair: a swappable king is exactly a
+vacancy witness, and the vacancy transfers along the class.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The fiber transfer, discharged]\label{thm:transferFull}
+\lean{fiber_transfer_full}
+\leanok
+\uses{thm:nonking, thm:king}
+The original ledger stub's statement, verbatim: well-formed
+same-orbit states with equal foundations and a strict witness
+swap at the source carry a strict witness swap to every class-mate
+that holds both twins.  No rank split appears in the statement; the
+proof splits on the rank.
+\end{theorem}
+
+\begin{proof}
+\leanok
+\uses{thm:nonking, thm:king}
+By cases on the rank of the pair: the non-king case rides the
+non-king transfer, the king case the king transfer.
+\end{proof}
+
+\begin{theorem}[The decidability bridge]\label{thm:decidable}
+\lean{canRaiseS_iff, canRaiseSB}
+\leanok
+\uses{def:ssaturated}
+S-raiseability is a flat, decidable predicate: it is equivalent
+to the next-up flag plus a finite seat scan, and the scan is
+certified by a Bool checker with a proved correctness iff.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The free-card invariant]\label{thm:freeorbit}
+\lean{freeCardS_orbit_rung, canRaiseS_orbit_rung}
+\leanok
+\uses{def:ssaturated, def:orbit}
+Being a free card is an orbit-and-rung invariant: the macro class
+and the rung vector decide it.  Likewise S-raiseability itself is
+an orbit-and-rung invariant at well-formed states.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\chapter{The fork theory}
+\label{chap:fork}
+
+\section{Detection and the critical pair}
+
+\begin{definition}[Fork detection]\label{def:fork}
+\lean{forkState, ForkWitness}
+\leanok
+\uses{def:ssaturated}
+A state is a \emph{fork} when some card $x$ has its S-live pair
+exactly $\{x, x.\mathrm{twin}\}$ while the twin is blocked in the
+vanilla grade: the pair-saturation iff plus the orientation pin.
+\texttt{ForkWitness} is the per-witness parcel.
+\end{definition}
+
+\begin{theorem}[The two-raise dichotomy]\label{thm:criticalPair}
+\lean{twin_raise_square, canRaise_or_covered, forkWitness_iff_covered}
+\leanok
+\uses{def:fork}
+At a fork the witness is exactly the covered card: either the
+raise of the one member or the cover of the twin, and the
+witness-iff-covered equivalence pins the fork to its cover.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The rung obstruction]\label{thm:rungObstruction}
+\lean{arms_never_flatJoin, join_of_not_covered, no_raise_after_twin_raise}
+\leanok
+\uses{thm:criticalPair}
+Two raised arms never flat-join, a fork with an uncovered witness
+joins, and no raise survives a twin-raise: the rung obstruction
+that bars the difference from riding without a fork.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\section{The cover and the class theorem}
+
+\begin{theorem}[The cover lock]\label{thm:cover}
+\lean{cover_top_of_fork, cover_pins_of_fork}
+\leanok
+\uses{def:fork}
+At a fork the witness twin sits on a cover at the top of its run,
+and the cover pins cascade: the seating census follows the cover
+token.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The frozen cover rung]\label{thm:coverRung}
+\lean{cover_rung_frozen}
+\leanok
+\uses{thm:cover}
+The cover's rung is frozen along the class: no reversible move
+can raise the covered card.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The fork-label class theorem]\label{thm:forkLabelClass}
+\lean{fork_label_class}
+\leanok
+\uses{thm:cover, thm:rungObstruction}
+Fork labels are class invariants: class-mate forks carry the same
+label.  The two residues (cover token, one founding) are
+discharged, so the class theorem is unconditional.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The pair founding row]\label{thm:twinPair}
+\lean{twinPair_founds}
+\leanok
+\uses{thm:forkLabelClass}
+The founding of the twin pair is a class invariant as well.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\section{Fork-position rigidity}
+
+\begin{definition}[Fork-position rigidity]\label{def:forkPosition}
+\lean{ForkPositionRigid, ForkFoundRigid}
+\leanok
+\uses{def:position, def:fork}
+All forks of one macro class share one Position (the
+\emph{rigidity} claim) and one founding pattern (the \emph{found}
+half).  Both halves are now unconditional: a fork class carries
+at most one fork Position.
+\end{definition}
+
+\begin{theorem}[The pair half holds]\label{thm:forkPairClass}
+\lean{ForkPairClass, forkPairClass, fork_under_cards}
+\leanok
+\uses{def:forkPosition}
+The pair half of rigidity holds: pair suits found via the class
+theorem, and at a non-king S-fork both twins sit on
+opposite-family successor cards.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[Rigidity reduces to the third suit]\label{thm:rigidReduce}
+\lean{forkFoundRigid_iff_forkPositionRigid, forkPositionRigid_of_third, fork_one_position_of_rigid, position_eq_iff}
+\leanok
+\uses{def:forkPosition, thm:forkPairClass}
+Found-rigidity and position-rigidity are equivalent; both follow
+from the third-suit claim \texttt{ForkThirdRigid}, which is
+therefore exactly what remained --- and is now closed.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\section{The third-suit split}
+
+\begin{theorem}[The third-suit reduction]\label{thm:thirdReduce}
+\lean{ThirdRigid.forkThirdRigid_of_high}
+\leanok
+\uses{def:forkPosition}
+The third-suit claim follows from its high-grade form
+\texttt{ForkThirdRigidHigh}.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The non-king half]\label{thm:thirdNonKing}
+\lean{ThirdHigh.forkThirdRigidHigh_of_not_king}
+\leanok
+\uses{thm:thirdReduce}
+The high-grade third-suit rigidity holds when the fork witness is
+not a king: the supported-card analysis confines the third suit.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The king slice]\label{thm:thirdKing}
+\lean{ThirdHigh.ForkThirdRigidHighKing, ThirdHigh.forkThirdRigidHigh_of_kingSeated, ThirdHigh.forkThirdRigid_of_kingSeated}
+\leanok
+\uses{thm:kingExodus}
+The king slice of the high-grade claim is reduced to the exodus
+seating property: seated exodus kings close the gap.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The high third-suit split]\label{thm:thirdHigh}
+\lean{ThirdRigid.ForkThirdRigidHigh, ThirdHigh.forkThirdRigidHigh_unconditional}
+\leanok
+\uses{thm:thirdReduce, thm:thirdNonKing, thm:thirdKing}
+The high-grade third-suit rigidity, unconditional: the non-king
+half plus the king slice (via the exodus seating) close the
+split.
+\end{theorem}
+
+\begin{proof}
+\leanok
+\uses{thm:thirdNonKing, thm:thirdKing}
+The non-king half confines the witness when it is not a king;
+the king slice rides the exodus seating.
+\end{proof}
+
+\begin{theorem}[King exodus seating]\label{thm:kingExodus}
+\lean{ThirdHigh.KingExodusSeated, ThirdHigh.kingExodusSeated_proved, ThirdHigh.KingKeep, ThirdHigh.king_keep_step, ThirdHigh.king_keep_transit}
+\leanok
+\uses{thm:cover, thm:criticalPair}
+The exodus king is seated: a king founded at the deep end of a
+class journey ends seated in the tableau, never stranded.  The
+proof rides the \texttt{KingKeep} invariant --- a king is founded
+or bottoms a hidden-free pile --- which is closed under every
+reversible step and survives the whole witness play.
+\end{theorem}
+
+\begin{proof}
+\leanok
+\uses{thm:coverRung, thm:forkPairClass}
+The king trace: a king's \texttt{foundToTab} landing base is an
+empty anchor, the trace is preserved by every reversible letter,
+and transitivity carries it along the witness play.  The last
+open row of the rigidity arc, closed.
+\end{proof}
+
+\chapter{The fiber hierarchy and the arm split}
+\label{chap:fiber}
+
+\section{The dichotomy family}
+
+\begin{definition}[The dichotomy family]\label{def:dichotomy}
+\lean{ArmDichotomyFor, ArmDichotomy, ArmDichotomySW, ArmDichotomyRung, SatEqualFork, SatEqualCargoSW}
+\leanok
+\uses{def:fibers, def:ssaturated}
+For a relation $R$ on states, \texttt{ArmDichotomyFor} $R$ says:
+saturated same-orbit mates are either $R$-related or a fork lives
+in their class.  The cargo, flat (SW) and rung readings give the
+three arms; the equal-rung readings give the fork-equality
+family.
+\end{definition}
+
+\begin{theorem}[The arm split]\label{thm:armSplit}
+\lean{armDichotomy_iff_split, armDichotomy_of_split, satEqualFork_of_armDichotomy, forklessCargoNormal_to_armDichotomy, forkless_found_unique_via_fiber}
+\leanok
+\uses{def:dichotomy, thm:satDifferFork}
+The cargo dichotomy splits exactly into the differing-rung target
+and the equal-rung fork claim, and it implies the equal-runk fork
+claim outright.  The forkless normalization route reads the
+dichotomy back from the normal form, and the fiber route derives
+forkless foundation uniqueness from the dichotomy directly.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The flat-fiber dichotomy]\label{thm:swDichotomy}
+\lean{armDichotomySW_iff_split, armDichotomySW_to_satDifferFork, forkless_found_unique_SW}
+\leanok
+\uses{def:dichotomy}
+The flat-fiber (SW) dichotomy splits the same way, implies the
+differing-runk target, and supplies forkless foundation
+uniqueness in the flat fiber.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\section{The class-global invariant}
+
+\begin{definition}[The flat-fiber vertex]\label{def:satFlatFiberFork}
+\lean{SatFlatFiberFork, SatCargoFiberFork, ForklessFlatNormalWF}
+\leanok
+\uses{def:dichotomy}
+The class-global invariant: two saturated class-mates in
+different flat fibers force a fork somewhere in the class.  The
+draw-free cargo variant is recorded only to fence the wrong
+vertex --- it is false in a live draw zone.  The forkless form
+says all saturated class-mates of a forkless class lie in one
+flat fiber.
+\end{definition}
+
+\begin{theorem}[The flat vertex discharges the target]\label{thm:flatVertex}
+\lean{not_bareFlat_of_rung_ne, satDifferForkWF_of_satFlatFiberFork, satFlatFiberFork_of_armDichotomySW, satDifferForkWF_of_armDichotomySW, rung_diff_forces_fork, forklessFlatNormalWF_of_armDichotomySW}
+\leanok
+\uses{def:satFlatFiberFork, thm:swDichotomy}
+A rung difference rules out the flat fiber, so the invariant
+discharges the WF-gated target; and the SW arm dichotomy supplies
+the invariant directly --- its non-flat branch is exactly the
+invariant.  The campaign's vertex is the flat fiber, not the
+draw-fragile cargo fiber.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The ceiling bridge]\label{thm:ceiling}
+\lean{forkless_rungs_agree, forkless_found_unique, forkless_found_unique_wf}
+\leanok
+\uses{thm:satDifferFork}
+The campaign payoff, conditional on the target: forkless
+saturated classes have rung-agreeing endpoints, and foundations
+are unique in a forkless class.  One \texttt{elim} from the
+target, and the rung-to-found congruence finishes.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\section{The census rows}
+
+\begin{theorem}[The rung census]\label{thm:rungCensus}
+\lean{shuffle_rung_census, found_exodus, rung_diff_exhibit}
+\leanok
+\uses{def:orbit}
+The rung ledger: class journeys census their rung steps, the
+differing card is pulled in LIFO order (the exodus), and
+differing rungs are exhibited per suit.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\chapter{The boundary cases}
+\label{chap:boundary}
+
+\section{The equal-rung boundary}
+
+\begin{theorem}[The equal-rung boundary]\label{thm:vcBoundary}
+\lean{vc_equalRung_boundary, vc_armDichotomy_fork}
+\leanok
+\uses{def:dichotomy}
+Two saturated class-mates with the same rung vector
+$(3,0,4,3)$, joined by a twelve-leg reversible witness journey,
+and not cargo-equivalent.  The cargo dichotomy's first branch is
+refuted here, so the residue must supply a class-wide fork.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\section{The draw boundary}
+
+\begin{theorem}[The draw boundary]\label{thm:drawBoundary}
+\lean{satEqualFork_draw_false, armDichotomy_draw_false}
+\leanok
+\uses{def:dichotomy}
+The all-non-king board (foundations full below the kings, empty
+tableau, the four kings split between stock and waste) is
+draw-only, and the four-draw rotation makes two saturated
+same-orbit mates in different cargo fibers.  Hence the equal-runk
+fork claim and the cargo dichotomy are both refuted outright.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The amended dichotomy]\label{thm:amended}
+\lean{armDichotomyRung_iff_satDifferFork}
+\leanok
+\uses{def:dichotomy, thm:satDifferFork}
+The amended dichotomy --- first branch the rung ledger equality
+instead of the cargo fiber --- is exactly the differing-runk
+target: two statements, one case split apart.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\section{The journey-local dip}
+
+\begin{theorem}[The journey-local dip is false]\label{thm:dipFalse}
+\lean{ForkFree.journey_local_dip_false, ForkFree.not_satDip, ForkFree.not_satJourneyFork}
+\leanok
+\uses{def:fork}
+Two Plan-4 saturated boards with rungs $(5,0,4,2)$ and
+$(5,0,2,5)$ are joined by a fifteen-state, fourteen-move witness
+play that avoids all eight fork states of the class.  The
+journey-local residues are refuted; the surviving residue is the
+class-global target.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The minimal path crosses the fork]\label{thm:minPath}
+\lean{SatDifferMin9P.minimal_play_crosses_fork_plan4}
+\leanok
+\uses{def:fork, thm:dipFalse}
+The same Plan-4 boards admit a twelve-move, nine-bracket witness
+play whose sixth state is a $(3,0,2,2)$ fork --- the first fork
+on the path --- while the fourteen-move fork-free play costs
+eleven brackets.  The fork-free route is not bracket-minimal: it
+pays one extra pull-and-raise pair.  The kernel-checked
+representative of the finite-model census; the universal lower
+bound (every nine-bracket path crosses a fork) remains in the
+census.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\begin{theorem}[The first-passage ledger]\label{thm:firstPassage}
+\lean{SatDifferCensus.FirstPassage.classification, SatDifferCensus.firstPassage_exists, SatDifferCensus.firstRise_or_firstFall_of_rung_ne}
+\leanok
+\uses{def:orbit}
+Every suit-crossing of a witness journey has a first passage, and
+each decomposes into a first rise or a first fall: the ledger the
+campaign's route reads.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Quot.sound].
+\end{proof}
+
+\chapter{The campaign targets}
+\label{chap:campaign}
+
+\section{The main target}
+
+\begin{theorem}[Differing rungs force a fork]\label{thm:satDifferFork}
+\lean{SatDifferFork, SatDifferForkWF}
+\leanok
+\uses{def:fork, def:ssaturated}
+Two S-saturated class-mates whose rung vectors disagree force a
+fork somewhere in the class: formally, for saturated same-orbit
+$u, v$ with $\mathrm{rungAt}(u, \sigma) \ne \mathrm{rungAt}(v,
+\sigma)$ for some suit $\sigma$, there is a class-mate $F$ of
+$u$ with \texttt{ForkWitness} $F\,x$.  The contrapositive reads:
+forkless classes have rung-agreeing saturated endpoints.
+\end{theorem}
+
+\begin{proof}
+\uses{thm:flatVertex, thm:valleyReduction, thm:drainSkeleton, thm:forkLabelClass, thm:rungCensus, thm:firstPassage, thm:dipFalse, thm:minPath}
+Open --- no formal proof yet, on two fronts.  The vertex front:
+the flat-fiber invariant discharges the WF-gated form, and the SW
+arm dichotomy supplies the invariant, so the gap is the SW
+dichotomy itself.  The valley front: the mountain normal form is
+refuted in general and the surviving form is valley-at-a-fork;
+the valley-elimination kit reduces the target to valley
+elimination without forks plus a shortest play, the drain
+skeleton is the conditional descent to the fork, and the blocked
+pieces are named --- the crossing locator, the free slide/draw
+tail, and the drain's remaining inputs (the third-live-card
+regulation and the measure step; the transport is discharged).  The saturation grade is
+load-bearing at the endpoints: it bars the cover's own raise and
+the covered card's cascade license.  The journey-local versions
+are refuted, the minimal-path boundary certifies the detour's
+cost, and the payoff is the ceiling bridge.
+\end{proof}
+
+\section{The valley route}
+
+The live attack front.  The valley-turn and safe-transport cards
+are promoted into Orig2; the crossing-elimination and
+drain-skeleton kits still run in the Temp scratch pen.  The
+mountain normal form was refuted in general; what survived is
+sharper.
+
+\begin{theorem}[Valley-at-a-fork]\label{thm:valleyForm}
+\uses{def:fork}
+The surviving normal form: every unit-shortest, lexicographic or
+bracket-minimal witness play between saturated states is
+componentwise a valley --- every turn state is a fork, and the
+last pull and first raise at the bottom are twins.  The mountain
+form is refuted in general (the raise card is buried; only a
+twin-suit pull opens the slide seat) but true below the fork,
+fork-to-fork, and on genuinely forkless classes.  Probe-verified
+by the finite-model census; the Lean statements are named but
+not yet written.
+\end{theorem}
+
+\begin{theorem}[The valley-turn card]\label{thm:valleyTurn}
+\lean{ValleyStep.valley_cancel_same, ValleyStep.valley_cancel_at_fork_twin, ValleyStep.fork_valley_cancel_of_pull, ValleyStep.fork_first_raise_eq, ValleyStep.fork_last_pull_eq, ValleyNoPull.nextUp_of_pull_of_ne}
+\leanok
+\uses{def:fork}
+The same-card valley turn cancels, and at a fork the turn
+cancels at the twin; the first raise and the last pull at a fork
+are pinned to the witness; and a pull never re-opens the next-up
+flag.  The promoted valley-turn rows, in the library.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 cards (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The valley-elimination kit]\label{thm:valleyKit}
+\lean{ValleyElim.crossing_cancel, ValleyElim.crossing_block_delete, ValleyElim.valley_elim_pull_raise_same, ValleyElim.valley_exists}
+\leanok
+\uses{def:orbit}
+The four-letter crossing block (pull $d$, pull $c$, raise $d$,
+raise $c$) returns to its origin, so a contiguous crossing block
+deletes and the play gets strictly shorter; same-card turns
+eliminate unconditionally; and every witness play between
+saturated endpoints with differing rungs has a valley split, free
+letters allowed at the turn.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Temp kit (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[Valley elimination, no forks]\label{thm:valleyTarget}
+\lean{ValleyElim.ValleyElimNonfork, ValleyElim.ShortestPlayExists}
+\leanok
+\uses{thm:valleyKit, thm:valleyTurn}
+The named main target of the route: crossing valleys can be
+eliminated without ever introducing a fork, and a shortest play
+exists between any two states.  The blocked piece is the crossing
+locator --- locating the matching pull and raise as a contiguous
+block in an arbitrary crossing valley --- plus the free
+slide/draw tail at the turn.
+\end{theorem}
+
+\begin{proof}
+\uses{thm:valleyKit}
+The same-card branch is unconditional.  The crossing branch is
+reduced to the locator and the free tail; the report gives the
+non-contiguous decomposition and the deletion side conditions.
+Open --- no formal proof yet.
+\end{proof}
+
+\begin{theorem}[The reduction]\label{thm:valleyReduction}
+\lean{ValleyElim.satDifferForkWF_of_valleyElimNonfork}
+\leanok
+\uses{thm:valleyTarget, def:fork, def:ssaturated}
+Valley elimination without forks, plus a shortest play,
+discharges the WF-gated campaign target.  Together with the drain
+skeleton, the target now hangs from named scratch-pen inputs
+rather than an unpriced route.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Temp kit (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The drain-to-fork skeleton]\label{thm:drainSkeleton}
+\lean{Drain.drain_to_fork, Drain.drain_terminal_fork, Drain.drain_terminal_forkState, Drain.raise_step_preserves, Drain.rungSum_le_52, Drain.drainTerminal_decidable, ValleyDrain.canRaise_of_raise_other, ValleyDrain.not_canRaise_of_raise_other, ValleyDrain.canRaise_of_raise_high}
+\leanok
+\uses{thm:valleyForm, thm:safePath, def:fork}
+The conditional skeleton of the descent: raise the live cards
+while the blocked twin stays blocked (an unrelated or
+higher-ranked raise cannot be the cover), terminate by rank
+monotonicity (the rung sum is bounded by 52), and the terminal
+state is a fork outright.  Of the four named inputs, the twin's
+S-liveness transport is discharged by the safe transport; the
+remaining inputs are the third-live-card regulation (the uniform
+one-slide agent) and the measure-decreasing step, and the
+asymmetry-production bridge is the last conceptual gap.
+\end{theorem}
+
+\begin{proof}
+\leanok
+The skeleton implications are discharged in the Temp kit (green,
+axiom battery [propext, Quot.sound]); the remaining inputs are
+explicit hypotheses, not hidden.
+\end{proof}
+
+\begin{theorem}[The safe cargo path and the transport]\label{thm:safePath}
+\lean{SafePathFiber.safe_cargo_path_unconditional, SafePathFiber.twin_top_of_cover, SafePathFiber.cover_slide_exists, SafeTransport.canRaiseS_of_canRaiseS_raise_high, SafeTransport.canRaiseS_twin_of_raise_high}
+\leanok
+\uses{thm:decidable, def:fork}
+From twin S-liveness and the vanilla block, the twin is the pile
+top and one slide --- the cover card onto the twin's seat --- is
+legal, reversible, and safe: the safe cargo path is unconditional
+and a single slide.  Raising a card of rank at least the twin's,
+in a different suit and not the twin itself, preserves both the
+slide and the twin's S-liveness; the side condition is necessary
+(a full-deck counterexample card certifies it), and the drain
+never raises the twins.  This discharges the skeleton's first
+named input.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 cards (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\section{The rigidity arc, closed}
+
+\begin{theorem}[Fork-position rigidity]\label{thm:forkPositionTarget}
+\lean{ForkPositionRigid, ThirdHigh.forkPositionRigid_unconditional, ForkFoundRigid, ThirdHigh.forkFoundRigid_unconditional}
+\leanok
+\uses{thm:rigidReduce, thm:thirdHigh}
+All forks of a class share one Position, and the found half holds
+with it: a fork class carries at most one fork Position.
+Unconditional.
+\end{theorem}
+
+\begin{proof}
+\leanok
+\uses{thm:rigidReduce, thm:thirdHigh}
+By the reduction, rigidity follows from the high third-suit
+claim, now closed unconditionally: the non-king half plus the
+king slice via the exodus seating.
+\end{proof}

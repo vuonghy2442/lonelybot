@@ -1,0 +1,24 @@
+% This file makes a web version of the blueprint
+% It should include all the \usepackage needed for this version.
+% The template includes standard AMS packages.
+
+\documentclass{report}
+
+\usepackage{amssymb, amsthm, amsmath}
+\usepackage{hyperref}
+\usepackage[showmore, dep_graph]{blueprint}
+
+
+\input{macros/common}
+\input{macros/web}
+
+\home{https://github.com/vuonghy2442/lonelybot}
+\github{https://github.com/vuonghy2442/lonelybot}
+
+\title{Orig2 --- the Klondike macro-class program}
+\author{vuonghy2442}
+
+\begin{document}
+\maketitle
+\input{content}
+\end{document}
