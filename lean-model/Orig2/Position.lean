@@ -1123,6 +1123,44 @@ private theorem draw_return_cons {u v : State} (hwf : u.WF)
       rw [hstate] at w₃
       exact ⟨_, DrawPlayW_append (DrawPlayW_append w₁ w₂) w₃⟩
 
+/-- **THE DRAW CYCLE'S RETURN** - from one reversible draw, the rest
+of the cycle returns to the source as an all-draw witness walk
+(the two zone cases dispatched on the stock). -/
+private theorem draw_return {u v : State} (hwf : u.WF)
+    (hstep : State.step u Move.draw = some v)
+    (hrev : reversibleAtW u Move.draw) :
+    ∃ τ, DrawPlayW v τ u := by
+  by_cases hstock : u.stock = []
+  · exact draw_return_nil hwf hstep hrev hstock
+  · exact draw_return_cons hwf hstep hrev hstock
+
+/-- **THE LOOP ROW** - the draw generates a closed witness loop:
+the forward leg plus the return.  THE CLEAN INTERFACE (the 2026-10-31
+generalization): the draw's undo is the rest of a cycle, and this
+row is where all of that complexity lives - the vanishing itself
+is a two-line corollary. -/
+theorem draw_loop {x v : State} (hwf : x.WF)
+    (hstep : State.step x Move.draw = some v)
+    (hrev : reversibleAtW x Move.draw) :
+    ∃ τ, DrawPlayW x (Move.draw :: τ) x := by
+  obtain ⟨τ, hτ⟩ := draw_return hwf hstep hrev
+  exact ⟨τ, Walk.cons hrev hstep hτ.1, by
+    intro m hm
+    rcases List.mem_cons.mp hm with rfl | hm'
+    · rfl
+    · exact hτ.2 m hm'⟩
+
+/-- **THE DRAW VANISHES** - a reversible draw leaves the position
+unchanged.  The orbit factorization composes the forward leg with
+the cycle's return - now unconditional (the return row supplies
+the cycle hypothesis that the scaffold named as its only gap). -/
+theorem draw_position {u v : State} (hwf : u.WF) (hwfv : v.WF)
+    (hstep : State.step u Move.draw = some v)
+    (hrev : reversibleAtW u Move.draw) :
+    (Quotient.mk orbitRungSetoid ⟨u, hwf⟩ : Position)
+      = Quotient.mk orbitRungSetoid ⟨v, hwfv⟩ :=
+  draw_position_of_cycle hwf hwfv hstep hrev (draw_return hwf hstep hrev)
+
 /-! ## par.8. The saturation descent -/
 
 /-- **THE SATURATION FRONTIER AT THE POSITION LEVEL** - the level-k
@@ -1208,3 +1246,6 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms draw_return_nil
 #print axioms DrawPlayW_append
 #print axioms draw_return_cons
+#print axioms draw_return
+#print axioms draw_loop
+#print axioms draw_position
