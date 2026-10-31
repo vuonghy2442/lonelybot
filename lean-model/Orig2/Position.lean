@@ -142,6 +142,92 @@ theorem specB_iff {q : Position} {c : Card} :
   rw [specB_mk, spec_mk]
   exact canRaiseSB_iff p.2
 
+/-! ## par.5. The rung-step arithmetic -/
+
+/-- **THE RAISE CLIMBS ONE RUNG** - a `tabToFound` step raises the
+played suit's rung by exactly one and fixes every other suit: the
+grid's deterministic forward edge (+e_suit). -/
+theorem rungAt_tabToFound {u v : State} {c : Card}
+    (hstep : State.step u (Move.tabToFound c) = some v) (σ : Suit) :
+    rungAt v σ = if σ = c.suit then rungAt u σ + 1 else rungAt u σ := by
+  obtain ⟨-, a, -, hv⟩ := step_tabToFound_inv hstep
+  have hfv : v.found σ = if σ = c.suit then u.found c.suit ++ [c] else u.found σ := by
+    rw [hv]; rfl
+  by_cases hσ : σ = c.suit
+  · subst hσ
+    unfold rungAt
+    rw [hfv, if_pos rfl, if_pos rfl]
+    simp [List.length_append]
+  · unfold rungAt
+    rw [hfv, if_neg hσ, if_neg hσ]
+
+/-- **THE PULL DESCENDS ONE RUNG** - a `foundToTab` step lowers the
+pulled suit's rung by exactly one and fixes every other suit: the
+raise's mirror edge (-e_suit). -/
+theorem rungAt_foundToTab {u v : State} {c : Card} {b : Base}
+    (hstep : State.step u (Move.foundToTab c b) = some v) (σ : Suit) :
+    rungAt v σ = if σ = c.suit then rungAt u σ - 1 else rungAt u σ := by
+  obtain ⟨c', hft, hc', -, hv⟩ := step_foundToTab_inv hstep
+  rw [hc'] at hft
+  have hlast : lastOf (u.found c.suit) = some c := hft
+  have hcl : (chop (u.found c.suit)).length + 1 = (u.found c.suit).length := by
+    have hlen := congrArg List.length (lastOf_chop hlast)
+    rw [List.length_append] at hlen
+    simp at hlen
+    exact hlen.symm
+  have hfv : v.found σ = if σ = c.suit then chop (u.found c.suit) else u.found σ := by
+    rw [hv, putCard_found]; rfl
+  by_cases hσ : σ = c.suit
+  · subst hσ
+    unfold rungAt
+    rw [hfv, if_pos rfl, if_pos rfl]
+    omega
+  · unfold rungAt
+    rw [hfv, if_neg hσ, if_neg hσ]
+
+/-- **THE DRAW HOLDS THE LEDGER** - the draw letter moves only stock
+and waste: every rung is fixed. -/
+theorem rungAt_draw {u v : State}
+    (hstep : State.step u Move.draw = some v) (σ : Suit) :
+    rungAt v σ = rungAt u σ := by
+  have hff : foundsFixed u v := (chart_draw hstep).2.1
+  simp only [rungAt]
+  rw [hff σ]
+
+/-- **THE SLIDE HOLDS THE LEDGER** - a tableau slide moves only
+piles: every rung is fixed. -/
+theorem rungAt_tabToTab {u v : State} {c : Card} {b : Base}
+    (hstep : State.step u (Move.tabToTab c b) = some v) (σ : Suit) :
+    rungAt v σ = rungAt u σ := by
+  obtain ⟨a, -, -, -, hv⟩ := step_tabToTab_inv hstep
+  simp only [rungAt]
+  rw [hv, putRun_found, setPile_found]
+
+/-- **THE WASTE PLACEMENT HOLDS THE LEDGER** - moving the waste top
+to the tableau moves only piles and waste: every rung is fixed. -/
+theorem rungAt_wasteToTab {u v : State} {c : Card} {b : Base}
+    (hstep : State.step u (Move.wasteToTab c b) = some v) (σ : Suit) :
+    rungAt v σ = rungAt u σ := by
+  obtain ⟨-, x, xs, -, hv⟩ := step_wasteToTab_inv hstep
+  have hfv : v.found σ = (u.putCard c b).found σ := by rw [hv]
+  simp only [rungAt]
+  rw [hfv, putCard_found]
+
+/-- **pullSpec q c** - the pullable cards at a position: `c` tops
+its suit's foundation.  The `foundToTab` moves counted by card - the
+destination sensitivity (`canPlace`) is quotiented away, exactly as
+the raise's moves are counted by the license spectrum (the move
+signature `tabToFound c` carries no destination; `foundToTab c b`
+does, so only its card-set descends).  Defined directly from the
+descended founds: no lift needed. -/
+def pullSpec (q : Position) (c : Card) : Prop :=
+  lastOf (foundsOf q c.suit) = some c
+
+/-- The pullable cards read any representative's found tops. -/
+theorem pullSpec_mk (p : WFState) (c : Card) :
+    pullSpec (Quotient.mk orbitRungSetoid p) c ↔ p.1.foundTop c.suit = some c :=
+  Iff.rfl
+
 /-! ## par.9. The battery -/
 
 #print axioms rungsOf
@@ -150,3 +236,10 @@ theorem specB_iff {q : Position} {c : Card} :
 #print axioms specB
 #print axioms spec_sound
 #print axioms specB_iff
+#print axioms rungAt_tabToFound
+#print axioms rungAt_foundToTab
+#print axioms rungAt_draw
+#print axioms rungAt_tabToTab
+#print axioms rungAt_wasteToTab
+#print axioms pullSpec
+#print axioms pullSpec_mk
