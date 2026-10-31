@@ -1369,22 +1369,9 @@ private theorem fg_floaterSpec_of_top {s : State} {c z0 : Card} {a k : Anchor}
     FloaterSpec s c :=
   Or.inl ⟨z0, a, hse, hhold, Or.inl ⟨k, htop⟩⟩
 
-/-- For a non-king card seated on `z0`, floater-spec is exactly a live
-`z0.twin` target (restatement of `Orig2/SeatMateStack.lean`'s private
-`top_of_floaterSpec`). -/
-private theorem fg_top_of_floaterSpec {s : State} {c z0 : Card}
-    (hse : seatOf s c = some (Sum.inr z0))
-    (hnk : c.rank ≠ Rank.king) (hf : FloaterSpec s c) :
-    ∃ k : Anchor, s.pileOfTop z0.twin = some k := by
-  rcases hf with ⟨z, a, hsez, hhold, htop | ⟨hk, -⟩⟩ | ⟨a, hseinl, hk, -⟩
-  · have hz : z = z0 := by
-      rw [hsez] at hse
-      injection hse with h1
-      exact Sum.inr.inj h1
-    rw [hz] at htop
-    exact htop
-  · exact absurd hk hnk
-  · exact absurd hk hnk
+/- SHA-SCAN STRIKE (2026-10-31, the body-shape audit): the verbatim
+in-file copy `fg_top_of_floaterSpec` is struck - the canonical row
+`top_of_floaterSpec` (:1163) is identical; its cites re-point there. -/
 
 /-- A reversible raise never fires the reveal: the `tabToFoundR` cell
 at an empty chop forces the hidden deck empty.  (Restatement of the
@@ -1431,7 +1418,7 @@ theorem floaterSpec_gain_step {u v : State} {m : Move} {c z0 : Card}
     | none => rfl
     | some k => exact absurd (fg_floaterSpec_of_top hse hhold h) hnf
   -- a `z0.twin` top at the successor
-  obtain ⟨kv, htopv⟩ := fg_top_of_floaterSpec hse' hnk hf
+  obtain ⟨kv, htopv⟩ := top_of_floaterSpec hse' hnk hf
   have htopk : lastOf (v.piles kv).faceUp = some z0.twin :=
     (tfc_pileOfTop_top htopv).2
   -- the old-top contradiction kit
@@ -2087,13 +2074,10 @@ theorem nonFloater_nonKing_change_stack_of_not_found
   exact nonFloater_nonKing_change_seatmate_of_not_found hwfst hw hnk htab hnf hchg
     (fun z hz hmem => hnotfound ⟨z, hz, hmem⟩) play hplay
 
-private theorem ka_canSitOn_not_king {c z : Card} (h : canSitOn c z = true) :
-    c.rank ≠ Rank.king := by
-  obtain ⟨hidx, -⟩ := (canSitOn_eq c z).mp h
-  intro hk
-  have h12 : c.rank.toIdx = 12 := by rw [hk]; rfl
-  have hlt := Rank.toIdx_lt z.rank
-  omega
+/- SHA-SCAN STRIKE (2026-10-31, the body-shape audit): the byte-identical
+in-file copy (formerly `ka_canSitOn_not_king`, the `ka_`-prefixed twin)
+is struck - the canonical row `canSitOn_not_king` (:666) is identical;
+its cites re-point there. -/
 
 /-- A king's tableau seat is always a pile-bottom seat (`inl`); an `inr`
 seat would let the king sit on a card. -/
@@ -2105,7 +2089,7 @@ private theorem ka_king_seat_inl {s : State} (hwf : s.WF) {c : Card}
   | inr z =>
       exfalso
       obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hse
-      exact ka_canSitOn_not_king ((tfc_seat_parent hwf hhold hlast).1) hking
+      exact canSitOn_not_king ((tfc_seat_parent hwf hhold hlast).1) hking
 
 /-- A non-Floater bare king forces every pile nonempty. -/
 private theorem ka_no_empty_of_nf {s : State} {c : Card} {a0 : Anchor}
@@ -2263,7 +2247,7 @@ private theorem ka_no_empty_step {u v : State} {m : Move}
                       exact hne a
             rw [hfalse] at hva
             exact Bool.noConfusion hva
-          · exact ka_canSitOn_not_king hsit hking
+          · exact canSitOn_not_king hsit hking
   · cases ha : (v.piles a).isEmpty with
     | false => rfl
     | true => exact absurd ha hva
@@ -2332,7 +2316,7 @@ private theorem ka_seat_step {u v : State} {m : Move} {c : Card} {a0 : Anchor}
                 exact Bool.noConfusion hempty
             | inr z =>
                 obtain ⟨k, -, hfit⟩ := canPlace_inr hcp
-                exact ka_canSitOn_not_king hfit hking
+                exact canSitOn_not_king hfit hking
       · rw [tfc_seat_point_edit hwf hstep hrev c]
         rw [ite_eq_right (fun hcon => hxc hcon.symm)]
         exact hse

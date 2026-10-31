@@ -150,24 +150,10 @@ theorem splice_piles_b_nf (ha : s.pileHolding x = some a)
 
 end Splice
 
-/-- Every card of `fromCard c l` has rank at most `c` in a legal run. -/
-theorem runOK_fromCard_le : ∀ {l : List Card} {c y : Card},
-    runOK l = true → y ∈ fromCard c l → y.rank.toIdx ≤ c.rank.toIdx := by
-  intro l
-  induction l with
-  | nil => intro c y _ hmem; exact absurd hmem (by simp [fromCard])
-  | cons u t ih =>
-      intro c y hok hmem
-      rw [fromCard] at hmem
-      split at hmem
-      · rename_i huc
-        rcases List.mem_cons.1 hmem with heq | hyt
-        · subst heq; subst huc; exact Nat.le_refl _
-        · have hgt := runOK_head_gt hok hyt
-          have hu : u.rank.toIdx = c.rank.toIdx := by rw [huc]
-          omega
-      · rename_i huc
-        exact ih (runOK_cons_tail hok) hmem
+/- SHA-SCAN STRIKE (2026-10-31, the body-shape audit): the verbatim
+copy `runOK_fromCard_le` (zero consumers here) is struck - the
+canonical home is `Orig2/Integrity.lean`'s row (public since this
+strike), identical statement and body. -/
 
 /-- The last of a list ending in a nonempty suffix. -/
 theorem lastOf_three {P S : List Card} {c : Card} (hS : S ≠ []) :

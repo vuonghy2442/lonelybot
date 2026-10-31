@@ -685,8 +685,9 @@ theorem runOK_nodup {l : List Card} (hok : runOK l = true) : l.Nodup := by
 /-- Everything in the run `fromCard c l` sits no higher than `c` in
 rank: the descent of a legal run cuts off anything above `c` once
 `c` itself appears.  PORTED verbatim from
-`Orig/Integrity.lean:609`. -/
-private theorem runOK_fromCard_le : ∀ {l : List Card} {c x : Card},
+`Orig/Integrity.lean:609`.  PUBLIC since the 2026-10-31 shape-scan
+strike (TwinSpliceComm's verbatim copy struck; one home here). -/
+theorem runOK_fromCard_le : ∀ {l : List Card} {c x : Card},
     runOK l = true → x ∈ fromCard c l → x.rank.toIdx ≤ c.rank.toIdx := by
   intro l
   induction l with
