@@ -223,6 +223,104 @@ private theorem putCard_eq_putRun (st : State) (c : Card) (b : Base) :
   | inl a => rfl
   | inr z => cases hz : st.pileOfTop z <;> rfl
 
+/-- The inl-landing locality: away from the landing pile, the pull's
+target piles are the source's. -/
+private theorem pull_piles_inl_ne {u v : State} {c : Card} {a₁ k : Anchor}
+    (hstep : State.step u (Move.foundToTab c (Sum.inl a₁)) = some v) (hne : k ≠ a₁) :
+    v.piles k = u.piles k := by
+  obtain ⟨-, -, -, -, hv⟩ := step_foundToTab_inv hstep
+  rw [hv, putCard_eq_putRun, putRun_piles_inl_ne _ _ _ _ hne]
+  rfl
+
+/-- The inr-landing locality: away from the landing pile, the pull's
+target piles are the source's. -/
+private theorem pull_piles_inr_ne {u v : State} {c z₁ : Card} {k₁ k : Anchor}
+    (hstep : State.step u (Move.foundToTab c (Sum.inr z₁)) = some v)
+    (hpt : u.pileOfTop z₁ = some k₁) (hne : k ≠ k₁) :
+    v.piles k = u.piles k := by
+  obtain ⟨-, -, -, -, hv⟩ := step_foundToTab_inv hstep
+  have hpt' : (u.setFound c.suit (chop (u.found c.suit))).pileOfTop z₁ = some k₁ := hpt
+  rw [hv, putCard_eq_putRun,
+    putRun_piles_inr_ne (u.setFound c.suit (chop (u.found c.suit))) [c] z₁ k₁ hpt' hne]
+  rfl
+
+/-- The inr-fit's guard: the base card is a located pile top, and
+the fit is the card arithmetic. -/
+private theorem canPlace_inr_guard {S : State} {c z : Card}
+    (h : S.canPlace c (Sum.inr z) = true) :
+    ∃ k, S.pileOfTop z = some k ∧ canSitOn c z = true := by
+  simp only [State.canPlace] at h
+  cases hpt : S.pileOfTop z with
+  | none => rw [hpt] at h; exact absurd h (by simp)
+  | some k => rw [hpt] at h; exact ⟨k, rfl, h⟩
+
+/-- **THE FIT SURVIVES THE LANDING** - after pulling `c` onto `b₁`,
+the fit for a different base `b₂` (which held at the source) still
+holds at the target: the landing writes one pile, the fit reads the
+target pile. -/
+private theorem canPlace_pull {u v : State} {c : Card} {b₁ b₂ : Base}
+    (hwf : u.WF) (hwfv : v.WF)
+    (hstep : State.step u (Move.foundToTab c b₁) = some v)
+    (h₁ : u.canPlace c b₁ = true) (h₂ : u.canPlace c b₂ = true)
+    (hne : b₁ ≠ b₂) : v.canPlace c b₂ = true := by
+  cases b₁ with
+  | inl a₁ =>
+      have h1g := canPlace_inl h₁
+      cases b₂ with
+      | inl a₂ =>
+          have hae : a₁ ≠ a₂ := fun h => hne (by rw [h])
+          have hloc : v.piles a₂ = u.piles a₂ :=
+            pull_piles_inl_ne hstep (fun hcon => hae hcon.symm)
+          simp only [State.canPlace]
+          rw [hloc]
+          exact h₂
+      | inr z₂ =>
+          obtain ⟨k₂, hpt₂, hfit⟩ := canPlace_inr_guard h₂
+          have hk₂ : k₂ ≠ a₁ := by
+            intro hcon
+            have hmem : z₂ ∈ (u.piles a₁).faceUp :=
+              lastOf_mem (show lastOf (u.piles a₁).faceUp = some z₂ from
+                (pileOfTop_eq_some_iff hwf).mp (by rw [← hcon]; exact hpt₂))
+            rw [Pile.isEmpty_eq_false_of_mem hmem] at h1g
+            exact Bool.noConfusion h1g.1
+          have hvpt : v.pileOfTop z₂ = some k₂ := by
+            refine (pileOfTop_eq_some_iff hwfv).2 ?_
+            rw [pull_piles_inl_ne hstep hk₂]
+            exact (pileOfTop_eq_some_iff hwf).mp hpt₂
+          simp only [State.canPlace]
+          rw [hvpt]
+          exact hfit
+  | inr z₁ =>
+      obtain ⟨k₁, hpt₁, -⟩ := canPlace_inr_guard h₁
+      cases b₂ with
+      | inl a₂ =>
+          have h2g := canPlace_inl h₂
+          have hak : a₂ ≠ k₁ := by
+            intro hcon
+            have hmem : z₁ ∈ (u.piles a₂).faceUp :=
+              lastOf_mem (show lastOf (u.piles a₂).faceUp = some z₁ from
+                (pileOfTop_eq_some_iff hwf).mp (by rw [hcon]; exact hpt₁))
+            rw [Pile.isEmpty_eq_false_of_mem hmem] at h2g
+            exact Bool.noConfusion h2g.1
+          simp only [State.canPlace]
+          rw [pull_piles_inr_ne hstep hpt₁ hak]
+          exact h₂
+      | inr z₂ =>
+          obtain ⟨k₂, hpt₂, hfit⟩ := canPlace_inr_guard h₂
+          have hkk : k₂ ≠ k₁ := by
+            intro hcon
+            have ht1 : (u.piles k₁).top = some z₁ := (pileOfTop_eq_some_iff hwf).mp hpt₁
+            have ht2 : (u.piles k₂).top = some z₂ := (pileOfTop_eq_some_iff hwf).mp hpt₂
+            rw [hcon] at ht2
+            exact hne (by rw [Option.some.inj (ht1.symm.trans ht2)])
+          have hvpt : v.pileOfTop z₂ = some k₂ := by
+            refine (pileOfTop_eq_some_iff hwfv).2 ?_
+            rw [pull_piles_inr_ne hstep hpt₁ hkk]
+            exact (pileOfTop_eq_some_iff hwf).mp hpt₂
+          simp only [State.canPlace]
+          rw [hvpt]
+          exact hfit
+
 /-! ## par.9. The battery -/
 
 #print axioms rungsOf
@@ -238,3 +336,7 @@ private theorem putCard_eq_putRun (st : State) (c : Card) (b : Base) :
 #print axioms rungAt_wasteToTab
 #print axioms pullSpec
 #print axioms pullSpec_mk
+#print axioms pull_piles_inl_ne
+#print axioms pull_piles_inr_ne
+#print axioms canPlace_inr_guard
+#print axioms canPlace_pull
