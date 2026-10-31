@@ -145,9 +145,18 @@ theorem swap_at_comm {st mid B : State} {ρ₁ : List Move} {m1 m2 : Move} {ρ�
 
 /-! ## §3. The two window schemas and the writers -/
 
+/-- **THE SWAPPED-ORDER TRANSPORT ROW — NOT A CONSEQUENCE OF THE PLAY.**
+`SwapsRightFrom` is FALSE in general (counterexample: a legal reversible raise
+and pull that cover each other, `Temp/Transport_Counter.lean`; the same data
+refutes the normalizer's `hγ`).  The corrected hypothesis is
+`RowsRight = AlwaysReversible ∧ WindowReversible ∧ KeepsForward`
+(`Temp/Transport_Report.md`).  This definition is kept only as the named
+hypothesis of the normalizer. -/
 def SwapsRightFrom (u : State) (p : Move) (w : List Move) : Prop :=
   ∀ mid : State, Reachable u mid → ∀ q ∈ w, ∃ e, ShufflePlayW mid [q, p] e
 
+/-- **THE SWAPPED-ORDER TRANSPORT ROW — NOT A CONSEQUENCE OF THE PLAY.**
+See `SwapsRightFrom`; false in general, use `RowsLeft`. -/
 def SwapsLeftFrom (u : State) (r : Move) (w : List Move) : Prop :=
   ∀ mid : State, Reachable u mid → ∀ q ∈ w, ∃ e, ShufflePlayW mid [r, q] e
 
