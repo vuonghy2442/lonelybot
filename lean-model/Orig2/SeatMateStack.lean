@@ -45,13 +45,9 @@ theorem card_eq_twin_of_rank_color {x y : Card}
       | exact Or.inr rfl
       | (exfalso; revert hcol; intro h; cases h)
 
-/-- Two colours both different from a third are equal. -/
-private theorem color_eq_of_ne {a b z : Color} (h1 : a ≠ z) (h2 : b ≠ z) : a = b := by
-  cases a <;> cases b <;> cases z <;>
-    first
-      | rfl
-      | (exfalso; revert h1; decide)
-      | (exfalso; revert h2; decide)
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the two-colour pigeonhole is
+hoisted to `Orig2/Kit.lean` (`color_eq_of_ne`) - this private copy
+struck; the cites resolve to the Kit home by the same name. -/
 
 /-- A seated card fits on its parent (the seat leg of `tfc_seat_parent`). -/
 private theorem canSitOn_parent_of_seat {s : State} (hwf : s.WF)
@@ -1337,37 +1333,13 @@ private theorem stack_of_tabToFound_self {c : Card} {play : List Move}
   · exact ⟨c, Or.inl ⟨hk, hk⟩, h⟩
   · exact ⟨c, Or.inr ⟨hk, Or.inl rfl⟩, h⟩
 
-private theorem fg_canSitOn_parent_of_seat {s : State} (hwf : s.WF)
-    {c z : Card} (hse : seatOf s c = some (Sum.inr z)) :
-    canSitOn c z = true := by
-  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hse
-  exact (tfc_seat_parent hwf hhold hlast).1
-
-/-- A seated card's parent tops no pile (same restatement, second
-conjunct). -/
-private theorem fg_parent_not_top {s : State} (hwf : s.WF)
-    {c z : Card} (hse : seatOf s c = some (Sum.inr z)) :
-    s.pileOfTop z = none := by
-  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hse
-  exact (tfc_seat_parent hwf hhold hlast).2
-
-/-- The twin relabeling is invisible to the fit (restatement of
-`Orig/Twin.lean:74`, not seam-available). -/
-private theorem fg_canSitOn_twin_left (c b : Card) :
-    canSitOn c.twin b = canSitOn c b := by
-  rcases c with ⟨s, r⟩
-  rcases b with ⟨s', r'⟩
-  cases s <;> cases s' <;> rfl
-
-/-- A live `z0.twin` top makes a seated card a floater-spec
-(restatement of `Orig2/SeatMateStack.lean`'s private
-`floaterSpec_of_top`). -/
-private theorem fg_floaterSpec_of_top {s : State} {c z0 : Card} {a k : Anchor}
-    (hse : seatOf s c = some (Sum.inr z0))
-    (hhold : s.pileHolding c = some a)
-    (htop : s.pileOfTop z0.twin = some k) :
-    FloaterSpec s c :=
-  Or.inl ⟨z0, a, hse, hhold, Or.inl ⟨k, htop⟩⟩
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the `fg_` restatement block is
+struck - `fg_canSitOn_parent_of_seat` and `fg_floaterSpec_of_top` are
+verbatim in-file copies of `canSitOn_parent_of_seat` (:57) and
+`floaterSpec_of_top` (:1154); `fg_parent_not_top` is hoisted to
+`Orig2/CargoKit.lean` (`no_top_of_seat`, below both former consumers);
+`fg_canSitOn_twin_left` is hoisted to `Orig2/Kit.lean`
+(`canSitOn_twin_left`).  The four cites re-point. -/
 
 /- SHA-SCAN STRIKE (2026-10-31, the body-shape audit): the verbatim
 in-file copy `fg_top_of_floaterSpec` is struck - the canonical row
@@ -1416,7 +1388,7 @@ theorem floaterSpec_gain_step {u v : State} {m : Move} {c z0 : Card}
   have hnotop : u.pileOfTop z0.twin = none := by
     cases h : u.pileOfTop z0.twin with
     | none => rfl
-    | some k => exact absurd (fg_floaterSpec_of_top hse hhold h) hnf
+    | some k => exact absurd (floaterSpec_of_top hse hhold h) hnf
   -- a `z0.twin` top at the successor
   obtain ⟨kv, htopv⟩ := top_of_floaterSpec hse' hnk hf
   have htopk : lastOf (v.piles kv).faceUp = some z0.twin :=
@@ -1611,8 +1583,8 @@ theorem floaterSpec_gain_step {u v : State} {m : Move} {c z0 : Card}
             have hxse : seatOf u x = some (Sum.inr z0.twin) :=
               tfc_seatOf_inr_intro hhold hlastPre
             have hx : x = c.twin := blocker_eq_twin hwf hse hxse
-            have hfitc : canSitOn c z0 = true := fg_canSitOn_parent_of_seat hwf hse
-            have hz0none : u.pileOfTop z0 = none := fg_parent_not_top hwf hse
+            have hfitc : canSitOn c z0 = true := canSitOn_parent_of_seat hwf hse
+            have hz0none : u.pileOfTop z0 = none := no_top_of_seat hwf hse
             rw [hx] at hcp
             cases b with
             | inl t =>
@@ -1624,7 +1596,7 @@ theorem floaterSpec_gain_step {u v : State} {m : Move} {c z0 : Card}
             | inr w =>
                 obtain ⟨k, hlocw, hfitw⟩ := canPlace_inr hcp
                 have hfitcw : canSitOn c w = true := by
-                  rw [← fg_canSitOn_twin_left c w]
+                  rw [← canSitOn_twin_left c w]
                   exact hfitw
                 rcases tfc_fitting_parent hfitcw hfitc with hw | hw
                 · rw [hw] at hlocw

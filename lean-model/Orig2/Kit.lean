@@ -2388,6 +2388,36 @@ theorem below_snoc_not_mem {x : Card} :
 
 theorem universe_nodup : Card.universe.Nodup := by decide
 
+/-! ## The hoisted fit algebra  (2026-10-31, the wave-7 shape-scan strike)
+
+One home for the twin-blind fitting laws and the two-colour elimination —
+each was carried as a private per-file copy by every consumer (the seam
+note: `Orig.Twin` is not seam-available, so the rows re-landed file by
+file).  Hoisted here so the copies strike; pure card/colour arithmetic,
+`rfl` by the sixteen-way enumeration. -/
+
+/-- The fit is twin-blind in the mover: relabelling the mover's suit by
+its twin does not change the fit.  (Lineage: `Archive/TwinPreludeFunctor.lean:433`,
+frozen `Orig/Twin.lean:74`.) -/
+theorem canSitOn_twin_left (c b : Card) :
+    canSitOn c.twin b = canSitOn c b := by
+  rcases c with ⟨s, r⟩
+  rcases b with ⟨s', r'⟩
+  cases s <;> cases s' <;> rfl
+
+/-- The fit is twin-blind in the target: relabelling the base's suit by
+its twin does not change the fit. -/
+theorem canSitOn_twin_target (e c : Card) :
+    canSitOn e c.twin = canSitOn e c := by
+  rcases e with ⟨s, r⟩
+  rcases c with ⟨s', r'⟩
+  cases s <;> cases s' <;> rfl
+
+/-- Two colours both different from a third are equal. -/
+theorem color_eq_of_ne {a b z : Color} (h1 : a ≠ z) (h2 : b ≠ z) :
+    a = b := by
+  cases a <;> cases b <;> cases z <;> simp_all
+
 /-! ## The hoisted occurrence & seat kit  (2026-10-31, the closed-seam
 consolidation)
 
@@ -2749,6 +2779,9 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 #print axioms mono_run
 #print axioms step_phaseMeasure_le
 #print axioms draw_D_le
+#print axioms canSitOn_twin_left
+#print axioms canSitOn_twin_target
+#print axioms color_eq_of_ne
 #print axioms tfc_fromCard_cons
 #print axioms tfc_below_fromCard
 #print axioms below_not_mem_self

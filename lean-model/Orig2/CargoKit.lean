@@ -1047,6 +1047,16 @@ theorem tfc_seatOf_inr_rank_ne_king {s : State} {c r : Card}
   have hlt' := Rank.toIdx_lt r.rank
   omega
 
+/-- The parent of a seated card tops no pile: the `.2` of the seat
+parent row.  HOISTED 2026-10-31 (the wave-7 shape-scan strike) from
+FreeOrbit's private `no_top_of_seat` and SeatMateStack's
+`fg_parent_not_top` — the DAG direction blocked the direct cite, so
+one home lives here, below both consumers. -/
+theorem no_top_of_seat {st : State} {x z : Card} (hwf : st.WF)
+    (hseat : seatOf st x = some (Sum.inr z)) : st.pileOfTop z = none := by
+  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hseat
+  exact (tfc_seat_parent hwf hhold hlast).2
+
 /-- The run head never lands a located `inr`-base on its own holding
 pile: the descent exclusion behind `tfc_tabToTab_wf`'s `hak` (fresh
 reading of `Orig2/Integrity.lean`'s `canPlace_inr_target_pile_ne` <-
@@ -1995,6 +2005,7 @@ theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
 #print axioms tfc_suit_same_color_or_twin
 #print axioms tfc_fitting_parent
 #print axioms tfc_seat_parent
+#print axioms no_top_of_seat
 #print axioms tfc_mover_pile_not_target
 #print axioms tfc_tabToTabR_inv
 #print axioms tfc_leg_shape

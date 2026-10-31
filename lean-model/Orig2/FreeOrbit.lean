@@ -70,12 +70,9 @@ hidden ledger, `Orig2.Integrity` for the census); zero `sorry`, zero
 
 /-! ## §1. The seat rows — the two-seat lemma (the cornerstone) -/
 
-/-- The two-color pigeonhole.  Lineage: `Orig2/SeatMateStack.lean`'s
-private `color_eq_of_ne` — restated here per the kit rule rather
-than widening that card's surface. -/
-private theorem color_eq_of_ne {a b z : Color} (h1 : a ≠ z) (h2 : b ≠ z) :
-    a = b := by
-  cases a <;> cases b <;> cases z <;> simp_all
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the two-colour pigeonhole is
+hoisted to `Orig2/Kit.lean` (`color_eq_of_ne`) - this private copy
+struck; the cites resolve to the Kit home by the same name. -/
 
 /-- **THE TWO-SEAT LEMMA, PAIR-CLOSURE FORM** — any two legal parents
 of one card are equal or twins: a card's sitting options are exactly
@@ -911,18 +908,9 @@ private theorem sitter_pair {d e c : Card} (hd : canSitOn d c = true)
   exact card_eq_twin_of_rank_color (Rank.toIdx_inj (by omega))
     (color_eq_of_ne hcd hce)
 
-/-- The fit is twin-blind in the target. -/
-private theorem canSitOn_twin_target (e c : Card) : canSitOn e c.twin = canSitOn e c := by
-  have hc2 : c.twin.suit.color = c.suit.color := by
-    rcases c with ⟨s, r⟩
-    cases s <;> rfl
-  rw [show canSitOn e c.twin
-      = (decide (e.rank.toIdx + 1 = c.twin.rank.toIdx)
-          && decide (e.suit.color ≠ c.twin.suit.color)) from rfl,
-    show canSitOn e c
-      = (decide (e.rank.toIdx + 1 = c.rank.toIdx)
-          && decide (e.suit.color ≠ c.suit.color)) from rfl,
-    show c.twin.rank.toIdx = c.rank.toIdx from rfl, hc2]
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the twin-target fit law is
+hoisted to `Orig2/Kit.lean` (`canSitOn_twin_target`) - this private
+copy struck; the cite resolves to the Kit home by the same name. -/
 
 /-- The front part of a `w`-headed representation is the below-of-w. -/
 private theorem below_w_eq {w : Card} {X F : List Card} (hwX : w ∉ X) :
@@ -1129,11 +1117,10 @@ private theorem faceUp_of_covered {st : State} {x z : Card}
   obtain ⟨a_x, hhold_x, -, hlast_x⟩ := tfc_seatOf_of_inr hseat
   exact ⟨a_x, below_mem (lastOf_mem hlast_x)⟩
 
-/-- A seated card's parent is not a top (the cover hides it). -/
-private theorem no_top_of_seat {st : State} {x z : Card} (hwf : st.WF)
-    (hseat : seatOf st x = some (Sum.inr z)) : st.pileOfTop z = none := by
-  obtain ⟨a_x, hhold_x, -, hlast_x⟩ := tfc_seatOf_of_inr hseat
-  exact (tfc_seat_parent hwf hhold_x hlast_x).2
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the parent-tops-no-pile row is
+hoisted to `Orig2/CargoKit.lean` (`no_top_of_seat`, below both former
+consumers) - this private copy struck; the cites resolve by the same
+name. -/
 
 /-- No `inr` seat means unparented (the seat is the parentedness
 witness-function). -/

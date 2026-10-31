@@ -507,14 +507,9 @@ HOISTED 2026-10-31 to CargoKit (`tfc_seatOf_inr_rank_ne_king`, beside
 its seat rows) — this private copy struck, the cites re-point there.
 (restated lineage: `Archive/TwinFoundationRow.lean:180`.) -/
 
-/-- The twin-left fitting law, copied from the seam-private rows: the
-mover's suit twin does not change the pile-fit predicate.
-(restated from `Archive/TwinPreludeFunctor.lean:433` — the per-file kit norm) -/
-private theorem canSitOn_twin_left' (c b : Card) :
-    canSitOn c.twin b = canSitOn c b := by
-  rcases c with ⟨s, r⟩
-  rcases b with ⟨s', r'⟩
-  cases s <;> cases s' <;> rfl
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the twin-left fitting law is
+hoisted to `Orig2/Kit.lean` (`canSitOn_twin_left`) - this private copy
+struck, the cite below re-pointed. -/
 
 /-- Two distinct twins cannot share the same direct parent: both would sit
 at the same successor position in one legal run, contradicting the strict
@@ -555,7 +550,7 @@ private theorem twin_parent_eq_of_seats {u : State} {x z zt : Card}
   have hzt : canSitOn x zt.twin = true := by
     obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr hxt
     have h := (tfc_seat_parent hwf hhold hlast).1
-    simpa [canSitOn_twin_left'] using h
+    simpa [canSitOn_twin_left] using h
   rcases tfc_fitting_parent hzt hz with h | h
   · exfalso
     exact not_twin_same_parent hwf hx (by simpa [h] using hxt)

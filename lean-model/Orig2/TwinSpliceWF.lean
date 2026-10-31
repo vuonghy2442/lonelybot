@@ -23,14 +23,10 @@ Zero `sorry`, zero `Classical.choice`.
 
 /-! ## §0. Count and fit kit -/
 
-/-- Twin-blindness on the mover side of the fit (a restatement of the
-frozen `Orig/Twin.lean:74`; `Orig2/SeatMateStack.lean` keeps its own
-private copy). -/
-private theorem canSitOn_twin_left (c b : Card) :
-    canSitOn c.twin b = canSitOn c b := by
-  rcases c with ⟨s, r⟩
-  rcases b with ⟨s', r'⟩
-  cases s <;> cases s' <;> rfl
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the twin-left fitting law is
+hoisted to `Orig2/Kit.lean` (`canSitOn_twin_left`) - this private copy
+struck; the two `simpa [canSitOn_twin_left]` cites below resolve to the
+Kit home by the same name. -/
 
 /-- `tfc_cntFlat` is the sum of the per-zone counts. -/
 private theorem cntFlat_eq_sum_map (c : Card) :

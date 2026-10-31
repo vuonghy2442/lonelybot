@@ -238,11 +238,9 @@ private theorem below_succ_of_fromCard {l : List Card} {c e : Card} {rest : List
     _ = below c l ++ below e (c :: e :: rest) := below_append_notmem hnot _
     _ = below c l ++ [c] := by rw [hstep]
 
-/-- Two-colour row: a colour different from `b` and `b` different from
-`c` forces `a = c`.  (Fresh; `Color` has exactly two constructors.) -/
-private theorem color_eq_of_ne_ne {a b c : Color} (hab : a ≠ b) (hbc : b ≠ c) :
-    a = c := by
-  cases a <;> cases b <;> cases c <;> simp_all
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the transitive two-colour row is
+struck - the Kit home `color_eq_of_ne` (`Orig2/Kit.lean`) gives it in
+one line (`color_eq_of_ne hab (Ne.symm hbc)`); the cite re-pointed. -/
 
 /-- **COVER TOP OF FORK.**  At a `WF` live twin pair `F`, `y = x.twin`,
 if `d` sits directly on `y` (`seatOf F d = some (inr y)`), then `d`
@@ -291,7 +289,8 @@ theorem cover_top_of_fork {F : State} {x y d : Card} (hwf : F.WF)
       rw [← hstep]
       exact Nat.lt_add_of_pos_right (by decide : 0 < 2)
     -- colours: e has y's colour
-    have hcolY : e.suit.color = y.suit.color := color_eq_of_ne_ne hcolE hcolD
+    have hcolY : e.suit.color = y.suit.color :=
+      color_eq_of_ne hcolE (Ne.symm hcolD)
     have hsu : e.suit = y.suit ∨ e.suit = y.suit.twin :=
       tfc_suit_same_color_or_twin hcolY
     have hytwin : y.suit.twin = x.suit := by

@@ -258,11 +258,9 @@ end SpliceTop
 
 /-! ## §3. Set-up: the two hosts and their twin parents -/
 
-private theorem canSitOn_twin_left_comm (c b : Card) :
-    canSitOn c.twin b = canSitOn c b := by
-  rcases c with ⟨cs, cr⟩
-  rcases b with ⟨bs, br⟩
-  cases cs <;> cases bs <;> rfl
+/- SHA-SCAN STRIKE (2026-10-31, wave 7): the twin-left fitting law is
+hoisted to `Orig2/Kit.lean` (`canSitOn_twin_left`) - this private copy
+struck, the cite below re-pointed. -/
 
 /-- The two `.inr` seats pin the two hosts and their twin parents. -/
 theorem splice_setup {s : State} {x : Card}
@@ -288,7 +286,7 @@ theorem splice_setup {s : State} {x : Card}
   have hcanz : canSitOn x z = true := (tfc_seat_parent hwf ha hzlast).1
   have hcanz₀ : canSitOn x.twin z₀.twin = true := (tfc_seat_parent hwf hb hz₀last).1
   have hcanz₀' : canSitOn x z₀.twin = true := by
-    rw [← canSitOn_twin_left_comm x z₀.twin]
+    rw [← canSitOn_twin_left x z₀.twin]
     exact hcanz₀
   have hfit := tfc_fitting_parent hcanz₀' hcanz
   have hz₀eq : z₀ = z := by
