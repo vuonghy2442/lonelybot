@@ -228,6 +228,20 @@ theorem pullSpec_mk (p : WFState) (c : Card) :
     pullSpec (Quotient.mk orbitRungSetoid p) c ↔ p.1.foundTop c.suit = some c :=
   Iff.rfl
 
+/-! ## par.7. The pull's base-independence -/
+
+/-- THE SINGLE-CARD LANDING IS THE SINGLETON-RUN LANDING: the pull's
+letter and the slide's letter write the same pile.  The base-independence
+route's vocabulary bridge (the pull at any base lands in the same
+position class and the same `BareCargoEquiv` class: the two pulls are
+joined by the slide of the pulled card from one landing to the other,
+`bareCargo_of_slide` + `bareCargo_sameOrbit` then carry both classes). -/
+private theorem putCard_eq_putRun (st : State) (c : Card) (b : Base) :
+    st.putCard c b = st.putRun [c] b := by
+  cases b with
+  | inl a => rfl
+  | inr z => cases hz : st.pileOfTop z <;> rfl
+
 /-! ## par.9. The battery -/
 
 #print axioms rungsOf
