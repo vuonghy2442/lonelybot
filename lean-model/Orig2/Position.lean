@@ -486,6 +486,37 @@ theorem pull_base_position {u v₁ v₂ : State} {c : Card} {b₁ b₂ : Base}
   Quotient.sound ⟨bareCargo_sameOrbit (pull_base_bareCargo hwf hwf₁ hwf₂ h₁ h₂),
     fun σ => by rw [rungAt_foundToTab h₁ σ, rungAt_foundToTab h₂ σ]⟩
 
+/-- **THE WASTE RAISE CLIMBS ONE RUNG** - a `wasteToFound` step
+raises the played suit's rung by exactly one and fixes every other
+suit: the one non-positional edge's ledger. -/
+theorem rungAt_wasteToFound {u v : State} {c : Card}
+    (hstep : State.step u (Move.wasteToFound c) = some v) (σ : Suit) :
+    rungAt v σ = if σ = c.suit then rungAt u σ + 1 else rungAt u σ := by
+  obtain ⟨-, x, xs, -, hv⟩ := step_wasteToFound_inv hstep
+  have hfv : v.found σ = if σ = c.suit then u.found c.suit ++ [c] else u.found σ := by
+    rw [hv]; rfl
+  by_cases hσ : σ = c.suit
+  · subst hσ
+    unfold rungAt
+    rw [hfv, if_pos rfl, if_pos rfl]
+    simp [List.length_append]
+  · unfold rungAt
+    rw [hfv, if_neg hσ, if_neg hσ]
+
+/-- **THE REVERSIBLE SLIDE VANISHES** - a reversible tableau slide
+holds the ledger and rides the cargo class: it never changes the
+position.  The quotient's own glue (the free moves are exactly the
+draws and the reversible slides: `wasteToTab` is never reversible -
+`wasteToTab_not_reversibleAtW` - and the draw's vanishing awaits
+the stock-waste cycle construction). -/
+theorem slide_position {u v : State} {c : Card} {b : Base} (hwf : u.WF)
+    (hstep : State.step u (Move.tabToTab c b) = some v)
+    (hrev : reversibleAtW u (Move.tabToTab c b)) :
+    (Quotient.mk orbitRungSetoid ⟨u, hwf⟩ : Position)
+      = Quotient.mk orbitRungSetoid ⟨v, step_wf hwf hstep⟩ :=
+  Quotient.sound ⟨bareCargo_sameOrbit (bareCargo_of_slide hwf hstep hrev),
+    fun σ => (rungAt_tabToTab hstep σ).symm⟩
+
 /-! ## par.9. The battery -/
 
 #print axioms rungsOf
@@ -511,3 +542,5 @@ theorem pull_base_position {u v₁ v₂ : State} {c : Card} {b₁ b₂ : Base}
 #print axioms pull_slide_pull
 #print axioms pull_base_bareCargo
 #print axioms pull_base_position
+#print axioms rungAt_wasteToFound
+#print axioms slide_position
