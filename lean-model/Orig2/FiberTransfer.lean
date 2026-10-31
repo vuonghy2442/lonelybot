@@ -2383,32 +2383,7 @@ private theorem mem_found_of_eq {s s' : State} (hfounds : s.found = s'.found)
     (c : Card) : c ∈ s.found c.suit ↔ c ∈ s'.found c.suit :=
   ⟨fun h => by rw [← hfounds]; exact h, fun h => by rw [hfounds]; exact h⟩
 
-/-- **THE ORIGINAL `fiber_transfer`, DISCHARGED.**  The
-ledger stub's statement VERBATIM — every hypothesis, the conclusion
-verbatim, no rank split in the statement — proven by splitting on the
-rank in the proof: the non-king case rides §9, the king case rides
-§12. -/
-theorem fiber_transfer_full :
-    ∀ (s s' : State) (x : Card), s.WF → s'.WF →
-      sameOrbitSetoid.r s s' → s.found = s'.found →
-      (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
-      (∃ seatA, s'.pileHolding x = some seatA) →
-      (∃ seatA', s'.pileHolding x.twin = some seatA') →
-      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
-  intro s s' x hwf hwf' hclass hfounds hswap hholdx hholdxt
-  have hxw : x ∈ s.found x.suit → x ∈ s'.found x.suit :=
-    (mem_found_of_eq hfounds x).mp
-  have hxtw : x.twin ∈ s.found x.twin.suit →
-      x.twin ∈ s'.found x.twin.suit :=
-    (mem_found_of_eq hfounds x.twin).mp
-  by_cases hking : x.rank = Rank.king
-  · exact fiber_transfer_of_king s s' x hwf hwf' hclass hxw hxtw hking hswap
-      hholdx hholdxt
-  · exact fiber_transfer_of_nonking s s' x hwf hwf' hclass hxw hxtw hking
-      hswap hholdx hholdxt
-
 #print axioms fiber_transfer_of_king
-#print axioms fiber_transfer_full
 
 /-! ## §13. The seat-free strengthening (fresh, 2026-10-25, the
 owner's second observation)
@@ -2545,6 +2520,25 @@ theorem fiber_transfer_seat_free :
 #print axioms seated_of_orbit
 #print axioms unseated_of_orbit
 #print axioms fiber_transfer_seat_free
+
+/-- **THE ORIGINAL `fiber_transfer`, DISCHARGED.**  The
+ledger stub's statement VERBATIM — every hypothesis, the conclusion
+verbatim, no rank split in the statement.  A one-line delegate to
+`fiber_transfer_seat_free` since the 2026-10-31 tower collapse: the
+`pileHolding` premises are redundant (§13's dichotomy derives them),
+and the rank split lives inside `fiber_transfer_of_arrows` (the
+single home of the §13/§15 skeleton). -/
+theorem fiber_transfer_full :
+    ∀ (s s' : State) (x : Card), s.WF → s'.WF →
+      sameOrbitSetoid.r s s' → s.found = s'.found →
+      (∃ v, twinPairSwapStrict s v x ∧ sameOrbitSetoid.r s v) →
+      (∃ seatA, s'.pileHolding x = some seatA) →
+      (∃ seatA', s'.pileHolding x.twin = some seatA') →
+      (∃ v', twinPairSwapStrict s' v' x ∧ sameOrbitSetoid.r s' v') := by
+  intro s s' x hwf hwf' hclass hfounds hswap hholdx hholdxt
+  exact fiber_transfer_seat_free s s' x hwf hwf' hclass hfounds hswap
+
+#print axioms fiber_transfer_full
 
 /-! ## §14. The founds row is necessary — the refutation witness
 (fresh, 2026-10-25, the owner's challenge)
