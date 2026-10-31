@@ -39,9 +39,8 @@ card rides the certified transfer directly instead.)
 
 open State
 
-/-- A well-formed state - the carrier of the stratified quotient
-(the transfer is stated between WF endpoints). -/
-abbrev WFState : Type := {s : State // s.WF}
+/- `WFState` lives in the registry (`Orig2/Vocab.lean`), promoted
+there 2026-10-31 per the owner's ruling; this card consumes it. -/
 
 /-- **The stratified orbit**: the reversible class, stratified by the
 twins' foundation-membership profile - exactly the coinducing data of

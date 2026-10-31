@@ -330,6 +330,40 @@ def classOf (C : SameOrbit) (w : State) : Prop :=
 rung.  PORTED VERBATIM from `Orig/MacroInternal.lean:55`. -/
 def rungAt (w : State) (s : Suit) : Nat := (w.found s).length
 
+/-- **RungEq s s'** - the ledger equality: every suit's foundation
+rung agrees.  (The grid campaign's registry landing, 2026-10-31,
+the owner's move from `Orig2/Position.lean`.) -/
+abbrev RungEq (s s' : State) : Prop := ∀ σ, rungAt s σ = rungAt s' σ
+
+/-- **WFState** - the well-formed states: the game's arena, the
+quotients' carrier (the descent proofs need the run discipline, and
+well-formedness is not partitioned by the raw orbit).  REGISTRY
+MOVE 2026-10-31: promoted from `Orig2/StratifiedQuotient.lean` per
+the owner's ruling - both quotients (the stratified twin-membership
+meet, the rung meet) share this carrier. -/
+abbrev WFState : Type := {s : State // s.WF}
+
+/-- **orbitRungSetoid** - THE GAME-POSITION EQUIVALENCE: orbit-mates
+at equal rungs.  The meet of the macro class (`sameOrbitSetoid`) and
+the ledger (`RungEq`) - the orbit alone would collapse the
+foundation progress (raises are reversible), the rungs alone would
+not glue the orbit's free rearrangements.  (The grid campaign's
+registry landing, 2026-10-31, the owner's move from
+`Orig2/Position.lean`.) -/
+instance orbitRungSetoid : Setoid WFState where
+  r p p' := sameOrbitSetoid.r p.1 p'.1 ∧ RungEq p.1 p'.1
+  iseqv :=
+    ⟨fun p => ⟨sameOrbitSetoid.iseqv.refl p.1, fun _ => rfl⟩,
+     fun ⟨h1, h2⟩ => ⟨sameOrbitSetoid.iseqv.symm h1, fun σ => (h2 σ).symm⟩,
+     fun ⟨h1, h2⟩ ⟨h1', h2'⟩ =>
+       ⟨sameOrbitSetoid.iseqv.trans h1 h1', fun σ => (h2 σ).trans (h2' σ)⟩⟩
+
+/-- **Position** - the game's position space: well-formed states
+modulo orbit-mates-at-equal-rungs.  The rung grid's vertices.  (The
+grid campaign's registry landing, 2026-10-31, the owner's move from
+`Orig2/Position.lean`.) -/
+abbrev Position := Quotient orbitRungSetoid
+
 /-- **twinSuit s₁ s₂** — suits of one color.  PORTED VERBATIM from
 `Orig/MacroInternal.lean:58`. -/
 def twinSuit (s₁ s₂ : Suit) : Prop := s₁ = s₂ ∨ s₁ = s₂.twin

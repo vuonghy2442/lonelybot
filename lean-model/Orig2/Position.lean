@@ -19,10 +19,10 @@ the pulls their mirrors (-e_suit).  Because raises are reversible,
 orbits CROSS rungs - so the position is the MEET of the macro class
 and the ledger: orbit-mates at equal rungs.
 
-* **par.1 THE SETOID** - `RungEq` (the ledger equality), `WFState`
-(the arena - the respect proofs need the run discipline), and
-`orbitRungSetoid` (the meet).
-* **par.2 THE QUOTIENT** - `Position` (the grid's vertex space).
+* **par.1-2 THE SETOID AND THE QUOTIENT** - `RungEq`, `WFState`,
+`orbitRungSetoid`, and `Position` live in the vocabulary registry
+(`Orig2/Vocab.lean`), moved there per the owner's ruling of
+2026-10-31; this card consumes them and owns the descended maps.
 * **par.3 THE DESCENT** - `rungsOf`, `foundsOf`, and `spec` (the
 license spectrum: the possible `tabToFound` moves as a
 position-function - the campaign theorem's respect proof), with its
@@ -38,32 +38,13 @@ class-determinism (the pull-back + orbit-walk + raise concatenation)
 - then the residue campaign runs on the grid.
 -/
 
-/-! ## par.1. The setoid -/
+/-! ## par.1. The setoid (in the registry) -/
 
-/-- **RungEq s s'** - the ledger equality: every suit's foundation
-rung agrees. -/
-abbrev RungEq (s s' : State) : Prop := ∀ σ, rungAt s σ = rungAt s' σ
-
-/-- **orbitRungSetoid** - THE GAME-POSITION EQUIVALENCE: orbit-mates
-at equal rungs.  The meet of the macro class (`sameOrbitSetoid`) and
-the ledger (`RungEq`) - the orbit alone would collapse the
-foundation progress (raises are reversible), the rungs alone would
-not glue the orbit's free rearrangements.  The carrier is
-`StratifiedQuotient`'s `WFState` (the same arena, per the kit rule:
-the stratified twin-membership meet and this rung meet share it). -/
-instance orbitRungSetoid : Setoid WFState where
-  r p p' := sameOrbitSetoid.r p.1 p'.1 ∧ RungEq p.1 p'.1
-  iseqv :=
-    ⟨fun p => ⟨sameOrbitSetoid.iseqv.refl p.1, fun _ => rfl⟩,
-     fun ⟨h1, h2⟩ => ⟨sameOrbitSetoid.iseqv.symm h1, fun σ => (h2 σ).symm⟩,
-     fun ⟨h1, h2⟩ ⟨h1', h2'⟩ =>
-       ⟨sameOrbitSetoid.iseqv.trans h1 h1', fun σ => (h2 σ).trans (h2' σ)⟩⟩
-
-/-! ## par.2. The quotient -/
-
-/-- **Position** - the game's position space: well-formed states
-modulo orbit-mates-at-equal-rungs.  The grid's vertices. -/
-abbrev Position := Quotient orbitRungSetoid
+/- `RungEq`, `WFState`, `orbitRungSetoid`, and `Position` live in the
+vocabulary registry (`Orig2/Vocab.lean`), moved there from this card
+per the owner's ruling of 2026-10-31 (`WFState` promoted from
+`Orig2/StratifiedQuotient.lean` in the same move).  This card owns
+the descended maps and the grid rows. -/
 
 /-! ## par.3. The descent -/
 
