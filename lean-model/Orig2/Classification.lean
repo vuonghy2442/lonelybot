@@ -930,10 +930,13 @@ private theorem putCard_inr_roundtrip (p : Pile) (c : Card) (hf : p.faceUp ≠ [
       show ({ p with faceUp := x :: xs } : Pile) = p
       exact Pile.ext rfl hp.symm
 
-/-- The state-level round trip behind the pull undo.  PORTED
-verbatim from `Orig/Irreversible.lean:1323`; the frozen statement
-concludes the frozen twin of the carrier — this port's statement
-is the registry's own constant. -/
+/-- The state-level round trip behind the pull undo, as the literal
+step equation.  PORTED verbatim from `Orig/Irreversible.lean:1323`
+(the frozen statement concludes the frozen twin of the carrier);
+STRENGTHENED 2026-10-31 (the kit rule): the conclusion is now the
+raise-back's firing itself, so the promotion wrapper above consumes
+the construction directly - the reversibility re-wraps via
+`reversible_mirrorW`. -/
 private theorem foundToTab_rtp {st : State} {c : Card} {b : Base} {s₁ : State} {k : Anchor}
     (hstep : State.step st (Move.foundToTab c b) = some s₁)
     (hidx : (chop (st.found c.suit)).length = c.rank.toIdx)
@@ -943,7 +946,7 @@ private theorem foundToTab_rtp {st : State} {c : Card} {b : Base} {s₁ : State}
     (hkrest : Pile.afterRunRemoved (s₁.piles k) (chop (s₁.piles k).faceUp) = st.piles k)
     (hzkeep : ∀ a', a' ≠ k → s₁.piles a' = st.piles a')
     (hkeep : s₁.stock = st.stock ∧ s₁.waste = st.waste ∧ s₁.drawStep = st.drawStep) :
-    reversibleAtW st (Move.foundToTab c b) := by
+    State.step s₁ (Move.tabToFound c) = some st := by
   obtain ⟨c', htop, hc'c, -, hs⟩ := step_foundToTab_inv hstep
   have hF : st.found c.suit = chop (st.found c.suit) ++ [c] := by
     have h2 : st.foundTop c.suit = some c := by rw [htop, hc'c]
@@ -990,20 +993,25 @@ private theorem foundToTab_rtp {st : State} {c : Card} {b : Base} {s₁ : State}
     · show (s₁.setFound c.suit (s₁.found c.suit ++ [c])).drawStep = st.drawStep
       rw [setFound_drawStep]
       exact hkeep.2.2
-  exact reversible_mirrorW hstep hstep2
+  exact hstep2
 
-/-- **The `.foundToTab` undo, witness form (primary).**  A
-successful `Move.foundToTab c b` is undone by `Move.tabToFound c`
-of the same card, returning to the origin in one move.  PORTED
-verbatim from `Orig/Irreversible.lean:1400`; carrier note as
-above. -/
-private theorem foundToTab_undo {st : State} {c : Card} {b : Base} {s₁ : State} {k : Anchor}
-    (h : State.step st (Move.foundToTab c b) = some s₁)
-    (hnext : (chop (st.found c.suit)).length = c.rank.toIdx)
-    (hsearch : s₁.pileOfTop c = some k)
-    (hseat : b = Sum.inl k ∨ ∃ z, b = Sum.inr z ∧ st.pileOfTop z = some k) :
-    reversibleAtW st (Move.foundToTab c b) := by
+/-- **THE PULL'S RAISE-BACK** - a successful `Move.foundToTab c b`
+at a `WF` state is undone by `Move.tabToFound c` of the same card,
+returning to the origin in one move.  PROMOTION (the kit rule,
+2026-10-31): the wrapper the position card's round-trip mirror
+consumes - the §1r construction (`foundToTab_rtp`, its conclusion
+strengthened to the step equation) under the `WF` side conditions
+(the chop arithmetic pinning `nextUp`, the `pileOfTop` search
+re-pinning the written seat, the card-count uniqueness excluding
+every other seat).  Frozen lineage `Orig/Irreversible.lean:1323`
+and `:1400`, ported content verbatim. -/
+theorem step_tabToFound_of_foundToTab {st : State} {c : Card} {b : Base} {s₁ : State}
+    (hwf : st.WF) (h : State.step st (Move.foundToTab c b) = some s₁) :
+    State.step s₁ (Move.tabToFound c) = some st := by
   obtain ⟨c', htop, hc'c, hcp, hs⟩ := step_foundToTab_inv h
+  rw [hc'c] at htop
+  have hnext : (chop (st.found c.suit)).length = c.rank.toIdx :=
+    wf_found_chop_toIdx hwf htop
   have hkeep : s₁.stock = st.stock ∧ s₁.waste = st.waste ∧ s₁.drawStep = st.drawStep := by
     refine ⟨?_, ?_, ?_⟩
     · rw [hs, putCard_stock, setFound_stock]
@@ -1016,42 +1024,63 @@ private theorem foundToTab_undo {st : State} {c : Card} {b : Base} {s₁ : State
     intro σ hσ
     rw [hs, putCard_found]
     exact setFound_found_ne hσ
-  rcases hseat with hb | ⟨z, hb, hz⟩
-  · subst hb
-    obtain ⟨hemp, -⟩ := canPlace_inl hcp
-    obtain ⟨hhd, hfu⟩ := (Pile.isEmpty_eq _).mp hemp
-    have hPk : s₁.piles k = ⟨[], [c]⟩ := by
-      rw [hs]
-      simp only [putCard_piles_inl]
-      rw [ite_true]
-    have hzkeep : ∀ a', a' ≠ k → s₁.piles a' = st.piles a' := by
-      intro a' hne
-      rw [hs]
-      simp only [putCard_piles_inl]
-      rw [ite_eq_right hne, setFound_piles]
-    exact foundToTab_rtp h hnext hs₁found hs₁other hsearch
-      (by
+  cases b with
+  | inl k =>
+      have hnost : ∀ a₂ : Anchor, a₂ ≠ k → (st.piles a₂).top ≠ some c :=
+        fun a₂ _ => @wf_found_not_pileTop st c a₂ c.suit hwf htop
+      have hothers : ∀ a₂, a₂ ≠ k → s₁.piles a₂ = st.piles a₂ := by
+        intro a₂ hne₂
+        rw [hs]
+        simp only [putCard_piles_inl]
+        rw [ite_eq_right hne₂, setFound_piles]
+      have htop2 : (s₁.piles k).top = some c := by
+        rw [hs]
+        simp only [putCard_piles_inl]
+        rw [ite_true]
+        rfl
+      have hsearch : s₁.pileOfTop c = some k := topPin hothers htop2 hnost
+      have hPk : s₁.piles k = ⟨[], [c]⟩ := by
+        rw [hs]
+        simp only [putCard_piles_inl]
+        rw [ite_true]
+      have hkrest : Pile.afterRunRemoved (s₁.piles k) (chop (s₁.piles k).faceUp)
+          = st.piles k := by
         rw [hPk]
         show (⟨[], []⟩ : Pile) = st.piles k
-        exact Pile.ext hhd.symm hfu.symm)
-      hzkeep hkeep
-  · subst hb
-    obtain ⟨hfne, -⟩ := pileOfTop_top hz
-    have hz' : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z = some k := hz
-    have hPk : s₁.piles k = { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } := by
-      rw [hs]
-      simp only [putCard_piles_inr _ _ _ _ hz']
-      rw [setFound_piles, ite_true]
-    have hzkeep : ∀ a', a' ≠ k → s₁.piles a' = st.piles a' := by
-      intro a' hne
-      rw [hs]
-      simp only [putCard_piles_inr _ _ _ _ hz']
-      rw [ite_eq_right hne, setFound_piles]
-    exact foundToTab_rtp h hnext hs₁found hs₁other hsearch
-      (by
+        obtain ⟨hemp, -⟩ := canPlace_inl hcp
+        obtain ⟨hhd, hfu⟩ := (Pile.isEmpty_eq _).mp hemp
+        exact Pile.ext hhd.symm hfu.symm
+      exact foundToTab_rtp h hnext hs₁found hs₁other hsearch hkrest hothers hkeep
+  | inr z =>
+      obtain ⟨k, hz, -⟩ := canPlace_inr hcp
+      have hnost : ∀ a₂ : Anchor, a₂ ≠ k → (st.piles a₂).top ≠ some c :=
+        fun a₂ _ => @wf_found_not_pileTop st c a₂ c.suit hwf htop
+      have hz' : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z
+          = some k := hz
+      have hothers : ∀ a₂, a₂ ≠ k → s₁.piles a₂ = st.piles a₂ := by
+        intro a₂ hne₂
+        rw [hs]
+        simp only [putCard_piles_inr _ _ _ _ hz']
+        rw [ite_eq_right hne₂, setFound_piles]
+      have htop2 : (s₁.piles k).top = some c := by
+        rw [hs]
+        simp only [putCard_piles_inr _ _ _ _ hz']
+        rw [setFound_piles, ite_true]
+        show lastOf ((st.piles k).faceUp ++ [c]) = some c
+        exact lastOf_snoc
+      have hsearch : s₁.pileOfTop c = some k := topPin hothers htop2 hnost
+      have hPk : s₁.piles k = { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } := by
+        rw [hs]
+        simp only [putCard_piles_inr _ _ _ _ hz']
+        rw [setFound_piles, ite_true]
+      have hfne : (st.piles k).faceUp ≠ [] := by
+        obtain ⟨hfne, -⟩ := pileOfTop_top hz
+        exact hfne
+      have hkrest : Pile.afterRunRemoved (s₁.piles k) (chop (s₁.piles k).faceUp)
+          = st.piles k := by
         rw [hPk]
-        exact putCard_inr_roundtrip _ c hfne)
-      hzkeep hkeep
+        exact putCard_inr_roundtrip _ c hfne
+      exact foundToTab_rtp h hnext hs₁found hs₁other hsearch hkrest hothers hkeep
 
 /-! ### §1s. The foundToTab step guards
 
@@ -1903,65 +1932,14 @@ prefix property, and the successor's `pileOfTop` search re-pins
 its written seat (the card-count uniqueness excluding every other
 seat — `wf_found_not_pileTop`).  PORTED (extraction, not
 re-derivation) from `Orig/Classify.lean:2101`
-(`foundToTab_reversibleAtW_of_legal_wf`); the witness is the §1r
-`foundToTab_undo`. -/
+(`foundToTab_reversibleAtW_of_legal_wf`); the witness is
+`step_tabToFound_of_foundToTab` (the promotion wrapper over the
+§1r construction) + `reversible_mirrorW`. -/
 private theorem foundToTab_W_of_legal_wf {st : State} {c : Card} {b : Base}
     (hwf : st.WF) (htop : st.foundTop c.suit = some c) (hcp : st.canPlace c b = true) :
     reversibleAtW st (Move.foundToTab c b) := by
   obtain ⟨s₁, hs⟩ := step_foundToTab_legal htop hcp
-  have hnext : (chop (st.found c.suit)).length = c.rank.toIdx :=
-    wf_found_chop_toIdx hwf htop
-  cases b with
-  | inl k =>
-      have hnost : ∀ a₂ : Anchor, a₂ ≠ k → (st.piles a₂).top ≠ some c :=
-        fun a₂ _ => @wf_found_not_pileTop st c a₂ c.suit hwf htop
-      have hsearch : s₁.pileOfTop c = some k := by
-        obtain ⟨-, -, -, -, hs'⟩ := step_foundToTab_inv hs
-        rw [hs']
-        have hothers : ∀ a₂, a₂ ≠ k →
-            ((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inl k)).piles a₂
-              = st.piles a₂ := by
-          intro a₂ hne₂
-          rw [putCard_piles_inl]
-          show (if a₂ = k then ((⟨[], [c]⟩ : Pile)) else st.piles a₂) = st.piles a₂
-          rw [ite_eq_right hne₂]
-        have htop2 : (((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inl k)).piles k).top
-            = some c := by
-          rw [putCard_piles_inl]
-          show (if k = k then ((⟨[], [c]⟩ : Pile)) else st.piles k).top = some c
-          rw [ite_eq_left rfl]
-          rfl
-        exact topPin hothers htop2 hnost
-      exact foundToTab_undo hs hnext hsearch (Or.inl rfl)
-  | inr z =>
-      obtain ⟨k, hz, -⟩ := canPlace_inr hcp
-      have hnost : ∀ a₂ : Anchor, a₂ ≠ k → (st.piles a₂).top ≠ some c :=
-        fun a₂ _ => @wf_found_not_pileTop st c a₂ c.suit hwf htop
-      have hsearch : s₁.pileOfTop c = some k := by
-        obtain ⟨-, -, -, -, hs'⟩ := step_foundToTab_inv hs
-        rw [hs']
-        have hz2 : (st.setFound c.suit (chop (st.found c.suit))).pileOfTop z
-            = some k := hz
-        have hothers : ∀ a₂, a₂ ≠ k →
-            ((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inr z)).piles a₂
-              = st.piles a₂ := by
-          intro a₂ hne₂
-          rw [putCard_piles_inr _ _ _ _ hz2]
-          show (if a₂ = k then
-              ({ st.piles k with faceUp := (st.piles k).faceUp ++ [c] } : Pile)
-              else st.piles a₂) = st.piles a₂
-          rw [ite_eq_right hne₂]
-        have htop2 : (((st.setFound c.suit (chop (st.found c.suit))).putCard c (Sum.inr z)).piles k).top
-            = some c := by
-          rw [putCard_piles_inr _ _ _ _ hz2]
-          show (if k = k then
-              ({ st.piles k with faceUp := (st.piles k).faceUp ++ [c] } : Pile)
-              else st.piles k).top = some c
-          rw [ite_eq_left rfl]
-          show lastOf ((st.piles k).faceUp ++ [c]) = some c
-          exact lastOf_snoc
-        exact topPin hothers htop2 hnost
-      exact foundToTab_undo hs hnext hsearch (Or.inr ⟨z, rfl, hz⟩)
+  exact reversible_mirrorW hs (step_tabToFound_of_foundToTab hwf hs)
 
 /-- **The pull letter**: at `WF` the shape `foundToTabR` reads
 undoability exactly — every refused cell (empty foundation, no
@@ -2523,6 +2501,7 @@ Per proved head, this card.  Expected profile per the card header:
 promotion (see §7). -/
 
 #print axioms step_foundToTab_of_tabToFound_bare
+#print axioms step_tabToFound_of_foundToTab
 #print axioms wasteToFound_not_reversibleAtW
 #print axioms wasteToTab_not_reversibleAtW
 #print axioms drawR_iff_reversibleAtW

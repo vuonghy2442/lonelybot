@@ -663,6 +663,21 @@ theorem tabToFound_pull_back {s t : State} {c : Card}
         rw [hs]
         rfl
 
+/-- **THE PULL'S ROUND-TRIP** - a firing pull at a `WF` state is
+undone by a literal `Move.tabToFound c` back to the very source
+(the raise-back fires because the pull dropped the suit's rung to
+exactly the card's index and the card tops its landing pile).
+THE MIRROR of `tabToFound_pull_back` - and STRONGER than the
+raise's version: no reversibility hypothesis is needed, because
+at `WF` every firing pull is reversible (the pull's oracle
+conditions ARE its firing conditions).  The step-construction is
+Classification's `step_tabToFound_of_foundToTab`, promoted from
+its private kit per the kit rule. -/
+theorem foundToTab_pull_back {s t : State} {c : Card} {b : Base}
+    (hwf : s.WF) (hstep : State.step s (Move.foundToTab c b) = some t) :
+    State.step t (Move.tabToFound c) = some s :=
+  step_tabToFound_of_foundToTab hwf hstep
+
 /-- **THE RAISE'S CLASS-DETERMINISM** - at equal rungs, two
 REVERSIBLE raises of the same card from orbit-mates land in the
 same class: the pull-back (the round-trip), the orbit-walk between
@@ -701,6 +716,54 @@ theorem raise_class_position {s s₁ t t₁ : State} {c : Card}
   · rw [ite_eq_left hσ, ite_eq_left hσ, hrung σ]
   · rw [ite_eq_right hσ, ite_eq_right hσ]
     exact hrung σ
+
+/-- **THE PULL'S CLASS-DETERMINISM** - at equal rungs, two pulls of
+the same card from orbit-mates land in the same class (the bases
+need not even match - the pull's landing class is base-independent,
+par.6).  THE MIRROR of `raise_class_position`: the round-trips (via
+`foundToTab_pull_back`, no reversibility hypothesis needed at
+`WF`), the orbit-walk between the sources, and the pulls compose
+into witness walks both ways; the rungs via `rungAt_foundToTab`'s
+mirror edge (-e_suit).  THE QUOTIENT GAME'S BACKWARD EDGE IS
+WELL-DEFINED: with the raise's forward edge
+(`raise_class_position`), every reversible move family now has a
+complete position-level story - the grid calculus becomes pure
+assembly. -/
+theorem pull_class_position {s s₁ t t₁ : State} {c : Card} {b b₁ : Base}
+    (hwf : s.WF) (hwf₁ : s₁.WF)
+    (horb : sameOrbitSetoid.r s s₁) (hrung : RungEq s s₁)
+    (hstep : State.step s (Move.foundToTab c b) = some t)
+    (hstep₁ : State.step s₁ (Move.foundToTab c b₁) = some t₁) :
+    (Quotient.mk orbitRungSetoid ⟨t, step_wf hwf hstep⟩ : Position)
+      = Quotient.mk orbitRungSetoid ⟨t₁, step_wf hwf₁ hstep₁⟩ := by
+  have hb := foundToTab_pull_back hwf hstep
+  have hb₁ := foundToTab_pull_back hwf₁ hstep₁
+  have hrev : reversibleAtW s (Move.foundToTab c b) :=
+    reversible_mirrorW hstep hb
+  have hrev₁ : reversibleAtW s₁ (Move.foundToTab c b₁) :=
+    reversible_mirrorW hstep₁ hb₁
+  obtain ⟨ρ, hρ, τ, hτ⟩ := horb
+  have hw1 : ShufflePlayW t [Move.tabToFound c] s :=
+    Walk.cons (reversible_mirrorW hb hstep) hb (Walk.nil s)
+  have hw3 : ShufflePlayW s [Move.foundToTab c b] t :=
+    Walk.cons hrev hstep (Walk.nil t)
+  have hw1₁ : ShufflePlayW t₁ [Move.tabToFound c] s₁ :=
+    Walk.cons (reversible_mirrorW hb₁ hstep₁) hb₁ (Walk.nil s₁)
+  have hw3₁ : ShufflePlayW s₁ [Move.foundToTab c b₁] t₁ :=
+    Walk.cons hrev₁ hstep₁ (Walk.nil t₁)
+  have hA : ShufflePlayW t₁ ([Move.tabToFound c] ++ ρ ++ [Move.foundToTab c b]) t :=
+    ShufflePlayW_append (ShufflePlayW_append hw1₁ hρ) hw3
+  have hB : ShufflePlayW t ([Move.tabToFound c] ++ τ ++ [Move.foundToTab c b₁]) t₁ :=
+    ShufflePlayW_append (ShufflePlayW_append hw1 hτ) hw3₁
+  refine Quotient.sound ⟨⟨[Move.tabToFound c] ++ ρ ++ [Move.foundToTab c b], hA,
+    [Move.tabToFound c] ++ τ ++ [Move.foundToTab c b₁], hB⟩, ?_⟩
+  intro σ
+  rw [rungAt_foundToTab hstep σ, rungAt_foundToTab hstep₁ σ]
+  by_cases hσ : σ = c.suit
+  · rw [ite_eq_left hσ, ite_eq_left hσ, hrung σ]
+  · rw [ite_eq_right hσ, ite_eq_right hσ]
+    exact hrung σ
+
 /-! ## par.7. The draw's vanishing -/
 
 /-- The board-move closure is reflexive (the empty plays). -/
@@ -1252,7 +1315,9 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms ssaturated_position
 #print axioms ssaturated_iff_spec
 #print axioms tabToFound_pull_back
+#print axioms foundToTab_pull_back
 #print axioms raise_class_position
+#print axioms pull_class_position
 #print axioms draw_position_of_cycle
 #print axioms drawR_invariant
 #print axioms drain_zero_walk
