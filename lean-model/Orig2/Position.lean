@@ -720,6 +720,79 @@ theorem draw_position_of_cycle {u v : State} (hwf : u.WF) (hwfv : v.WF)
   · intro σ
     exact (rungAt_draw hstep σ).symm
 
+/-- **THE drawR INVARIANT** - the reversible-draw shape is closed
+under the draw: the phase trap (an in-phase position stays
+in-phase through the draw, and the empty stock is in-phase
+trivially) plus the waste's nonemptiness (the deal only appends).
+The whole draw cycle carries this invariant - it is why every leg
+of the cycle is reversible. -/
+theorem drawR_invariant {x y : State} (hd : 0 < x.drawStep)
+    (hstep : State.step x Move.draw = some y) (h : drawR x = true) :
+    drawR y = true := by
+  have hstep' : x.stepDraw = some y := hstep
+  have hwx : x.waste ≠ [] := by
+    cases hst : x.stock with
+    | nil =>
+        simp only [drawR, hst] at h
+        exact of_decide_eq_true h
+    | cons w t =>
+        simp only [drawR, hst, Bool.and_eq_true] at h
+        exact of_decide_eq_true h.1
+  have hphx : inPhase x = true := by
+    cases hst : x.stock with
+    | nil => exact inPhase_eq_true_of_nil hst
+    | cons w t =>
+        rw [inPhase_eq_decide_of_cons hst]
+        simp only [drawR, hst, Bool.and_eq_true] at h
+        exact h.2
+  have hphy : inPhase y = true := draw_keeps_inPhase hstep' hphx
+  have hwy : y.waste ≠ [] := by
+    cases hst : x.stock with
+    | nil =>
+        rw [base_draw_shape hst hwx] at hstep'
+        injection hstep' with hcon
+        rw [← hcon]
+        intro hcon2
+        have hlen : ((x.waste.reverse.take x.drawStep).reverse
+            ++ ([] : List Card)).length = 0 := congrArg List.length hcon2
+        rw [List.length_append, List.length_nil, List.length_reverse,
+          List.length_take, List.length_reverse, Nat.min_def] at hlen
+        have hpos : 0 < x.waste.length := by
+          obtain ⟨w0, t0, hc0⟩ := list_cons_of_ne_nil hwx
+          rw [hc0, List.length_cons]; omega
+        by_cases hle : x.drawStep ≤ x.waste.length
+        · rw [if_pos hle] at hlen; omega
+        · rw [if_neg hle] at hlen; omega
+    | cons w t =>
+        have hxne : x.stock ≠ [] := by
+          intro hcon
+          rw [hcon] at hst
+          exact absurd hst (by simp)
+        rw [plain_draw_shape hxne] at hstep'
+        injection hstep' with hcon
+        rw [← hcon]
+        intro hcon2
+        have hlen : ((x.stock.take x.drawStep).reverse ++ x.waste).length = 0 :=
+          congrArg List.length hcon2
+        rw [List.length_append, List.length_reverse, List.length_take] at hlen
+        have hpos : 0 < x.waste.length := by
+          obtain ⟨w0, t0, hc0⟩ := list_cons_of_ne_nil hwx
+          rw [hc0, List.length_cons]; omega
+        omega
+  cases hsty : y.stock with
+  | nil =>
+      unfold drawR
+      rw [hsty]
+      show decide (y.waste ≠ []) = true
+      exact decide_eq_true hwy
+  | cons w t =>
+      unfold drawR
+      rw [hsty]
+      show (decide (y.waste ≠ []) && decide (y.waste.length % y.drawStep = 0)) = true
+      rw [decide_eq_true hwy, Bool.true_and]
+      rw [inPhase_eq_decide_of_cons hsty] at hphy
+      exact hphy
+
 /-! ## par.8. The saturation descent -/
 
 /-- **THE SATURATION FRONTIER AT THE POSITION LEVEL** - the level-k
@@ -797,3 +870,4 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms tabToFound_pull_back
 #print axioms raise_class_position
 #print axioms draw_position_of_cycle
+#print axioms drawR_invariant
