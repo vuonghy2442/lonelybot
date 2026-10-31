@@ -13,6 +13,7 @@ import Orig2.ForkOneSlide
 import Orig2.ForkSafeTransport
 import Orig2.ForkOneSlideLive
 import Orig2.ForkSplit
+import Orig2.ForkCommute
 
 /-!
 # Orig2.Fork — the fork theory umbrella

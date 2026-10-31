@@ -902,13 +902,20 @@ theorem satDifferForkWF_of_valleyElimNonfork
 
 /-! ## §9. The crossing valley and its named locator -/
 
-/-- **THE NAMED OPEN LOCATOR.**  A crossing valley turn
-`pull c ; raise d` (adjacent, `c ≠ d`, different suits) can be
-completed to a contiguous crossing block
-`pull d ; pull c ; raise d ; raise c` inside the same play.  This is
-exactly the missing path-normalization input for the `c ≠ d` branch:
-it supplies the matching pull of `d` (immediately before the valley pull)
-and the matching raise of `c` (immediately after the valley raise). -/
+/-- **THE LOCATOR — WITHDRAWN, FALSE AS STATED.**  Two independent defects,
+both kernel-checked in `Orig2/ForkLocatorRefute.lean`
+(`LocatorRefute.valleyCrossingLocator_false`):
+
+1. **Existence:** the partner letters `pull d` (before) and `raise c` (after)
+   need not occur in the play (witness: `pull A♠ ; raise A♦`, length 2).
+2. **Contiguity is syntactic:** commuting the interior produces a *different*
+   play `ρ'`; a block found after reordering lives in `ρ'`, not in `ρ`.
+
+The corrected targets live in `Orig2/ForkLocator.lean`:
+`ValleyCrossingPartnerLocator` (partners adjacent, block in `ρ`; proved) and
+`CrossingBracketNormalizer` (partners with arbitrary interior; conclusion is
+a re-run play `ρ'` of the same length with a contiguous block).  This
+definition is kept only so the refutation can name it. -/
 def ValleyCrossingLocator : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base) (tail : List Move),
