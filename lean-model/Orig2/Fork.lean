@@ -14,6 +14,7 @@ import Orig2.ForkSafeTransport
 import Orig2.ForkOneSlideLive
 import Orig2.ForkSplit
 import Orig2.ForkCommute
+import Orig2.ForkCommuteSlide
 import Orig2.ForkBubble
 import Orig2.ForkNormalize
 
@@ -53,8 +54,11 @@ The local and class-level fork cards, in dependency order:
 * `ForkOneSlide` — the unconditional one-slide safe cargo path: a
   blocked S-live card is one slide of its cover onto its twin from
   raisable.
-* `ForkSafeTransport` — `CanRaiseS` is preserved by a high raise, with
+* `ForkSafeTransport` - `CanRaiseS` is preserved by a high raise, with
   the necessary side condition `c ≠ x.twin`.
+* `ForkCommuteSlide` - the two remaining slide squares: `slide/pull`
+  and `slide/raise` (unconditional; the `slide/slide` square is false
+  without `c1 ≠ c2` and is deliberately not stated).
 * `ForkBubble` — the play-level bubbling kit: `swap_at`, `bubble_one`,
   `bracket_delete_at`, the raise/pull normal form, and the inversion
   measure.

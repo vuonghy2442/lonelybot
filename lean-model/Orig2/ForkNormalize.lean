@@ -1,5 +1,6 @@
 import Orig2.ForkBubble
 import Orig2.ForkLocator
+import Orig2.ForkCommuteSlide
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -342,6 +343,18 @@ theorem commutes_of_slideRaiseRow (h : SlideRaiseRow) {st : State} {c : Card}
     {b : Base} {c' : Card} (hwf : st.WF) :
     Commutes st (Move.tabToTab c b) (Move.tabToFound c') :=
   h st c b c' hwf
+
+/-- **THE SLIDE/PULL ROW IS FREE.**  Discharged by
+`CommuteStep.step_comm_slide_pull` (`Orig2/ForkCommuteSlide.lean`). -/
+theorem slidePullRow_holds : SlidePullRow := by
+  intro st c b c' b' hwf hrev1 hrev2 s1 s2 s12 s21 h1 h2 h12 h21
+  exact CommuteStep.step_comm_slide_pull hwf hrev1 hrev2 h1 h2 h12 h21
+
+/-- **THE SLIDE/RAISE ROW IS FREE.**  Discharged by
+`CommuteStep.step_comm_slide_raise` (`Orig2/ForkCommuteSlide.lean`). -/
+theorem slideRaiseRow_holds : SlideRaiseRow := by
+  intro st c b c' hwf hrev1 hrev2 s1 s2 s12 s21 h1 h2 h12 h21
+  exact CommuteStep.step_comm_slide_raise hwf hrev1 hrev2 h1 h2 h12 h21
 
 /-- A letter that is a pull, a raise, or a slide. -/
 def PullRaiseSlide (m : Move) : Prop :=
