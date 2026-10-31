@@ -940,6 +940,189 @@ private theorem drain_q_walk : ∀ (q : Nat) (x : State),
       · rfl
       · exact hw2 m hm'
 
+/-- The walk's endpoint inherits wellformedness from its source:
+each leg is a step, and steps preserve WF. -/
+private theorem walk_wf_end {Q : State → Move → Prop} {st W : State} {play : List Move}
+    (h : Walk Q st play W) : st.WF → W.WF := by
+  induction h with
+  | nil s => exact id
+  | cons hleg hstep hrest ih => intro hwf; exact ih (step_wf hwf hstep)
+
+/-- The drain-to-zero at its natural bound (the stock's own
+length). -/
+private theorem drain_zero_self (x : State) (hwf : x.WF) (hd : drawR x = true) :
+    ∃ τ, DrawPlayW x τ (drainState x) :=
+  drain_zero_walk x.stock.length x (Nat.le_refl _) hwf hd
+
+/-- **THE RETURN FROM A PASS-BASE DRAW** - the stock-empty case of
+the draw cycle's return row.  The draw recycles the waste and deals;
+from the recycled deal, draining the recycled stock returns to the
+source: the pool algebra reconstructs the waste exactly (the dealt
+cards reversed back onto it).  The banked 7b divider algebra, case
+(a). -/
+private theorem draw_return_nil {u v : State} (hwf : u.WF)
+    (hstep : State.step u Move.draw = some v)
+    (hrev : reversibleAtW u Move.draw)
+    (hstock : u.stock = ([] : List Card)) :
+    ∃ τ, DrawPlayW v τ u := by
+  have hd : 0 < u.drawStep := hwf.2.2.2
+  have hdR : drawR u = true := (drawR_iff_reversibleAtW hwf).mpr hrev
+  have hw : u.waste ≠ [] := by
+    simp only [drawR, hstock] at hdR
+    exact of_decide_eq_true hdR
+  have h2 : u.stepDraw = some v := hstep
+  rw [base_draw_shape hstock hw] at h2
+  injection h2 with h3
+  subst h3
+  let B : State :=
+    { u with stock := (List.drop u.drawStep u.waste.reverse), waste := ((List.take u.drawStep u.waste.reverse).reverse ++ ([] : List Card)) }
+  have hdRB : drawR B = true := drawR_invariant hd hstep hdR
+  have hwfB : B.WF := step_wf hwf hstep
+  obtain ⟨τ₁, w₁⟩ := drain_zero_self B hwfB hdRB
+  have hstate : drainState B = u := by
+    unfold drainState
+    refine State.ext ?_ ?_ ?_ ?_ ?_
+    · rfl
+    · rfl
+    · exact hstock.symm
+    · rw [show B.stock = u.waste.reverse.drop u.drawStep from rfl,
+        show B.waste = (u.waste.reverse.take u.drawStep).reverse ++ ([] : List Card) from rfl,
+        ← List.append_assoc, ← List.reverse_append, List.take_append_drop,
+        List.reverse_reverse, List.append_nil]
+    · rfl
+  rw [hstate] at w₁
+  exact ⟨τ₁, w₁⟩
+
+/-- The draws-only plays compose. -/
+private theorem DrawPlayW_append {a b c : State} {l1 l2 : List Move}
+    (h1 : DrawPlayW a l1 b) (h2 : DrawPlayW b l2 c) :
+    DrawPlayW a (l1 ++ l2) c :=
+  ⟨ShufflePlayW_append h1.1 h2.1, by
+    intro m hm
+    rcases List.mem_append.mp hm with hm' | hm''
+    · exact h1.2 m hm'
+    · exact h2.2 m hm''⟩
+
+/-- **THE RETURN FROM A PLAIN IN-PHASE DRAW** - the stock-nonempty
+case of the draw cycle's return row: drain to the empty stock (the
+pool gathered), one pass-base recycle (the pool reversed back into
+play), and the controlled q-descent down to the source's divider.
+The banked 7b divider algebra, case (b): the whole return runs on
+whole deals because the source's in-phase condition makes the waste
+length a multiple of the draw step. -/
+private theorem draw_return_cons {u v : State} (hwf : u.WF)
+    (hstep : State.step u Move.draw = some v)
+    (hrev : reversibleAtW u Move.draw)
+    (hne : u.stock ≠ []) :
+    ∃ τ, DrawPlayW v τ u := by
+  have hd : 0 < u.drawStep := hwf.2.2.2
+  have hdR : drawR u = true := (drawR_iff_reversibleAtW hwf).mpr hrev
+  cases hstock : u.stock with
+  | nil => exact absurd hstock hne
+  | cons a t =>
+      have hdR' := hdR
+      simp only [drawR, hstock, Bool.and_eq_true] at hdR
+      have hw : u.waste ≠ [] := of_decide_eq_true hdR.1
+      have hphase : u.waste.length % u.drawStep = 0 := of_decide_eq_true hdR.2
+      have h2 : u.stepDraw = some v := hstep
+      rw [plain_draw_shape hne] at h2
+      injection h2 with h3
+      subst h3
+      let V : State :=
+        { u with stock := (List.drop u.drawStep u.stock), waste := ((List.take u.drawStep u.stock).reverse ++ u.waste) }
+      have hdRV : drawR V = true := drawR_invariant hd hstep hdR'
+      have hwfV : V.WF := step_wf hwf hstep
+      obtain ⟨τ₁, w₁⟩ := drain_zero_self V hwfV hdRV
+      let P : State :=
+        { u with stock := ([] : List Card), waste := (u.stock.reverse ++ u.waste) }
+      have hP : drainState V = P := by
+        unfold drainState
+        refine State.ext ?_ ?_ ?_ ?_ ?_
+        · rfl
+        · rfl
+        · rfl
+        · rw [show V.stock = List.drop u.drawStep u.stock from rfl,
+            show V.waste = (List.take u.drawStep u.stock).reverse ++ u.waste from rfl,
+            ← List.append_assoc, ← List.reverse_append, List.take_append_drop]
+        · rfl
+      rw [hP] at w₁
+      have hPne : P.waste ≠ [] := by
+        intro hc
+        have hlen : (u.stock.reverse ++ u.waste).length = 0 := congrArg List.length hc
+        rw [List.length_append] at hlen
+        have h1 : 1 ≤ u.stock.length := by rw [hstock, List.length_cons]; omega
+        have h2' : u.stock.reverse.length = u.stock.length := List.length_reverse
+        omega
+      have hdRP : drawR P = true := by
+        show decide (P.waste ≠ []) = true
+        exact decide_eq_true hPne
+      have hwfP : P.WF := walk_wf_end w₁.1 hwfV
+      let B : State :=
+        { P with stock := (List.drop P.drawStep P.waste.reverse), waste := ((List.take P.drawStep P.waste.reverse).reverse ++ ([] : List Card)) }
+      have hbase : State.step P Move.draw = some B := base_draw_shape rfl hPne
+      have hPd : 0 < P.drawStep := hd
+      have hrevP : reversibleAtW P Move.draw := (drawR_iff_reversibleAtW hwfP).mp hdRP
+      have w₂ : DrawPlayW P [Move.draw] B :=
+        ⟨Walk.cons hrevP hbase (Walk.nil B), by simp⟩
+      have hwfB : B.WF := step_wf hwfP hbase
+      have hdRB : drawR B = true := drawR_invariant hPd hbase hdRP
+      have hw1' : 1 ≤ u.waste.length := by
+        obtain ⟨c0, t0, hc0⟩ := list_cons_of_ne_nil hw
+        rw [hc0, List.length_cons]; omega
+      have hdvd : u.drawStep ∣ u.waste.length := Nat.dvd_of_mod_eq_zero hphase
+      obtain ⟨N, hN⟩ := hdvd
+      have hN1 : 1 ≤ N := by
+        by_cases hN0 : N = 0
+        · rw [hN0, Nat.mul_zero] at hN
+          omega
+        · omega
+      obtain ⟨q, hq⟩ : ∃ q, q * u.drawStep + u.drawStep = u.waste.length := by
+        refine ⟨N - 1, ?_⟩
+        have h1 : (N - 1 + 1) * u.drawStep = (N - 1) * u.drawStep + u.drawStep :=
+          Nat.succ_mul (N - 1) u.drawStep
+        rw [show N - 1 + 1 = N from by omega] at h1
+        rw [← h1, hN]
+        exact Nat.mul_comm N u.drawStep
+      have hlenB : q * u.drawStep ≤ B.stock.length := by
+        have h1 : (u.stock.reverse ++ u.waste).reverse.length
+            = u.stock.length + u.waste.length := by
+          rw [List.length_reverse, List.length_append, List.length_reverse]
+        have h2 : B.stock.length
+            = (u.stock.reverse ++ u.waste).reverse.length - u.drawStep := by
+          rw [show B.stock = List.drop u.drawStep (u.stock.reverse ++ u.waste).reverse from rfl,
+            List.length_drop]
+        omega
+      obtain ⟨τ₃, w₃⟩ := drain_q_walk q B hlenB hwfB hdRB
+      have hstate : drainQState B (q * B.drawStep) = u := by
+        rw [congrArg (q * ·) (show B.drawStep = u.drawStep from rfl)]
+        unfold drainQState
+        refine State.ext ?_ ?_ ?_ ?_ ?_
+        · rfl
+        · rfl
+        · rw [show B.stock = List.drop u.drawStep (u.stock.reverse ++ u.waste).reverse
+              from rfl,
+            List.drop_drop,
+            show u.drawStep + q * u.drawStep = u.waste.length from by omega,
+            List.reverse_append, List.reverse_reverse,
+            show u.waste.length = u.waste.reverse.length
+              from (List.length_reverse (as := u.waste)).symm,
+            drop_append_prefix]
+        · rw [show B.stock = List.drop u.drawStep (u.stock.reverse ++ u.waste).reverse
+              from rfl,
+            show B.waste
+              = (List.take u.drawStep (u.stock.reverse ++ u.waste).reverse).reverse
+                ++ ([] : List Card) from rfl,
+            ← List.append_assoc, ← List.reverse_append, ← take_drop_add,
+            show u.drawStep + q * u.drawStep = u.waste.length from by omega,
+            List.reverse_append,
+            show u.waste.length = u.waste.reverse.length
+              from (List.length_reverse (as := u.waste)).symm,
+            take_append_prefix, List.reverse_reverse, List.reverse_reverse,
+            List.append_nil]
+        · rfl
+      rw [hstate] at w₃
+      exact ⟨_, DrawPlayW_append (DrawPlayW_append w₁ w₂) w₃⟩
+
 /-! ## par.8. The saturation descent -/
 
 /-- **THE SATURATION FRONTIER AT THE POSITION LEVEL** - the level-k
@@ -1020,3 +1203,8 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms drawR_invariant
 #print axioms drain_zero_walk
 #print axioms drain_q_walk
+#print axioms walk_wf_end
+#print axioms drain_zero_self
+#print axioms draw_return_nil
+#print axioms DrawPlayW_append
+#print axioms draw_return_cons
