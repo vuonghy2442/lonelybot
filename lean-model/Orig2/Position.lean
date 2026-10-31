@@ -31,12 +31,27 @@ flat probe `specB`.
 * **par.4 THE SOUNDNESS** - the spectrum can't tell representatives
 apart (`spec_sound`, via `Quotient.sound`); the probe reads the
 spectrum (`specB_iff`).
+* **par.5 THE RUNG-STEP ARITHMETIC** - all six move families'
+witness-grade rung steps, with `pullSpec` (the pullable cards as a
+position-function).
+* **par.6 THE PULL'S BASE-INDEPENDENCE AND THE SLIDE'S VANISHING** -
+the pull lands base-independently (`pull_base_position`); the
+slide vanishes (`slide_position`).
+* **par.6-BIS THE RAISE'S ROUND-TRIP AND CLASS-DETERMINISM** -
+`tabToFound_pull_back`, `raise_class_position`.
+* **par.7 THE DRAW'S VANISHING** - the drawR invariant, the drain
+primitives, the cycle's return row, the loop row, and the
+unconditional `draw_position`.
+* **par.8 THE SATURATION DESCENT** - the saturation frontier
+descended to positions.
 * **par.9 THE BATTERY**.
 
-THE NEXT SITTINGS: the rung-step arithmetic (raise +e_suit, pull
--e_suit, free moves 0), the free moves' vanishing, and the raise's
-class-determinism (the pull-back + orbit-walk + raise concatenation)
-- then the residue campaign runs on the grid.
+CAMPAIGN STATUS (sitting 7b complete, 2026-10-31): the tableau
+dynamics are position-invariants - the reversible moves vanish
+(pull, slide, draw), the raises are the grid's deterministic edges,
+the saturation descends.  THE REMAINING FRONT: the residue campaign
+(`SatDifferFork`, the fog map banked in the journal) runs on the
+grid.
 -/
 
 /-! ## par.1. The setoid (in the registry) -/
@@ -138,10 +153,10 @@ theorem rungAt_tabToFound {u v : State} {c : Card}
   by_cases hσ : σ = c.suit
   · subst hσ
     unfold rungAt
-    rw [hfv, if_pos rfl, if_pos rfl]
+    rw [hfv, ite_eq_left rfl, ite_eq_left rfl]
     simp [List.length_append]
   · unfold rungAt
-    rw [hfv, if_neg hσ, if_neg hσ]
+    rw [hfv, ite_eq_right hσ, ite_eq_right hσ]
 
 /-- **THE PULL DESCENDS ONE RUNG** - a `foundToTab` step lowers the
 pulled suit's rung by exactly one and fixes every other suit: the
@@ -162,10 +177,10 @@ theorem rungAt_foundToTab {u v : State} {c : Card} {b : Base}
   by_cases hσ : σ = c.suit
   · subst hσ
     unfold rungAt
-    rw [hfv, if_pos rfl, if_pos rfl]
+    rw [hfv, ite_eq_left rfl, ite_eq_left rfl]
     omega
   · unfold rungAt
-    rw [hfv, if_neg hσ, if_neg hσ]
+    rw [hfv, ite_eq_right hσ, ite_eq_right hσ]
 
 /-- **THE DRAW HOLDS THE LEDGER** - the draw letter moves only stock
 and waste: every rung is fixed. -/
@@ -210,7 +225,7 @@ theorem pullSpec_mk (p : WFState) (c : Card) :
     pullSpec (Quotient.mk orbitRungSetoid p) c ↔ p.1.foundTop c.suit = some c :=
   Iff.rfl
 
-/-! ## par.7. The pull's base-independence -/
+/-! ## par.6. The pull's base-independence -/
 
 /-- THE SINGLE-CARD LANDING IS THE SINGLETON-RUN LANDING: the pull's
 letter and the slide's letter write the same pile.  The base-independence
@@ -328,11 +343,11 @@ private theorem below_append_notmem {c : Card} : ∀ {old : List Card},
     c ∉ old → below c (old ++ [c]) = old := by
   intro old
   induction old with
-  | nil => intro _; show below c [c] = []; rw [below_cons, if_pos rfl]
+  | nil => intro _; show below c [c] = []; rw [below_cons, ite_eq_left rfl]
   | cons x t ih =>
       intro hnc
       rw [List.cons_append, below_cons,
-        if_neg (fun (hcon : x = c) => hnc (List.mem_cons.mpr (Or.inl hcon.symm)))]
+        ite_eq_right (fun (hcon : x = c) => hnc (List.mem_cons.mpr (Or.inl hcon.symm)))]
       exact congrArg (List.cons x) (ih (fun hcon => hnc (List.mem_cons.mpr (Or.inr hcon))))
 
 /-- The appended-top landing reading: the fromCard of a run whose
@@ -341,11 +356,11 @@ private theorem fromCard_append_notmem {c : Card} : ∀ {old : List Card},
     c ∉ old → fromCard c (old ++ [c]) = [c] := by
   intro old
   induction old with
-  | nil => intro _; show fromCard c [c] = [c]; rw [tfc_fromCard_cons, if_pos rfl]
+  | nil => intro _; show fromCard c [c] = [c]; rw [tfc_fromCard_cons, ite_eq_left rfl]
   | cons x t ih =>
       intro hnc
       rw [List.cons_append, tfc_fromCard_cons,
-        if_neg (fun (hcon : x = c) => hnc (List.mem_cons.mpr (Or.inl hcon.symm)))]
+        ite_eq_right (fun (hcon : x = c) => hnc (List.mem_cons.mpr (Or.inl hcon.symm)))]
       exact ih (fun hcon => hnc (List.mem_cons.mpr (Or.inr hcon)))
 
 /-- The setPile-restore: writing the source's pile back at the
@@ -359,9 +374,9 @@ private theorem pull_setPile_restore {u v : State} {c : Card} {b : Base} {A : An
   · funext a'
     simp only [State.setPile]
     by_cases ha' : a' = A
-    · rw [if_pos ha', ha']
+    · rw [ite_eq_left ha', ha']
       rfl
-    · rw [if_neg ha', hloc a' ha']
+    · rw [ite_eq_right ha', hloc a' ha']
       rfl
   · rw [show (v.setPile A (u.piles A)).stock = v.stock from rfl, hv, putCard_stock]
   · rw [show (v.setPile A (u.piles A)).waste = v.waste from rfl, hv, putCard_waste]
@@ -392,11 +407,11 @@ private theorem pull_slide_pull {u v₁ v₂ : State} {c : Card} {b₁ b₂ : Ba
       have hrun : fromCard c (v₁.piles a₁).faceUp = [c] := by
         rw [hpile]
         show fromCard c [c] = [c]
-        rw [tfc_fromCard_cons, if_pos rfl]
+        rw [tfc_fromCard_cons, ite_eq_left rfl]
       have hbelow : below c (v₁.piles a₁).faceUp = (u.piles a₁).faceUp := by
         rw [hpile]
         show below c [c] = (u.piles a₁).faceUp
-        rw [below_cons, if_pos rfl]
+        rw [below_cons, ite_eq_left rfl]
         exact (((Pile.isEmpty_eq _).mp (canPlace_inl hcp₁).1).2).symm
       have hX : Pile.afterRunRemoved (v₁.piles a₁) (below c (v₁.piles a₁).faceUp)
           = u.piles a₁ := by
@@ -411,7 +426,7 @@ private theorem pull_slide_pull {u v₁ v₂ : State} {c : Card} {b₁ b₂ : Ba
           = u.setFound c.suit (chop (u.found c.suit)) :=
         pull_setPile_restore hv₁ (fun a' ha' => pull_piles_inl_ne h₁ ha')
       simp only [State.step, hhold, hfit₂, hrun]
-      rw [hX, hrestore, ← putCard_eq_putRun, ← hv₂, if_pos trivial]
+      rw [hX, hrestore, ← putCard_eq_putRun, ← hv₂, ite_eq_left trivial]
   | inr z₁ =>
       obtain ⟨k₁, hpt₁, -⟩ := canPlace_inr_guard hcp₁
       have hcfound : c ∈ u.found c.suit := lastOf_mem hft
@@ -451,7 +466,7 @@ private theorem pull_slide_pull {u v₁ v₂ : State} {c : Card} {b₁ b₂ : Ba
           = u.setFound c.suit (chop (u.found c.suit)) :=
         pull_setPile_restore hv₁ (fun a' ha' => pull_piles_inr_ne h₁ hpt₁ ha')
       simp only [State.step, hhold, hfit₂, hrun]
-      rw [hX, hrestore, ← putCard_eq_putRun, ← hv₂, if_pos trivial]
+      rw [hX, hrestore, ← putCard_eq_putRun, ← hv₂, ite_eq_left trivial]
 
 /-- **THE PULL'S BASE-INDEPENDENCE, THE CARGO CLASS** - pulling `c`
 to any base lands in the same `BareCargoEquiv` class: the slide
@@ -499,10 +514,10 @@ theorem rungAt_wasteToFound {u v : State} {c : Card}
   by_cases hσ : σ = c.suit
   · subst hσ
     unfold rungAt
-    rw [hfv, if_pos rfl, if_pos rfl]
+    rw [hfv, ite_eq_left rfl, ite_eq_left rfl]
     simp [List.length_append]
   · unfold rungAt
-    rw [hfv, if_neg hσ, if_neg hσ]
+    rw [hfv, ite_eq_right hσ, ite_eq_right hσ]
 
 /-- **THE REVERSIBLE SLIDE VANISHES** - a reversible tableau slide
 holds the ledger and rides the cargo class: it never changes the
@@ -683,8 +698,8 @@ theorem raise_class_position {s s₁ t t₁ : State} {c : Card}
   intro σ
   rw [rungAt_tabToFound hstep σ, rungAt_tabToFound hstep₁ σ]
   by_cases hσ : σ = c.suit
-  · rw [if_pos hσ, if_pos hσ, hrung σ]
-  · rw [if_neg hσ, if_neg hσ]
+  · rw [ite_eq_left hσ, ite_eq_left hσ, hrung σ]
+  · rw [ite_eq_right hσ, ite_eq_right hσ]
     exact hrung σ
 /-! ## par.7. The draw's vanishing -/
 
@@ -705,8 +720,9 @@ the all-draw witness return (the rest of the draw cycle - the
 phase loop algebra's remaining row: from the post-draw state,
 drain the stock by in-phase draws, recycle at the empty base,
 and the divider returns), the orbit factorization composes the
-orbit.  The remaining gap is exactly the cycle row:
-`∃ τ, DrawPlayW v τ u` from one reversible draw. -/
+orbit.  The cycle hypothesis is now supplied unconditionally
+(`draw_return`, this card's par.7) - `draw_position` below is the
+closed form. -/
 theorem draw_position_of_cycle {u v : State} (hwf : u.WF) (hwfv : v.WF)
     (hstep : State.step u Move.draw = some v)
     (hrev : reversibleAtW u Move.draw)
@@ -761,8 +777,8 @@ theorem drawR_invariant {x y : State} (hd : 0 < x.drawStep)
           obtain ⟨w0, t0, hc0⟩ := list_cons_of_ne_nil hwx
           rw [hc0, List.length_cons]; omega
         by_cases hle : x.drawStep ≤ x.waste.length
-        · rw [if_pos hle] at hlen; omega
-        · rw [if_neg hle] at hlen; omega
+        · rw [ite_eq_left hle] at hlen; omega
+        · rw [ite_eq_right hle] at hlen; omega
     | cons w t =>
         have hxne : x.stock ≠ [] := by
           intro hcon
