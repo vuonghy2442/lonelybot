@@ -1,6 +1,8 @@
 import Orig2.StratifiedQuotient
 import Orig2.FreeOrbit
 import Orig2.OrbitFactor
+import Orig2.CeilingBridge
+import Orig2.TwinEquivariance
 
 /-!
 # Orig2.Position - THE GAME-POSITION QUOTIENT (the grid card)
@@ -43,6 +45,13 @@ slide vanishes (`slide_position`).
 edges both deterministic; the pull's round-trip needs no reversibility
 hypothesis at `WF` (the pull's oracle conditions ARE its firing
 conditions).
+* **par.6-TER THE WALK ENDPOINT CONGRUENCE** - `position_net_congruence`:
+the endpoint effect of any witness walk factors through the SIGNED
+per-suit net alone - order, free-letter interleaving, and pull bases
+are all invisible at the endpoint (the class stays constant, each leg
+reversible; the rungs move by the census; the position is the meet).
+The grid calculus's endpoint half; the evaluation interface (the
+function form + canon) remains.
 * **par.7 THE DRAW'S VANISHING** - the drawR invariant, the drain
 primitives, the cycle's return row, the loop row, and the
 unconditional `draw_position`.
@@ -50,17 +59,18 @@ unconditional `draw_position`.
 descended to positions.
 * **par.9 THE BATTERY**.
 
-CAMPAIGN STATUS (the pull's class-determinism landed, 2026-10-31):
+CAMPAIGN STATUS (the endpoint congruence landed, 2026-10-31):
 the tableau dynamics are position-invariants - the free moves
 vanish (slide, draw), the raises and pulls are the grid's
 deterministic edges (both directions certified), the saturation
 descends, and the waste moves are never reversible (factored out
-a priori - the orbit never sees them).  THE MOVE-ROW TABLE IS
-COMPLETE: the Grid Calculus (the walk-level congruence - any
-reversible witness walk's position-effect factors through its
-raise/pull skeleton) is now pure assembly, and the residue
-campaign (`SatDifferFork`, the fog map banked in the journal)
-runs on the grid.
+a priori - the orbit never sees them).  THE WALK ENDPOINT
+CONGRUENCE IS LANDED (par.6-ter): any witness walk's
+position-effect factors through its signed per-suit net.
+REMAINING FRONTS: the evaluation interface (the function form
+`positionEffect` and the canon/computability layer), and the
+residue campaign (`SatDifferFork`, the fog map banked in the
+journal) runs on the grid.
 -/
 
 /-! ## par.1. The setoid (in the registry) -/
@@ -773,6 +783,67 @@ theorem pull_class_position {s s₁ t t₁ : State} {c : Card} {b b₁ : Base}
   · rw [ite_eq_right hσ, ite_eq_right hσ]
     exact hrung σ
 
+/-! ## par.6-ter. The walk endpoint congruence -/
+
+/-- The walk's endpoint inherits wellformedness from its source:
+each leg is a step, and steps preserve WF.  (Promoted public
+2026-10-31 per the kit rule - the net congruence's statement derives
+its endpoint WF components from it.) -/
+theorem walk_wf_end {Q : State → Move → Prop} {st W : State} {play : List Move}
+    (h : Walk Q st play W) : st.WF → W.WF := by
+  induction h with
+  | nil s => exact id
+  | cons hleg hstep hrest ih => intro hwf; exact ih (step_wf hwf hstep)
+
+/-- The signed per-suit net of a play: its raise letters minus its
+pull letters, as an integer ledger.  The SIGNED form is
+load-bearing: the truncated `Nat` difference confuses "0 raises, 2
+pulls" with "1 raise, 1 pull" (endpoints 3 and 5 from rung 5 - the
+owner's counterexample). -/
+def walkNet (π : List Move) (σ : Suit) : Int :=
+  (raisesOf π σ : Int) - (pullsOf π σ : Int)
+
+/-- **THE WALK ENDPOINT CONGRUENCE** - the grid calculus, net form:
+two witness walks from the same position with the same signed
+per-suit net land in the same position.  The endpoint effect
+factors through the net ledger alone - order, interleaving with
+the free letters (draws, slides), and pull bases are all invisible
+at the endpoint.  THE ROUTE: the class is constant along witness
+walks (each leg reversible - `shufflePlayW_revEqW`, the certified
+bridge), the rungs move by exactly the census
+(`shuffle_rung_census`), and the position is the meet of the two.
+THE HONEST BOUNDARY: this is the endpoint accounting (soundness),
+not realizability - which nets are achievable is the spec layer's
+question, and legality still depends on order. -/
+theorem position_net_congruence {s t s' t' : State} {π π' : List Move}
+    (hws : s.WF) (hws' : s'.WF)
+    (h : ShufflePlayW s π t) (h' : ShufflePlayW s' π' t')
+    (hpos : orbitRungSetoid.r ⟨s, hws⟩ ⟨s', hws'⟩)
+    (hnet : ∀ σ, walkNet π σ = walkNet π' σ) :
+    (Quotient.mk orbitRungSetoid ⟨t, walk_wf_end h hws⟩ : Position)
+      = Quotient.mk orbitRungSetoid ⟨t', walk_wf_end h' hws'⟩ := by
+  refine Quotient.sound ⟨?_, ?_⟩
+  · -- the class component: t' ~ s' ~ s ~ t (each leg reversible)
+    exact RevEqW_trans (RevEqW_trans (RevEqW_symm (shufflePlayW_revEqW h'))
+      hpos.1) (shufflePlayW_revEqW h)
+  · -- the rung component: the census twice, the shared source
+    -- rungs, and the equal signed nets
+    intro σ
+    have c1 := shuffle_rung_census h σ
+    have c2 := shuffle_rung_census h' σ
+    have i3 := hpos.2 σ
+    have i4 := hnet σ
+    simp only [walkNet] at i4
+    have i1 : (rungAt t σ : Int) + pullsOf π σ = (rungAt s σ : Int) + raisesOf π σ := by
+      exact_mod_cast c1
+    have i2 : (rungAt t' σ : Int) + pullsOf π' σ = (rungAt s' σ : Int) + raisesOf π' σ := by
+      exact_mod_cast c2
+    have i3' : (rungAt s σ : Int) = (rungAt s' σ : Int) := by
+      exact_mod_cast i3
+    have key : (rungAt t σ : Int) = (rungAt t' σ : Int) := by
+      omega
+    exact_mod_cast key
+
 /-! ## par.7. The draw's vanishing -/
 
 /-- The board-move closure is reflexive (the empty plays). -/
@@ -1027,14 +1098,6 @@ private theorem drain_q_walk : ∀ (q : Nat) (x : State),
       rcases List.mem_cons.mp hm with rfl | hm'
       · rfl
       · exact hw2 m hm'
-
-/-- The walk's endpoint inherits wellformedness from its source:
-each leg is a step, and steps preserve WF. -/
-private theorem walk_wf_end {Q : State → Move → Prop} {st W : State} {play : List Move}
-    (h : Walk Q st play W) : st.WF → W.WF := by
-  induction h with
-  | nil s => exact id
-  | cons hleg hstep hrest ih => intro hwf; exact ih (step_wf hwf hstep)
 
 /-- The drain-to-zero at its natural bound (the stock's own
 length). -/
@@ -1327,6 +1390,7 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms foundToTab_pull_back
 #print axioms raise_class_position
 #print axioms pull_class_position
+#print axioms position_net_congruence
 #print axioms draw_position_of_cycle
 #print axioms drawR_invariant
 #print axioms drain_zero_walk
