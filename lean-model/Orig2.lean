@@ -6,6 +6,7 @@ import Orig2.OrbitFactor
 import Orig2.CeilingBridge
 import Orig2.CargoRaise
 import Orig2.FreeOrbit
+import Orig2.Position
 
 /-!
 # Orig2 — the proof root
