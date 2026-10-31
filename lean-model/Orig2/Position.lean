@@ -869,6 +869,77 @@ private theorem drain_zero_walk : ∀ (n : Nat) (x : State), x.stock.length ≤ 
             · rfl
             · exact hw2 m hm'⟩
 
+/-- The q-dealt state: n cards dealt off the stock (reversed) onto
+the waste - the pool conserved. -/
+private def drainQState (x : State) (n : Nat) : State :=
+  { x with stock := x.stock.drop n, waste := (x.stock.take n).reverse ++ x.waste }
+
+/-- **THE CONTROLLED WHOLE-DEAL DESCENT** - q whole draws from a
+reversible-draw state with enough stock: the stock descends by
+exactly q draw-steps, the dealt cards (reversed) onto the waste -
+the pool conserved.  The loop assembly's return leg (descending
+the cycle to a nonzero divider).  The witness-layer mirror of the
+Kit run row `drain_positions_one` (`Orig2/Kit.lean:1825`, frozen
+`Orig/Phase.lean:1386`) - the same take/drop arithmetic, with every
+leg certified reversible on the drawR rail. -/
+private theorem drain_q_walk : ∀ (q : Nat) (x : State),
+    q * x.drawStep ≤ x.stock.length →
+    x.WF → drawR x = true →
+    ∃ τ, DrawPlayW x τ (drainQState x (q * x.drawStep)) := by
+  intro q
+  induction q with
+  | zero =>
+      intro x hle hwf h
+      have hstr : drainQState x (0 * x.drawStep) = x := by
+        unfold drainQState
+        rw [Nat.zero_mul, List.drop_zero, List.take_zero, List.reverse_nil,
+          List.nil_append]
+      rw [hstr]
+      exact ⟨[], Walk.nil x, by simp⟩
+  | succ q ih =>
+      intro x hle hwf h
+      have hd : 0 < x.drawStep := hwf.2.2.2
+      rw [Nat.succ_mul] at hle
+      have hlne : x.stock ≠ [] := by
+        intro hc
+        have hlen : x.stock.length = 0 := by rw [hc]; simp
+        omega
+      let x' : State :=
+        { x with stock := (List.drop x.drawStep x.stock), waste := ((List.take x.drawStep x.stock).reverse ++ x.waste) }
+      have hstep' : State.step x Move.draw = some x' := by
+        show x.stepDraw = some x'
+        exact plain_draw_shape hlne
+      have hrev : reversibleAtW x Move.draw :=
+        (drawR_iff_reversibleAtW hwf).mp h
+      have hx' : drawR x' = true := drawR_invariant hd hstep' h
+      have hwf' : x'.WF := step_wf hwf hstep'
+      have hlen' : q * x.drawStep ≤ x'.stock.length := by
+        have h1 := List.length_drop (i := x.drawStep) (l := x.stock)
+        have h2 : x'.stock.length = (x.stock.drop x.drawStep).length := rfl
+        omega
+      obtain ⟨τ', hw1, hw2⟩ := ih x' hlen' hwf' hx'
+      have hidx : x.drawStep + q * x.drawStep = Nat.succ q * x.drawStep := by
+        rw [Nat.succ_mul]
+        omega
+      have hstate : drainQState x' (q * x.drawStep)
+          = drainQState x (Nat.succ q * x.drawStep) := by
+        unfold drainQState
+        refine State.ext ?_ ?_ ?_ ?_ ?_
+        · rfl
+        · rfl
+        · rw [show x'.stock = x.stock.drop x.drawStep from rfl,
+            List.drop_drop, hidx]
+        · rw [show x'.stock = x.stock.drop x.drawStep from rfl,
+            show x'.waste = (x.stock.take x.drawStep).reverse ++ x.waste from rfl,
+            ← hidx, take_drop_add, List.reverse_append, List.append_assoc]
+        · rfl
+      rw [hstate] at hw1
+      refine ⟨Move.draw :: τ', Walk.cons hrev hstep' hw1, ?_⟩
+      intro m hm
+      rcases List.mem_cons.mp hm with rfl | hm'
+      · rfl
+      · exact hw2 m hm'
+
 /-! ## par.8. The saturation descent -/
 
 /-- **THE SATURATION FRONTIER AT THE POSITION LEVEL** - the level-k
@@ -948,3 +1019,4 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms draw_position_of_cycle
 #print axioms drawR_invariant
 #print axioms drain_zero_walk
+#print axioms drain_q_walk
