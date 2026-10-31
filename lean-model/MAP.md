@@ -40,6 +40,15 @@ The live campaign targets are `SatDifferFork`, `ForkPositionRigid`
 (reduced to `ForkThirdRigid`), and `ArmDichotomySW` (the flat-fiber,
 draw-corrected arm dichotomy).
 
+Kit note (the 2026-10-31 dedup waves): the shared kit stratum leaf is
+`Orig2/Kit.lean` — the below/fromCard calculus, the occurrence-count
+word (`tfc_cnt` family), the lastOf/getLast? bridge, the seat
+readers, and `below_not_mem_self` live there under their `tfc_`
+names (Chart's closed-seam import surface rides it; the founding
+card's `below_mem`-family stays at Classification, the seat kit at
+Integrity).  The machine index `THEOREM_INDEX.txt` (generated,
+gitignored) regenerates via `pwsh Tools/make_index.ps1`.
+
 ## The strata (bottom → top)
 
 **S0 — kernel & state physics** (the deck, the piles, conservation,
