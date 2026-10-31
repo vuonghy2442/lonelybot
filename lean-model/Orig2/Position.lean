@@ -517,6 +517,48 @@ theorem slide_position {u v : State} {c : Card} {b : Base} (hwf : u.WF)
   Quotient.sound ⟨bareCargo_sameOrbit (bareCargo_of_slide hwf hstep hrev),
     fun σ => (rungAt_tabToTab hstep σ).symm⟩
 
+/-! ## par.8. The saturation descent -/
+
+/-- **THE SATURATION FRONTIER AT THE POSITION LEVEL** - the level-k
+frontier probe, descended: decidable per position (any
+representative computes it).  The campaign's Q-family now reads on
+positions: Q1's vacuity ("can class-mates at different rungs both
+be saturated?") is a question about two `Position`s, and the
+residue's witnesses are position-data. -/
+def rankSatB_pos (k : Nat) : Position → Bool :=
+  Quotient.lift (fun p => rankSatB k p.1)
+    (fun p p' hr => bool_eq_of_iff_true (by
+      rw [rankSatB_iff p.2, rankSatB_iff p'.2]
+      exact ⟨fun h c hc hS => h c hc ((canRaiseS_orbit_rung p.2 hr.1 hr.2).mpr hS),
+        fun h c hc hS => h c hc ((canRaiseS_orbit_rung p.2 hr.1 hr.2).mp hS)⟩))
+
+/-- The position-level frontier reads any representative's
+computation (the lift's defining equation). -/
+theorem rankSatB_pos_mk (k : Nat) (p : WFState) :
+    rankSatB_pos k (Quotient.mk orbitRungSetoid p) = rankSatB k p.1 := rfl
+
+/-- **THE SATURATION TRANSFERS** - at equal rungs, orbit-mates
+share the level-k saturation frontier (the invariance, repackaged
+at the grade the ceiling campaign runs on). -/
+theorem rankSat_position {k : Nat} {u v : State} (hwf : u.WF)
+    (horb : sameOrbitSetoid.r u v) (hrung : RungEq u v)
+    (hsat : RankSat k u) : RankSat k v :=
+  fun c hc hcan => hsat c hc ((canRaiseS_orbit_rung hwf horb hrung).mpr hcan)
+
+/-- The S-saturation transfers (the full-grade frontier). -/
+theorem ssaturated_position {u v : State} (hwf : u.WF)
+    (horb : sameOrbitSetoid.r u v) (hrung : RungEq u v)
+    (hsat : SSaturated u) : SSaturated v :=
+  fun c hcan => hsat c ((canRaiseS_orbit_rung hwf horb hrung).mpr hcan)
+
+/-- The saturation is the empty spectrum (the position-level
+reading of the campaign's grade). -/
+theorem ssaturated_iff_spec (p : WFState) :
+    SSaturated p.1 ↔ ∀ c, ¬ spec (Quotient.mk orbitRungSetoid p) c := by
+  constructor
+  · intro h c hsc; exact h c ((spec_mk _ _).mp hsc)
+  · intro h c hcan; exact h c ((spec_mk _ _).mpr hcan)
+
 /-! ## par.9. The battery -/
 
 #print axioms rungsOf
@@ -544,3 +586,8 @@ theorem slide_position {u v : State} {c : Card} {b : Base} (hwf : u.WF)
 #print axioms pull_base_position
 #print axioms rungAt_wasteToFound
 #print axioms slide_position
+#print axioms rankSatB_pos
+#print axioms rankSatB_pos_mk
+#print axioms rankSat_position
+#print axioms ssaturated_position
+#print axioms ssaturated_iff_spec
