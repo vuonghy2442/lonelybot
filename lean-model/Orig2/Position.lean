@@ -321,6 +321,171 @@ private theorem canPlace_pull {u v : State} {c : Card} {b₁ b₂ : Base}
           rw [hvpt]
           exact hfit
 
+/-- The appended-top landing reading: the below-part of a run whose
+top is an appended `c` (with `c` absent below) is the old run. -/
+private theorem below_append_notmem {c : Card} : ∀ {old : List Card},
+    c ∉ old → below c (old ++ [c]) = old := by
+  intro old
+  induction old with
+  | nil => intro _; show below c [c] = []; rw [below_cons, if_pos rfl]
+  | cons x t ih =>
+      intro hnc
+      rw [List.cons_append, below_cons,
+        if_neg (fun (hcon : x = c) => hnc (List.mem_cons.mpr (Or.inl hcon.symm)))]
+      exact congrArg (List.cons x) (ih (fun hcon => hnc (List.mem_cons.mpr (Or.inr hcon))))
+
+/-- The appended-top landing reading: the fromCard of a run whose
+top is an appended `c` (with `c` absent below) is the singleton. -/
+private theorem fromCard_append_notmem {c : Card} : ∀ {old : List Card},
+    c ∉ old → fromCard c (old ++ [c]) = [c] := by
+  intro old
+  induction old with
+  | nil => intro _; show fromCard c [c] = [c]; rw [tfc_fromCard_cons, if_pos rfl]
+  | cons x t ih =>
+      intro hnc
+      rw [List.cons_append, tfc_fromCard_cons,
+        if_neg (fun (hcon : x = c) => hnc (List.mem_cons.mpr (Or.inl hcon.symm)))]
+      exact ih (fun hcon => hnc (List.mem_cons.mpr (Or.inr hcon)))
+
+/-- The setPile-restore: writing the source's pile back at the
+landing undoes the landing (the state's fields ride the locality). -/
+private theorem pull_setPile_restore {u v : State} {c : Card} {b : Base} {A : Anchor}
+    (hv : v = (u.setFound c.suit (chop (u.found c.suit))).putCard c b)
+    (hloc : ∀ a', a' ≠ A → v.piles a' = u.piles a') :
+    v.setPile A (u.piles A) = u.setFound c.suit (chop (u.found c.suit)) := by
+  apply State.ext
+  · rw [setPile_found, hv, putCard_found]
+  · funext a'
+    simp only [State.setPile]
+    by_cases ha' : a' = A
+    · rw [if_pos ha', ha']
+      rfl
+    · rw [if_neg ha', hloc a' ha']
+      rfl
+  · rw [show (v.setPile A (u.piles A)).stock = v.stock from rfl, hv, putCard_stock]
+  · rw [show (v.setPile A (u.piles A)).waste = v.waste from rfl, hv, putCard_waste]
+  · rw [show (v.setPile A (u.piles A)).drawStep = v.drawStep from rfl, hv, putCard_drawStep]
+
+/-- **THE SLIDE BETWEEN THE PULLS** - sliding the pulled card from
+its `b₁`-landing to `b₂` lands exactly at the `b₂`-pull's target:
+the two pulls of the same card are one reversible slide apart. -/
+private theorem pull_slide_pull {u v₁ v₂ : State} {c : Card} {b₁ b₂ : Base}
+    (hwf : u.WF) (hwf₁ : v₁.WF)
+    (h₁ : State.step u (Move.foundToTab c b₁) = some v₁)
+    (h₂ : State.step u (Move.foundToTab c b₂) = some v₂)
+    (hne : b₁ ≠ b₂) :
+    State.step v₁ (Move.tabToTab c b₂) = some v₂ := by
+  obtain ⟨c', hft, hc', hcp₁, hv₁⟩ := step_foundToTab_inv h₁
+  obtain ⟨-, -, -, hcp₂, hv₂⟩ := step_foundToTab_inv h₂
+  rw [hc'] at hft
+  have hfit₂ : v₁.canPlace c b₂ = true := canPlace_pull hwf hwf₁ h₁ hcp₁ hcp₂ hne
+  cases b₁ with
+  | inl a₁ =>
+      have hpile : v₁.piles a₁ = ⟨[], [c]⟩ := by
+        rw [hv₁, putCard_eq_putRun]
+        exact putRun_piles_inl_self _ _ _
+      have hhold : v₁.pileHolding c = some a₁ :=
+        (pileHolding_eq_some_iff hwf₁).2 (by
+          rw [hpile]
+          exact List.mem_cons_self ..)
+      have hrun : fromCard c (v₁.piles a₁).faceUp = [c] := by
+        rw [hpile]
+        show fromCard c [c] = [c]
+        rw [tfc_fromCard_cons, if_pos rfl]
+      have hbelow : below c (v₁.piles a₁).faceUp = (u.piles a₁).faceUp := by
+        rw [hpile]
+        show below c [c] = (u.piles a₁).faceUp
+        rw [below_cons, if_pos rfl]
+        exact (((Pile.isEmpty_eq _).mp (canPlace_inl hcp₁).1).2).symm
+      have hX : Pile.afterRunRemoved (v₁.piles a₁) (below c (v₁.piles a₁).faceUp)
+          = u.piles a₁ := by
+        obtain ⟨hd, hf⟩ := (Pile.isEmpty_eq _).mp (canPlace_inl hcp₁).1
+        rw [hbelow, hpile, hf]
+        show Pile.revealTop { (⟨[], [c]⟩ : Pile) with faceUp := [] } = u.piles a₁
+        rw [show Pile.revealTop { (⟨[], [c]⟩ : Pile) with faceUp := [] }
+            = (⟨[], []⟩ : Pile) from rfl,
+          show u.piles a₁ = (⟨(u.piles a₁).hidden, (u.piles a₁).faceUp⟩ : Pile) from rfl,
+          hd, hf]
+      have hrestore : v₁.setPile a₁ (u.piles a₁)
+          = u.setFound c.suit (chop (u.found c.suit)) :=
+        pull_setPile_restore hv₁ (fun a' ha' => pull_piles_inl_ne h₁ ha')
+      simp only [State.step, hhold, hfit₂, hrun]
+      rw [hX, hrestore, ← putCard_eq_putRun, ← hv₂, if_pos trivial]
+  | inr z₁ =>
+      obtain ⟨k₁, hpt₁, -⟩ := canPlace_inr_guard hcp₁
+      have hcfound : c ∈ u.found c.suit := lastOf_mem hft
+      have hnc : c ∉ (u.piles k₁).faceUp := fun hcon =>
+        ((mem_found_unique hwf hcfound).1 k₁).2 hcon
+      have hpile : v₁.piles k₁ = {u.piles k₁ with faceUp := (u.piles k₁).faceUp ++ [c]} := by
+        rw [hv₁, putCard_eq_putRun]
+        exact putRun_piles_inr_self _ _ _ _ hpt₁
+      have hhold : v₁.pileHolding c = some k₁ :=
+        (pileHolding_eq_some_iff hwf₁).2 (by
+          rw [hpile]
+          exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..)))
+      have hrun : fromCard c (v₁.piles k₁).faceUp = [c] := by
+        rw [hpile]
+        exact fromCard_append_notmem hnc
+      have hbelow : below c (v₁.piles k₁).faceUp = (u.piles k₁).faceUp := by
+        rw [hpile]
+        exact below_append_notmem hnc
+      have holdne : (u.piles k₁).faceUp ≠ [] := by
+        intro hcon
+        have hmem : z₁ ∈ (u.piles k₁).faceUp :=
+          lastOf_mem (show lastOf (u.piles k₁).faceUp = some z₁ from
+            (pileOfTop_eq_some_iff hwf).mp hpt₁)
+        rw [hcon] at hmem
+        exact absurd hmem (by simp)
+      have hX : Pile.afterRunRemoved (v₁.piles k₁) (below c (v₁.piles k₁).faceUp)
+          = u.piles k₁ := by
+        rw [hbelow]
+        cases hold : (u.piles k₁).faceUp with
+        | nil => exact absurd hold holdne
+        | cons w t =>
+            show {v₁.piles k₁ with faceUp := w :: t} = u.piles k₁
+            rw [hpile,
+              show u.piles k₁ = (⟨(u.piles k₁).hidden, (u.piles k₁).faceUp⟩ : Pile) from rfl,
+              hold]
+      have hrestore : v₁.setPile k₁ (u.piles k₁)
+          = u.setFound c.suit (chop (u.found c.suit)) :=
+        pull_setPile_restore hv₁ (fun a' ha' => pull_piles_inr_ne h₁ hpt₁ ha')
+      simp only [State.step, hhold, hfit₂, hrun]
+      rw [hX, hrestore, ← putCard_eq_putRun, ← hv₂, if_pos trivial]
+
+/-- **THE PULL'S BASE-INDEPENDENCE, THE CARGO CLASS** - pulling `c`
+to any base lands in the same `BareCargoEquiv` class: the slide
+between the pulls is a reversible cargo leg (the undo-play is the
+mirrored slide). -/
+theorem pull_base_bareCargo {u v₁ v₂ : State} {c : Card} {b₁ b₂ : Base}
+    (hwf : u.WF) (hwf₁ : v₁.WF) (hwf₂ : v₂.WF)
+    (h₁ : State.step u (Move.foundToTab c b₁) = some v₁)
+    (h₂ : State.step u (Move.foundToTab c b₂) = some v₂) :
+    BareCargoEquiv v₁ v₂ := by
+  by_cases hne : b₁ = b₂
+  · rw [hne] at h₁
+    have hvv : v₁ = v₂ := Option.some.inj (h₁.symm.trans h₂)
+    rw [hvv]
+    exact ⟨Steps.refl _, Steps.refl _⟩
+  · have hslide := pull_slide_pull hwf hwf₁ h₁ h₂ hne
+    have hslide' := pull_slide_pull hwf hwf₂ h₂ h₁ (fun h => hne h.symm)
+    refine bareCargo_of_slide hwf₁ hslide ⟨v₂, [Move.tabToTab c b₁], hslide, ?_⟩
+    show (match v₂.step (Move.tabToTab c b₁) with
+            | some s1 => s1.run [] | none => none) = some v₁
+    rw [hslide']
+    exact rfl
+
+/-- **THE PULL'S BASE-INDEPENDENCE, THE POSITION** - pulling `c` to
+any base lands in the same position: the cargo class carries the
+orbit, the rung arithmetic the ledger. -/
+theorem pull_base_position {u v₁ v₂ : State} {c : Card} {b₁ b₂ : Base}
+    (hwf : u.WF) (hwf₁ : v₁.WF) (hwf₂ : v₂.WF)
+    (h₁ : State.step u (Move.foundToTab c b₁) = some v₁)
+    (h₂ : State.step u (Move.foundToTab c b₂) = some v₂) :
+    (Quotient.mk orbitRungSetoid ⟨v₁, hwf₁⟩ : Position)
+      = Quotient.mk orbitRungSetoid ⟨v₂, hwf₂⟩ :=
+  Quotient.sound ⟨bareCargo_sameOrbit (pull_base_bareCargo hwf hwf₁ hwf₂ h₁ h₂),
+    fun σ => by rw [rungAt_foundToTab h₁ σ, rungAt_foundToTab h₂ σ]⟩
+
 /-! ## par.9. The battery -/
 
 #print axioms rungsOf
@@ -340,3 +505,9 @@ private theorem canPlace_pull {u v : State} {c : Card} {b₁ b₂ : Base}
 #print axioms pull_piles_inr_ne
 #print axioms canPlace_inr_guard
 #print axioms canPlace_pull
+#print axioms below_append_notmem
+#print axioms fromCard_append_notmem
+#print axioms pull_setPile_restore
+#print axioms pull_slide_pull
+#print axioms pull_base_bareCargo
+#print axioms pull_base_position
