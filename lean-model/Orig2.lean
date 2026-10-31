@@ -11,6 +11,7 @@ import Orig2.ForkLanding
 import Orig2.ForkLocator
 import Orig2.ForkLocatorRefute
 import Orig2.ForkElim
+import Orig2.ForkNonfork
 import Orig2.ForkNormalizeTail
 import Orig2.Fiber
 import Orig2.Boundary
