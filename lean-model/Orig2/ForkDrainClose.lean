@@ -273,7 +273,7 @@ theorem floor_raise {u u' : State} {x c : Card}
     show (if a = a then
       Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp)
       else u.piles a) = _
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   -- the raise's own seat clause
   have hseatc : chop (u.piles a).faceUp ≠ [] ∨
       ((u.piles a).hidden = [] ∧ c.rank = Rank.king) := by
@@ -339,7 +339,7 @@ theorem floor_raise {u u' : State} {x c : Card}
         show (if Q = a then
           Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp)
           else u.piles Q) = u.piles Q
-        rw [if_neg hQa]
+        rw [ite_eq_right hQa]
       have hshapeU : (u.piles Q).faceUp = bs ++ d :: run := by
         rw [← hpileQ]; exact hshape'
       have hseatU : bs ≠ [] ∨ ((u.piles Q).hidden = [] ∧ d.rank = Rank.king) := by
@@ -377,7 +377,7 @@ theorem floor_raise {u u' : State} {x c : Card}
             show (if k = a then
               Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp)
               else u.piles k) = u.piles k
-            rw [if_neg hka]
+            rw [ite_eq_right hka]
           have htopk : (u.piles k).top = some d.twin := by
             rw [← hpilek]
             exact (pileOfTop_top hk).2

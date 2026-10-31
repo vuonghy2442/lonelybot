@@ -1,4 +1,5 @@
 import Orig2.SWDichotomy
+import Orig2.StratifiedQuotient
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -180,13 +181,63 @@ theorem position_meet (p q : WFState) :
       sameOrbitSetoid.r p.1 q.1 ∧ RungEq p.1 q.1 :=
   Iff.rfl
 
-/-! ## §5. Audit battery -/
+/-! ## §5. The stratification link (2026-10-31, the wiring)
+
+Both live quotient axes of the campaign (`MAP.md`) refine the
+stratified quotient (`Orig2/StratifiedQuotient.lean`): the meet's
+kernel and the FLAT FIBER - a flat path (reversible slides and
+draws) never moves a foundation row, so the twins' membership profile
+is flat-invariant and each flat fiber lies in one stratum. -/
+
+/-- **POSITIONS REFINE STRATA** - two `WF` states with the same class
+and the same rung vector (the kernel of the Position meet) lie in
+one stratum: the rungs pin the founds (`found_congr_of_rungs`,
+`Orig2/CeilingBridge.lean`), and the founds pin the twins'
+membership profile.  The stratified quotient sees strictly coarser
+than the meet. -/
+theorem stratOrbit_of_class_rungs (x : Card) {s s' : WFState}
+    (hclass : sameOrbitSetoid.r s.val s'.val) (hrung : RungEq s.val s'.val) :
+    (stratOrbit x).r s s' := by
+  refine ⟨hclass, ?_, ?_⟩
+  · rw [found_congr_of_rungs s.2 s'.2 (hrung x.suit)]
+  · rw [found_congr_of_rungs s.2 s'.2 (hrung x.twin.suit)]
+
+/-- **Swappability is position-determined** - the same class and the
+same rung vector fix `SwappableIn` (the stratum constancy read at
+the meet's kernel). -/
+theorem swappable_of_class_rungs (x : Card) {s s' : WFState}
+    (hclass : sameOrbitSetoid.r s.val s'.val) (hrung : RungEq s.val s'.val) :
+    SwappableIn s.val x ↔ SwappableIn s'.val x :=
+  swappable_stratum_invariant x (stratOrbit_of_class_rungs x hclass hrung)
+
+/-- **FLAT FIBERS REFINE STRATA** - a flat path never moves a
+foundation row (`bareFlat_found`), so the twins' membership profile
+is flat-invariant: each flat fiber lies in a single stratum. -/
+theorem stratOrbit_of_bareFlat (x : Card) {u v : State} (hu : u.WF) (hv : v.WF)
+    (h : BareFlatEquiv u v) : (stratOrbit x).r ⟨u, hu⟩ ⟨v, hv⟩ :=
+  ⟨bareFlat_sameOrbit h,
+    by rw [bareFlat_found hu hv h],
+    by rw [bareFlat_found hu hv h]⟩
+
+/-- **Swappability is flat-fiber-determined** - within one flat fiber,
+`SwappableIn` is constant (the stratum constancy read at the flat
+span: with `flatSpan_iff_bareFlat`, `SwappableIn` is well-defined on
+the `FlatSpan` points of the class). -/
+theorem swappable_of_bareFlat (x : Card) {u v : State} (hu : u.WF) (hv : v.WF)
+    (h : BareFlatEquiv u v) : SwappableIn u x ↔ SwappableIn v x :=
+  swappable_stratum_invariant x (stratOrbit_of_bareFlat x hu hv h)
+
+/-! ## §6. Audit battery -/
 
 #print axioms steps_congr
 #print axioms revStepOf_cargo_iff
 #print axioms revStepOf_flat_iff
 #print axioms cargoSpan_iff_bareCargo
 #print axioms flatSpan_iff_bareFlat
+#print axioms stratOrbit_of_class_rungs
+#print axioms swappable_of_class_rungs
+#print axioms stratOrbit_of_bareFlat
+#print axioms swappable_of_bareFlat
 #print axioms macroSpan_iff_sameOrbit
 #print axioms cargoSpan_flatSpan
 #print axioms flatSpan_macroSpan
