@@ -37,8 +37,12 @@ position-function).
 * **par.6 THE PULL'S BASE-INDEPENDENCE AND THE SLIDE'S VANISHING** -
 the pull lands base-independently (`pull_base_position`); the
 slide vanishes (`slide_position`).
-* **par.6-BIS THE RAISE'S ROUND-TRIP AND CLASS-DETERMINISM** -
-`tabToFound_pull_back`, `raise_class_position`.
+* **par.6-BIS THE ROUND-TRIPS AND CLASS-DETERMINISM** -
+`tabToFound_pull_back`, `foundToTab_pull_back`, `raise_class_position`,
+`pull_class_position` - the forward (+e_suit) and backward (-e_suit)
+edges both deterministic; the pull's round-trip needs no reversibility
+hypothesis at `WF` (the pull's oracle conditions ARE its firing
+conditions).
 * **par.7 THE DRAW'S VANISHING** - the drawR invariant, the drain
 primitives, the cycle's return row, the loop row, and the
 unconditional `draw_position`.
@@ -46,12 +50,17 @@ unconditional `draw_position`.
 descended to positions.
 * **par.9 THE BATTERY**.
 
-CAMPAIGN STATUS (sitting 7b complete, 2026-10-31): the tableau
-dynamics are position-invariants - the reversible moves vanish
-(pull, slide, draw), the raises are the grid's deterministic edges,
-the saturation descends.  THE REMAINING FRONT: the residue campaign
-(`SatDifferFork`, the fog map banked in the journal) runs on the
-grid.
+CAMPAIGN STATUS (the pull's class-determinism landed, 2026-10-31):
+the tableau dynamics are position-invariants - the free moves
+vanish (slide, draw), the raises and pulls are the grid's
+deterministic edges (both directions certified), the saturation
+descends, and the waste moves are never reversible (factored out
+a priori - the orbit never sees them).  THE MOVE-ROW TABLE IS
+COMPLETE: the Grid Calculus (the walk-level congruence - any
+reversible witness walk's position-effect factors through its
+raise/pull skeleton) is now pure assembly, and the residue
+campaign (`SatDifferFork`, the fog map banked in the journal)
+runs on the grid.
 -/
 
 /-! ## par.1. The setoid (in the registry) -/
@@ -533,7 +542,7 @@ theorem slide_position {u v : State} {c : Card} {b : Base} (hwf : u.WF)
   Quotient.sound ⟨bareCargo_sameOrbit (bareCargo_of_slide hwf hstep hrev),
     fun σ => (rungAt_tabToTab hstep σ).symm⟩
 
-/-! ## par.6-bis. The raise's round-trip and class-determinism -/
+/-! ## par.6-bis. The round-trips and class-determinism -/
 
 /-- `pileOfTop` reads only the piles (the congruence). -/
 private theorem pileOfTop_piles {u v : State} (h : u.piles = v.piles) (z : Card) :
