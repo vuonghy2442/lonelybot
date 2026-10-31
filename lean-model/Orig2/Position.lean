@@ -517,6 +517,174 @@ theorem slide_position {u v : State} {c : Card} {b : Base} (hwf : u.WF)
   Quotient.sound ⟨bareCargo_sameOrbit (bareCargo_of_slide hwf hstep hrev),
     fun σ => (rungAt_tabToTab hstep σ).symm⟩
 
+/-! ## par.6-bis. The raise's round-trip and class-determinism -/
+
+/-- `pileOfTop` reads only the piles (the congruence). -/
+private theorem pileOfTop_piles {u v : State} (h : u.piles = v.piles) (z : Card) :
+    u.pileOfTop z = v.pileOfTop z := by
+  have htop : u.topOf = v.topOf := by
+    funext a'
+    show (u.piles a').top = (v.piles a').top
+    rw [h]
+  unfold State.pileOfTop
+  rw [htop]
+
+/-- Lineage: Classification's private `putCard_inr_eq_setPile` —
+restated per the kit rule. -/
+private theorem putCard_inr_eq_setPile {st : State} {c z : Card} {k : Anchor}
+    (hz : st.pileOfTop z = some k) :
+    st.putCard c (Sum.inr z) =
+      { st with piles := fun a' =>
+          if a' = k then { st.piles k with faceUp := (st.piles k).faceUp ++ [c] }
+          else st.piles a' } := by
+  simp only [State.putCard, hz]
+  rfl
+
+/-- **THE RAISE UNDOES BY A SINGLE PULL** - a reversible raise of
+`c` is undone by a literal `foundToTab c b` back to the very
+source: the base is where `c` came from (the card directly below,
+or the empty anchor for the lone king over no hidden deck — the
+certified bare row). -/
+theorem tabToFound_pull_back {s t : State} {c : Card}
+    (hwf : s.WF) (hstep : State.step s (Move.tabToFound c) = some t)
+    (hrev : reversibleAtW s (Move.tabToFound c)) :
+    ∃ b, State.step t (Move.foundToTab c b) = some s := by
+  obtain ⟨hn, a, hloc, hs⟩ := step_tabToFound_inv hstep
+  have hlast : lastOf (s.piles a).faceUp = some c :=
+    (pileOfTop_eq_some_iff hwf).mp hloc
+  have hfeq : (s.piles a).faceUp = chop (s.piles a).faceUp ++ [c] := lastOf_chop hlast
+  have hR : tabToFoundR s c = true := (tabToFoundR_iff_reversibleAtW hwf c).mpr hrev
+  simp only [tabToFoundR, hn, hloc] at hR
+  cases hchop : chop (s.piles a).faceUp with
+  | nil =>
+      rw [hchop] at hR
+      cases hhidden : (s.piles a).hidden with
+      | cons h hh =>
+          rw [hhidden] at hR
+          exact absurd hR (by simp)
+      | nil =>
+          rw [hhidden] at hR
+          exact ⟨Sum.inl a, step_foundToTab_of_tabToFound_bare hstep hloc hchop hhidden
+            (of_decide_eq_true hR)⟩
+  | cons w rest =>
+      have hrok : runOK ((s.piles a).faceUp) = true := hwf.2.1 a
+      obtain ⟨z, hz0⟩ := lastOf_exists
+        (show chop (s.piles a).faceUp ≠ [] by rw [hchop]; simp)
+      have hz2 : chop (s.piles a).faceUp
+          = chop (chop (s.piles a).faceUp) ++ [z] := lastOf_chop hz0
+      have hrok2 : runOK (chop (chop (s.piles a).faceUp) ++ z :: c :: []) = true := by
+        have h1 : chop (chop (s.piles a).faceUp) ++ z :: c :: []
+            = (s.piles a).faceUp := by
+          rw [show z :: c :: [] = [z] ++ [c] from rfl, ← List.append_assoc, ← hz2]
+          exact hfeq.symm
+        rw [h1]
+        exact hrok
+      have hfit : canSitOn c z = true := SeedKit.runOK_adjacent_fit z c _ [] hrok2
+      have htpa2 : t.piles a = { (s.piles a) with
+          faceUp := chop (s.piles a).faceUp } := by
+        rw [hs]
+        show (if a = a then Pile.afterRunRemoved (s.piles a) (chop (s.piles a).faceUp)
+            else s.piles a) = _
+        rw [ite_eq_left rfl, hchop]
+        rfl
+      have htpne : ∀ a', a' ≠ a → t.piles a' = s.piles a' := by
+        intro a' ha'
+        rw [hs]
+        show (if a' = a then Pile.afterRunRemoved (s.piles a) (chop (s.piles a).faceUp)
+            else s.piles a') = s.piles a'
+        rw [ite_eq_right ha']
+      have hwft : t.WF := step_wf hwf hstep
+      have htopz : (t.piles a).top = some z := by
+        rw [htpa2, hchop]
+        rw [hchop] at hz0
+        show lastOf (w :: rest) = some z
+        exact hz0
+      have hptz : t.pileOfTop z = some a :=
+        (pileOfTop_eq_some_iff hwft).mpr htopz
+      have hcp : t.canPlace c (Sum.inr z) = true := by
+        show (match t.pileOfTop z with
+              | some _ => canSitOn c z | none => false) = true
+        rw [hptz]
+        exact hfit
+      obtain ⟨hf1, hf2, hf3⟩ := tabToFound_found_trio hs
+      refine ⟨Sum.inr z, ?_⟩
+      simp only [State.step, hf3]
+      rw [hcp]
+      refine congrArg some (?_ :
+        (t.setFound c.suit (chop (t.found c.suit))).putCard c (Sum.inr z) = s)
+      have hzp : (t.setFound c.suit (chop (t.found c.suit))).pileOfTop z = some a := by
+        rw [pileOfTop_piles (rfl :
+          (t.setFound c.suit (chop (t.found c.suit))).piles = t.piles)]
+        exact hptz
+      rw [putCard_inr_eq_setPile hzp]
+      have hwritten : { t.piles a with faceUp := (t.piles a).faceUp ++ [c] }
+          = s.piles a := by
+        rw [htpa2]
+        refine Pile.ext ?_ ?_
+        · rfl
+        · show chop (s.piles a).faceUp ++ [c] = (s.piles a).faceUp
+          exact hfeq.symm
+      refine State.ext (funext fun σ => ?_) (funext fun a' => ?_) ?_ ?_ ?_
+      · show (if σ = c.suit then chop (t.found c.suit) else t.found σ) = s.found σ
+        by_cases hσ : σ = c.suit
+        · rw [hσ, ite_eq_left rfl, hf1, chop_snoc]
+        · rw [ite_eq_right hσ]
+          exact hf2 σ hσ
+      · show (if a' = a then { t.piles a with faceUp := (t.piles a).faceUp ++ [c] }
+            else t.piles a') = s.piles a'
+        by_cases ha' : a' = a
+        · rw [ha', ite_eq_left rfl]
+          exact hwritten
+        · rw [ite_eq_right ha']
+          exact htpne a' ha'
+      · show t.stock = s.stock
+        rw [hs]
+        rfl
+      · show t.waste = s.waste
+        rw [hs]
+        rfl
+      · show t.drawStep = s.drawStep
+        rw [hs]
+        rfl
+
+/-- **THE RAISE'S CLASS-DETERMINISM** - at equal rungs, two
+REVERSIBLE raises of the same card from orbit-mates land in the
+same class: the pull-back (the round-trip), the orbit-walk between
+the sources, and the raise compose into witness walks both ways.
+The reversible raises are exactly the ones the witness journeys
+use - the quotient game's forward edge is well-defined on them. -/
+theorem raise_class_position {s s₁ t t₁ : State} {c : Card}
+    (hwf : s.WF) (hwf₁ : s₁.WF)
+    (horb : sameOrbitSetoid.r s s₁) (hrung : RungEq s s₁)
+    (hstep : State.step s (Move.tabToFound c) = some t)
+    (hstep₁ : State.step s₁ (Move.tabToFound c) = some t₁)
+    (hrev : reversibleAtW s (Move.tabToFound c))
+    (hrev₁ : reversibleAtW s₁ (Move.tabToFound c)) :
+    (Quotient.mk orbitRungSetoid ⟨t, step_wf hwf hstep⟩ : Position)
+      = Quotient.mk orbitRungSetoid ⟨t₁, step_wf hwf₁ hstep₁⟩ := by
+  obtain ⟨b, hb⟩ := tabToFound_pull_back hwf hstep hrev
+  obtain ⟨b₁, hb₁⟩ := tabToFound_pull_back hwf₁ hstep₁ hrev₁
+  obtain ⟨ρ, hρ, τ, hτ⟩ := horb
+  have hw1 : ShufflePlayW t [Move.foundToTab c b] s :=
+    Walk.cons (reversible_mirrorW hb hstep) hb (Walk.nil s)
+  have hw3 : ShufflePlayW s [Move.tabToFound c] t :=
+    Walk.cons hrev hstep (Walk.nil t)
+  have hw1₁ : ShufflePlayW t₁ [Move.foundToTab c b₁] s₁ :=
+    Walk.cons (reversible_mirrorW hb₁ hstep₁) hb₁ (Walk.nil s₁)
+  have hw3₁ : ShufflePlayW s₁ [Move.tabToFound c] t₁ :=
+    Walk.cons hrev₁ hstep₁ (Walk.nil t₁)
+  have hA : ShufflePlayW t₁ ([Move.foundToTab c b₁] ++ ρ ++ [Move.tabToFound c]) t :=
+    ShufflePlayW_append (ShufflePlayW_append hw1₁ hρ) hw3
+  have hB : ShufflePlayW t ([Move.foundToTab c b] ++ τ ++ [Move.tabToFound c]) t₁ :=
+    ShufflePlayW_append (ShufflePlayW_append hw1 hτ) hw3₁
+  refine Quotient.sound ⟨⟨[Move.foundToTab c b₁] ++ ρ ++ [Move.tabToFound c], hA,
+    [Move.foundToTab c b] ++ τ ++ [Move.tabToFound c], hB⟩, ?_⟩
+  intro σ
+  rw [rungAt_tabToFound hstep σ, rungAt_tabToFound hstep₁ σ]
+  by_cases hσ : σ = c.suit
+  · rw [if_pos hσ, if_pos hσ, hrung σ]
+  · rw [if_neg hσ, if_neg hσ]
+    exact hrung σ
 /-! ## par.8. The saturation descent -/
 
 /-- **THE SATURATION FRONTIER AT THE POSITION LEVEL** - the level-k
@@ -591,3 +759,5 @@ theorem ssaturated_iff_spec (p : WFState) :
 #print axioms rankSat_position
 #print axioms ssaturated_position
 #print axioms ssaturated_iff_spec
+#print axioms tabToFound_pull_back
+#print axioms raise_class_position
