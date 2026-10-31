@@ -17,8 +17,8 @@ Landed rungs:
   `card_eq_twin_of_rank_color`);
 * **`blocker_eq_twin`** — the card covering a twin target IS the moving
   card's twin (the arithmetic that withdraws witness W1);
-* `mover_floater` (private) — the forward direction of
-  `floater_classification`;
+* `mover_floater` (private) — STRUCK 2026-10-31 (the dedup residue
+  sweep; zero consumers tree-wide);
 * **`pull_seat_change`** — a pull changes only the pulled card's seat;
 * the hidden ledger (`step_hidden_len_le`, `run_hidden_len_le`,
   `raise_hidden_nil_of_chop_nil`) and **`raise_seat_change_of_seated`** —
@@ -93,12 +93,10 @@ theorem blocker_eq_twin {s : State} (hwf : s.WF) {c z d : Card}
     exact card_twin_ne z (Sum.inr.inj hzz).symm
   · exact h
 
-/-- **`mover_floater`** — a reversible slide's mover is a licensed floater:
-the forward direction of `floater_classification`, read at the fired letter. -/
-private theorem mover_floater {u : State} (hwf : u.WF) {c : Card} {b : Base}
-    (hrev : reversibleAtW u (Move.tabToTab c b)) :
-    FloaterSpec u c :=
-  (floater_classification u hwf c).mp ⟨b, hrev⟩
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): `mover_floater` — the forward direction of
+`floater_classification`, read at the fired letter — had zero
+consumers tree-wide — struck, the compiler as reachability judge. -/
 
 /-! ## §2. The pull's seat footprint -/
 

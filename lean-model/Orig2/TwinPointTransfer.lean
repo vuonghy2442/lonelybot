@@ -93,19 +93,11 @@ private theorem twinSwapStrict_symm {u v : State} {c : Card}
     ⟨fun a => (hb.1 a).symm, hb.2.symm⟩,
     fun s => (hf s).symm, hs.symm, hw.symm, hc.symm⟩
 
-/-- The local flip relation is symmetric. -/
-theorem LocalTwinFlip_symm {x : Card} {s v : State}
-    (h : LocalTwinFlip x s v) : LocalTwinFlip x v s :=
-  twinSwapStrict_symm h
-
-/-- The run splice realizes the local flip relation (both twins on
-parents). -/
-theorem twinPairSwapStrict_localTwinFlip {s : State} {x : Card}
-    (hwf : s.WF)
-    (hx : ∃ z, seatOf s x = some (Sum.inr z))
-    (hxt : ∃ z : Card, seatOf s x.twin = some (Sum.inr z.twin)) :
-    LocalTwinFlip x s (localTwinFlip x s) :=
-  twinPairSwapStrict_splice hwf hx hxt
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): the two uncited bridge rows
+`LocalTwinFlip_symm` and `twinPairSwapStrict_localTwinFlip` (one-line
+delegating aliases) had zero consumers tree-wide — struck, the
+compiler as reachability judge. -/
 
 /-- **TwinBothSeated s x** — the tableau subgroupoid: both twins are
 face-up on the tableau at `s`. -/

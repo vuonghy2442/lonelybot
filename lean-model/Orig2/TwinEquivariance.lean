@@ -109,12 +109,9 @@ theorem canSitOn_relabelTwin (x c b : Card) :
   rw [Card.relabelTwin_rank, Card.relabelTwin_color, Card.relabelTwin_rank,
     Card.relabelTwin_color]
 
-/-- A card fixed by the transposition is off the pair. -/
-theorem card_relabelTwin_fixed {x c : Card} (h : Card.relabelTwin x c = c) :
-    c ≠ x := by
-  intro hc
-  rw [hc, card_relabelTwin_self] at h
-  exact (card_twin_ne x) h
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): `card_relabelTwin_fixed` had zero consumers
+tree-wide — struck, the compiler as reachability judge. -/
 
 /-! ## §3. List and pile kit -/
 
@@ -197,22 +194,9 @@ theorem fromCard_map_relabelTwin (x c : Card) :
         rw [ite_eq_right hdc, ite_eq_right hd,
           fromCard_map_relabelTwin x c t]
 
-/-- A face-up member heads a nonempty `fromCard`. -/
-theorem fromCard_ne_nil_of_mem_relabel {c : Card} :
-    ∀ {l : List Card}, c ∈ l → fromCard c l ≠ [] := by
-  intro l
-  induction l with
-  | nil => intro h; cases h
-  | cons d t ih =>
-      intro hmem
-      by_cases hdc : d = c
-      · rw [fromCard, ite_eq_left hdc]
-        exact fun hcon => absurd hcon (by simp)
-      · rw [fromCard, ite_eq_right hdc]
-        refine ih ?_
-        rcases List.mem_cons.mp hmem with h | h
-        · exact absurd h.symm hdc
-        · exact h
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): `fromCard_ne_nil_of_mem_relabel` had zero
+consumers tree-wide — struck, the compiler as reachability judge. -/
 
 /-! ## §4. The pile relabeling -/
 
@@ -235,19 +219,9 @@ theorem isEmpty_relabelTwin (x : Card) (p : Pile) :
   rcases p with ⟨h, f⟩
   cases h <;> cases f <;> rfl
 
-/-- Revealing the top hidden card commutes with the transposition. -/
-theorem revealTop_relabelTwin (x : Card) (p : Pile) :
-    (p.relabelTwin x).revealTop = (p.revealTop).relabelTwin x := by
-  rcases p with ⟨h, f⟩
-  cases h with
-  | nil => rfl
-  | cons c t =>
-      show ({ hidden := t.map (Card.relabelTwin x),
-              faceUp := f.map (Card.relabelTwin x) ++ [Card.relabelTwin x c] } : Pile) =
-        ({ hidden := t, faceUp := f ++ [c] } : Pile).relabelTwin x
-      apply Pile.ext
-      · rfl
-      · simp only [relabelTwin_faceUp, List.map_append, List.map_cons, List.map_nil]
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): `revealTop_relabelTwin` had zero consumers
+tree-wide — struck, the compiler as reachability judge. -/
 
 /-- Removing a run commutes with the transposition. -/
 theorem afterRunRemoved_relabelTwin (x : Card) (p : Pile) (pre : List Card) :
@@ -512,12 +486,10 @@ theorem putRun_relabelTwin (x : Card) (st : State) (run : List Card) (b : Base) 
           · rfl
           · simp only [state_relabelTwin_piles_eq, Pile.relabelTwin_faceUp, List.map_append]
 
-/-- The pile-removal update with a mapped prefix. -/
-theorem afterRunRemoved_piles_relabelTwin (x : Card) (st : State) (a : Anchor)
-    (pre : List Card) :
-    ((State.relabelTwin x st).piles a).afterRunRemoved (pre.map (Card.relabelTwin x)) =
-      ((st.piles a).afterRunRemoved pre).relabelTwin x :=
-  Pile.afterRunRemoved_relabelTwin x (st.piles a) pre
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): `afterRunRemoved_piles_relabelTwin` (a one-line
+delegating alias of `Pile.afterRunRemoved_relabelTwin`) had zero
+consumers tree-wide — struck, the compiler as reachability judge. -/
 /-! ## §7. The pair sits outside every non-tableau zone
 
 The two zone rows `mem_faceUp_of_seat` / `off_zones_of_seat` are

@@ -69,15 +69,9 @@ theorem fromCard_append_of_mem {c : Card} : ∀ (A B : List Card), c ∈ A →
         rw [tfc_fromCard_cons, ite_eq_right huc, tfc_fromCard_cons, ite_eq_right huc,
           ih B hat]
 
-theorem below_eq_self_of_not_mem {c : Card} : ∀ {l : List Card}, c ∉ l → below c l = l := by
-  intro l
-  induction l with
-  | nil => intro _; rfl
-  | cons u t ih =>
-      intro h
-      have hat : c ∉ t := fun hc => h (List.mem_cons_of_mem u hc)
-      have huc : u ≠ c := fun hc => h (List.mem_cons.mpr (Or.inl hc.symm))
-      rw [below_cons, ite_eq_right huc, ih hat]
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): `below_eq_self_of_not_mem` had zero consumers
+tree-wide — struck, the compiler as reachability judge. -/
 
 theorem below_append_cons {c : Card} (P S : List Card) (hP : c ∉ P) :
     below c (P ++ c :: S) = P := by
@@ -189,17 +183,14 @@ theorem lastOf_three_nil {P : List Card} {c : Card} :
   show lastOf (P ++ [c]) = some c
   exact lastOf_snoc
 
-theorem ne_nil_of_mem {α : Type} {l : List α} {u : α} (h : u ∈ l) : l ≠ [] :=
-  fun hc => by rw [hc] at h; cases h
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): `ne_nil_of_mem` had zero consumers tree-wide. -/
 
 namespace Pile
 
-theorem isEmpty_eq_false_of_faceUp_ne_nil {p : Pile} (h : p.faceUp ≠ []) :
-    p.isEmpty = false := by
-  rcases p with ⟨hd, f⟩
-  cases f with
-  | nil => exact absurd rfl h
-  | cons u t => cases hd <;> rfl
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): `Pile.isEmpty_eq_false_of_faceUp_ne_nil` had zero
+consumers tree-wide. -/
 
 end Pile
 
@@ -440,268 +431,12 @@ theorem fromCard_append_singleton_mem {c y : Card} {l : List Card} (h : c ∈ l)
     fromCard c (l ++ [y]) = fromCard c l ++ [y] :=
   fromCard_append_of_mem l [y] h
 
-theorem splice_putCard_inr {s : State} {x : Card} {a b : Anchor}
-    (hwf : s.WF)
-    (hx : ∃ z, seatOf s x = some (Sum.inr z))
-    (hxt : ∃ z : Card, seatOf s x.twin = some (Sum.inr z.twin))
-    (ha : s.pileHolding x = some a) (hb : s.pileHolding x.twin = some b)
-    (hab : a ≠ b) {y v : Card} {k : Anchor}
-    (hyx : y ≠ x) (hyt : y ≠ x.twin)
-    (hk : s.pileOfTop v = some k) :
-    (s.spliceTwinRuns x).putCard y (Sum.inr v) =
-      (s.putCard y (Sum.inr v)).spliceTwinRuns x := by
-  have ha' : (s.putCard y (Sum.inr v)).pileHolding x = some a :=
-    putCard_pileHolding_ne hwf hk ha (Ne.symm hyx)
-  have hb' : (s.putCard y (Sum.inr v)).pileHolding x.twin = some b :=
-    putCard_pileHolding_ne hwf hk hb (Ne.symm hyt)
-  have hxmem : x ∈ (s.piles a).faceUp := pileHolding_mem ha
-  have htmem : x.twin ∈ (s.piles b).faceUp := pileHolding_mem hb
-  have hfcA : fromCard x (s.piles a).faceUp = x :: sufA s x a := by
-    simpa [sufA] using fromCard_cons_suf hxmem
-  have hfcB : fromCard x.twin (s.piles b).faceUp = x.twin :: sufB s x b := by
-    simpa [sufB] using fromCard_cons_suf htmem
-  have hbA : below x (s.piles a).faceUp = preA s x a := rfl
-  have hbB : below x.twin (s.piles b).faceUp = preB s x b := rfl
-  by_cases hka : k = a
-  · subst k
-    have hloc : (s.spliceTwinRuns x).pileOfTop v = some b :=
-      pileOfTop_splice_a hwf hx hxt ha hb hab hk
-    have hfa : ((s.putCard y (Sum.inr v)).piles a).faceUp =
-        (s.piles a).faceUp ++ [y] := by
-      rw [putCard_inr_eq hk, setPile_piles_self]
-    have hha : ((s.putCard y (Sum.inr v)).piles a).hidden = (s.piles a).hidden := by
-      rw [putCard_inr_eq hk, setPile_piles_self]
-    have hfb : ((s.putCard y (Sum.inr v)).piles b).faceUp =
-        (s.piles b).faceUp := by
-      rw [putCard_inr_eq hk, setPile_piles_ne (Ne.symm hab)]
-    have hhb : ((s.putCard y (Sum.inr v)).piles b).hidden = (s.piles b).hidden := by
-      rw [putCard_inr_eq hk, setPile_piles_ne (Ne.symm hab)]
-    have hs'other : ∀ a', a' ≠ a → a' ≠ b →
-        (s.putCard y (Sum.inr v)).piles a' = s.piles a' := by
-      intro a' h1 h2
-      rw [putCard_inr_eq hk, setPile_piles_ne h1]
-    have hSs'a : ((s.putCard y (Sum.inr v)).spliceTwinRuns x).piles a =
-        { hidden := (s.piles a).hidden
-          faceUp := preA s x a ++ x.twin :: sufB s x b } := by
-      rw [spliceTwinRuns_piles_self ha' hb' hab, hha, hfa, hfb,
-        below_append_singleton_mem hxmem, hbA, hfcB]
-    have hSs'b : ((s.putCard y (Sum.inr v)).spliceTwinRuns x).piles b =
-        { hidden := (s.piles b).hidden
-          faceUp := preB s x b ++ x :: sufA s x a ++ [y] } := by
-      rw [spliceTwinRuns_piles_second ha' hb' hab, hhb, hfb, hfa,
-        hbB, fromCard_append_singleton_mem hxmem, hfcA]
-      simp only [List.append_assoc]
-    have hSsa : (s.spliceTwinRuns x).piles a =
-        { hidden := (s.piles a).hidden
-          faceUp := preA s x a ++ x.twin :: sufB s x b } :=
-      splice_piles_a_nf ha hb hab
-    have hSsb : (s.spliceTwinRuns x).piles b =
-        { hidden := (s.piles b).hidden
-          faceUp := preB s x b ++ x :: sufA s x a } :=
-      splice_piles_b_nf ha hb hab
-    rw [putCard_inr_eq hloc]
-    apply State.ext
-    · funext su
-      rw [setPile_found, spliceTwinRuns_found ha' hb' hab,
-        putCard_found, spliceTwinRuns_found ha hb hab]
-    · funext a'
-      by_cases h1 : a' = b
-      · rw [h1]
-        rw [setPile_piles_self, hSsb, hSs'b]
-      · by_cases h2 : a' = a
-        · rw [h2]
-          rw [setPile_piles_ne hab, hSsa, hSs'a]
-        · rw [setPile_piles_ne h1, spliceTwinRuns_piles_other ha hb hab h2 h1,
-            spliceTwinRuns_piles_other ha' hb' hab h2 h1, hs'other a' h2 h1]
-    · rw [setPile_stock, spliceTwinRuns_stock ha' hb' hab,
-        putCard_stock, spliceTwinRuns_stock ha hb hab]
-    · rw [setPile_waste, spliceTwinRuns_waste ha' hb' hab,
-        putCard_waste, spliceTwinRuns_waste ha hb hab]
-    · rw [setPile_drawStep, spliceTwinRuns_drawStep ha' hb' hab,
-        putCard_drawStep, spliceTwinRuns_drawStep ha hb hab]
-  · by_cases hkb : k = b
-    · subst k
-      have hloc : (s.spliceTwinRuns x).pileOfTop v = some a :=
-        pileOfTop_splice_b hwf hx hxt ha hb hab hk
-      have hfb : ((s.putCard y (Sum.inr v)).piles b).faceUp =
-          (s.piles b).faceUp ++ [y] := by
-        rw [putCard_inr_eq hk, setPile_piles_self]
-      have hhb : ((s.putCard y (Sum.inr v)).piles b).hidden = (s.piles b).hidden := by
-        rw [putCard_inr_eq hk, setPile_piles_self]
-      have hfa : ((s.putCard y (Sum.inr v)).piles a).faceUp = (s.piles a).faceUp := by
-        rw [putCard_inr_eq hk, setPile_piles_ne hab]
-      have hha : ((s.putCard y (Sum.inr v)).piles a).hidden = (s.piles a).hidden := by
-        rw [putCard_inr_eq hk, setPile_piles_ne hab]
-      have hs'other : ∀ a', a' ≠ a → a' ≠ b →
-          (s.putCard y (Sum.inr v)).piles a' = s.piles a' := by
-        intro a' h1 h2
-        rw [putCard_inr_eq hk, setPile_piles_ne h2]
-      have hSs'a : ((s.putCard y (Sum.inr v)).spliceTwinRuns x).piles a =
-          { hidden := (s.piles a).hidden
-            faceUp := preA s x a ++ x.twin :: sufB s x b ++ [y] } := by
-        rw [spliceTwinRuns_piles_self ha' hb' hab, hha, hfa, hfb,
-          hbA, fromCard_append_singleton_mem htmem, hfcB]
-        simp only [List.append_assoc]
-      have hSs'b : ((s.putCard y (Sum.inr v)).spliceTwinRuns x).piles b =
-          { hidden := (s.piles b).hidden
-            faceUp := preB s x b ++ x :: sufA s x a } := by
-        rw [spliceTwinRuns_piles_second ha' hb' hab, hhb, hfb, hfa,
-          below_append_singleton_mem htmem, hbB, hfcA]
-      have hSsa : (s.spliceTwinRuns x).piles a =
-          { hidden := (s.piles a).hidden
-            faceUp := preA s x a ++ x.twin :: sufB s x b } :=
-        splice_piles_a_nf ha hb hab
-      have hSsb : (s.spliceTwinRuns x).piles b =
-          { hidden := (s.piles b).hidden
-            faceUp := preB s x b ++ x :: sufA s x a } :=
-        splice_piles_b_nf ha hb hab
-      rw [putCard_inr_eq hloc]
-      apply State.ext
-      · funext su
-        rw [setPile_found, spliceTwinRuns_found ha' hb' hab,
-          putCard_found, spliceTwinRuns_found ha hb hab]
-      · funext a'
-        by_cases h1 : a' = a
-        · rw [h1]
-          rw [setPile_piles_self, hSsa, hSs'a]
-        · by_cases h2 : a' = b
-          · rw [h2]
-            rw [setPile_piles_ne (Ne.symm hab), hSsb, hSs'b]
-          · rw [setPile_piles_ne h1, spliceTwinRuns_piles_other ha hb hab h1 h2,
-              spliceTwinRuns_piles_other ha' hb' hab h1 h2, hs'other a' h1 h2]
-      · rw [setPile_stock, spliceTwinRuns_stock ha' hb' hab,
-          putCard_stock, spliceTwinRuns_stock ha hb hab]
-      · rw [setPile_waste, spliceTwinRuns_waste ha' hb' hab,
-          putCard_waste, spliceTwinRuns_waste ha hb hab]
-      · rw [setPile_drawStep, spliceTwinRuns_drawStep ha' hb' hab,
-          putCard_drawStep, spliceTwinRuns_drawStep ha hb hab]
-    · have hloc : (s.spliceTwinRuns x).pileOfTop v = some k :=
-        pileOfTop_splice_other hwf hx hxt ha hb hab hk hka hkb
-      have hfk : ((s.putCard y (Sum.inr v)).piles k).faceUp =
-          (s.piles k).faceUp ++ [y] := by
-        rw [putCard_inr_eq hk, setPile_piles_self]
-      have hhk : ((s.putCard y (Sum.inr v)).piles k).hidden = (s.piles k).hidden := by
-        rw [putCard_inr_eq hk, setPile_piles_self]
-      have hfa : ((s.putCard y (Sum.inr v)).piles a).faceUp = (s.piles a).faceUp := by
-        rw [putCard_inr_eq hk, setPile_piles_ne (Ne.symm hka)]
-      have hha : ((s.putCard y (Sum.inr v)).piles a).hidden = (s.piles a).hidden := by
-        rw [putCard_inr_eq hk, setPile_piles_ne (Ne.symm hka)]
-      have hfb : ((s.putCard y (Sum.inr v)).piles b).faceUp = (s.piles b).faceUp := by
-        rw [putCard_inr_eq hk, setPile_piles_ne (Ne.symm hkb)]
-      have hhb : ((s.putCard y (Sum.inr v)).piles b).hidden = (s.piles b).hidden := by
-        rw [putCard_inr_eq hk, setPile_piles_ne (Ne.symm hkb)]
-      have hs'other : ∀ a', a' ≠ k → (s.putCard y (Sum.inr v)).piles a' = s.piles a' := by
-        intro a' h
-        rw [putCard_inr_eq hk, setPile_piles_ne h]
-      have hSs'a : ((s.putCard y (Sum.inr v)).spliceTwinRuns x).piles a =
-          { hidden := (s.piles a).hidden
-            faceUp := preA s x a ++ x.twin :: sufB s x b } := by
-        rw [spliceTwinRuns_piles_self ha' hb' hab, hha, hfa, hfb,
-          hbA, hfcB]
-      have hSs'b : ((s.putCard y (Sum.inr v)).spliceTwinRuns x).piles b =
-          { hidden := (s.piles b).hidden
-            faceUp := preB s x b ++ x :: sufA s x a } := by
-        rw [spliceTwinRuns_piles_second ha' hb' hab, hhb, hfb, hfa,
-          hbB, hfcA]
-      have hSs'k : ((s.putCard y (Sum.inr v)).spliceTwinRuns x).piles k =
-          { hidden := (s.piles k).hidden, faceUp := (s.piles k).faceUp ++ [y] } := by
-        rw [spliceTwinRuns_piles_other ha' hb' hab hka hkb]
-        apply Pile.ext
-        · exact hhk
-        · exact hfk
-      have hSsa : (s.spliceTwinRuns x).piles a =
-          { hidden := (s.piles a).hidden
-            faceUp := preA s x a ++ x.twin :: sufB s x b } :=
-        splice_piles_a_nf ha hb hab
-      have hSsb : (s.spliceTwinRuns x).piles b =
-          { hidden := (s.piles b).hidden
-            faceUp := preB s x b ++ x :: sufA s x a } :=
-        splice_piles_b_nf ha hb hab
-      have hSsk : (s.spliceTwinRuns x).piles k = s.piles k :=
-        spliceTwinRuns_piles_other ha hb hab hka hkb
-      rw [putCard_inr_eq hloc]
-      apply State.ext
-      · funext su
-        rw [setPile_found, spliceTwinRuns_found ha' hb' hab,
-          putCard_found, spliceTwinRuns_found ha hb hab]
-      · funext a'
-        by_cases h1 : a' = k
-        · rw [h1]
-          rw [setPile_piles_self, hSsk, hSs'k]
-        · by_cases h2 : a' = a
-          · rw [h2] at h1 ⊢
-            rw [setPile_piles_ne h1, hSsa, hSs'a]
-          · by_cases h3 : a' = b
-            · rw [h3] at h1 ⊢
-              rw [setPile_piles_ne h1, hSsb, hSs'b]
-            · rw [setPile_piles_ne h1, spliceTwinRuns_piles_other ha hb hab h2 h3,
-                spliceTwinRuns_piles_other ha' hb' hab h2 h3, hs'other a' h1]
-      · rw [setPile_stock, spliceTwinRuns_stock ha' hb' hab,
-          putCard_stock, spliceTwinRuns_stock ha hb hab]
-      · rw [setPile_waste, spliceTwinRuns_waste ha' hb' hab,
-          putCard_waste, spliceTwinRuns_waste ha hb hab]
-      · rw [setPile_drawStep, spliceTwinRuns_drawStep ha' hb' hab,
-          putCard_drawStep, spliceTwinRuns_drawStep ha hb hab]
-theorem splice_putCard_inl {s : State} {x : Card} {a b e : Anchor}
-    (hwf : s.WF)
-    (ha : s.pileHolding x = some a) (hb : s.pileHolding x.twin = some b)
-    (hab : a ≠ b) {y : Card}
-    (hyx : y ≠ x) (hyt : y ≠ x.twin)
-    (hneA : e ≠ a) (hneB : e ≠ b) :
-    (s.spliceTwinRuns x).putCard y (Sum.inl e) =
-      (s.putCard y (Sum.inl e)).spliceTwinRuns x := by
-  have ha' : (s.setPile e ⟨[], [y]⟩).pileHolding x = some a := by
-    refine tfc_pileHolding_pin ?_ ?_
-    · rw [setPile_piles_ne (Ne.symm hneA)]
-      exact pileHolding_mem ha
-    · intro j hj
-      by_cases hje : j = e
-      · rw [hje, setPile_piles_self]
-        intro hmem
-        exact hyx (List.mem_singleton.mp hmem).symm
-      · rw [setPile_piles_ne hje]
-        exact (mem_faceUp_unique hwf (pileHolding_mem ha) j hj).1
-  have hb' : (s.setPile e ⟨[], [y]⟩).pileHolding x.twin = some b := by
-    refine tfc_pileHolding_pin ?_ ?_
-    · rw [setPile_piles_ne (Ne.symm hneB)]
-      exact pileHolding_mem hb
-    · intro j hj
-      by_cases hje : j = e
-      · rw [hje, setPile_piles_self]
-        intro hmem
-        exact hyt (List.mem_singleton.mp hmem).symm
-      · rw [setPile_piles_ne hje]
-        exact (mem_faceUp_unique hwf (pileHolding_mem hb) j hj).1
-  have hs'a : (s.setPile e ⟨[], [y]⟩).piles a = s.piles a := setPile_piles_ne (Ne.symm hneA)
-  have hs'b : (s.setPile e ⟨[], [y]⟩).piles b = s.piles b := setPile_piles_ne (Ne.symm hneB)
-  rw [putCard_eq_inl, putCard_eq_inl]
-  apply State.ext
-  · funext su
-    rw [setPile_found, spliceTwinRuns_found ha' hb' hab,
-      setPile_found, spliceTwinRuns_found ha hb hab]
-  · funext a'
-    by_cases h1 : a' = e
-    · rw [h1]
-      rw [setPile_piles_self, spliceTwinRuns_piles_other ha' hb' hab hneA hneB,
-        setPile_piles_self]
-    · by_cases h2 : a' = a
-      · rw [h2]
-        rw [setPile_piles_ne (Ne.symm hneA), splice_piles_a_nf ha hb hab,
-          splice_piles_a_nf ha' hb' hab]
-        simp only [preA, sufB, hs'a, hs'b]
-      · by_cases h3 : a' = b
-        · rw [h3]
-          rw [setPile_piles_ne (Ne.symm hneB), splice_piles_b_nf ha hb hab,
-            splice_piles_b_nf ha' hb' hab]
-          simp only [preB, sufA, hs'a, hs'b]
-        · rw [setPile_piles_ne h1, spliceTwinRuns_piles_other ha hb hab h2 h3,
-            spliceTwinRuns_piles_other ha' hb' hab h2 h3, setPile_piles_ne h1]
-  · rw [setPile_stock, spliceTwinRuns_stock ha' hb' hab,
-      setPile_stock, spliceTwinRuns_stock ha hb hab]
-  · rw [setPile_waste, spliceTwinRuns_waste ha' hb' hab,
-      setPile_waste, spliceTwinRuns_waste ha hb hab]
-  · rw [setPile_drawStep, spliceTwinRuns_drawStep ha' hb' hab,
-      setPile_drawStep, spliceTwinRuns_drawStep ha hb hab]
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep): the splice
+putCard commutation pair `splice_putCard_inr` / `splice_putCard_inl`
+had zero consumers at the last three commits (the merge residue of
+the file-count directive) — struck, the compiler as reachability
+judge. -/
+
 private theorem canSitOn_king_false_comm {c z : Card} (hk : c.rank = Rank.king) :
     canSitOn c z = false := by
   rw [canSitOn]

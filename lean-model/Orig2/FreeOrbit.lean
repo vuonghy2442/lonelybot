@@ -453,10 +453,10 @@ private theorem step_found_mem {u v : State} {m : Move} {c : Card}
       show c ∈ (u.setFound d.suit (u.found d.suit ++ [d])).found σ
       simp only [State.setFound]
       by_cases hsd : σ = d.suit
-      · rw [if_pos hsd]
+      · rw [ite_eq_left hsd]
         rw [hsd] at hm
         exact List.mem_append.mpr (Or.inl hm)
-      · rw [if_neg hsd]
+      · rw [ite_eq_right hsd]
         exact hm
   | foundToTab d b =>
       have hne' : d ≠ c := by
@@ -469,7 +469,7 @@ private theorem step_found_mem {u v : State} {m : Move} {c : Card}
       show c ∈ (u.setFound d.suit (chop (u.found d.suit))).found σ
       simp only [State.setFound]
       by_cases hsd : σ = d.suit
-      · rw [if_pos hsd]
+      · rw [ite_eq_left hsd]
         rw [hsd] at hm
         have hlast : lastOf (u.found d.suit) = some d := by
           rw [hc'] at hft
@@ -481,7 +481,7 @@ private theorem step_found_mem {u v : State} {m : Move} {c : Card}
         rcases List.mem_append.mp hm with h' | h'
         · exact h'
         · exact absurd (List.mem_singleton.mp h') (fun hcon => hne' hcon.symm)
-      · rw [if_neg hsd]
+      · rw [ite_eq_right hsd]
         exact hm
   | tabToTab d b =>
       obtain ⟨a, hh, hcp, hfr, hv⟩ := step_tabToTab_inv hstep
@@ -540,14 +540,8 @@ private theorem seatOf_ne_of_faceUp {st : State} {c : Card} (hwf : st.WF)
     (h : ∃ a, c ∈ (st.piles a).faceUp) : seatOf st c ≠ none := by
   obtain ⟨a, hm⟩ := h
   have hh : st.pileHolding c = some a := (pileHolding_eq_some_iff hwf).2 hm
-  rw [tfc_seatOf_eq]
-  cases hhold : st.pileHolding c with
-  | none => exact absurd hh (by rw [hhold]; simp)
-  | some a₂ =>
-      simp only [hhold]
-      cases hlast : List.getLast? (below c ((st.piles a₂).faceUp)) with
-      | none => simp only [hlast]; exact Option.some_ne_none _
-      | some z => simp only [hlast]; exact Option.some_ne_none _
+  rw [tfc_seatOf_pair hh]
+  split <;> exact Option.some_ne_none _
 
 /-- The raise removes its card from the face-up board. -/
 private theorem raise_notFaceUp {u v : State} {c : Card} (hwf : u.WF)
@@ -558,7 +552,7 @@ private theorem raise_notFaceUp {u v : State} {c : Card} (hwf : u.WF)
     rw [hv]
     change c ∈ (if c.suit = c.suit then u.found c.suit ++ [c] else u.found c.suit)
     have hss : c.suit = c.suit := rfl
-    rw [if_pos hss]
+    rw [ite_eq_left hss]
     exact List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))
   rintro ⟨a, hcon⟩
   exact ((mem_found_unique (step_wf hwf hstep) hcf).1 a).2 hcon
@@ -885,8 +879,8 @@ private theorem below_irrefl {c : Card} : ∀ {l : List Card}, c ∉ below c l :
       intro h
       rw [below_cons] at h
       by_cases hyc : y = c
-      · rw [if_pos hyc] at h; cases h
-      · rw [if_neg hyc] at h
+      · rw [ite_eq_left hyc] at h; cases h
+      · rw [ite_eq_right hyc] at h
         rcases List.mem_cons.mp h with rfl | h'
         · exact hyc rfl
         · exact ih h'
@@ -1000,7 +994,7 @@ theorem seat_inr_inj {st : State} {y z w : Card} (hwf : st.WF)
 its head sits directly on `c` (the adjacent fit of the run
 discipline, reflected into the seat). -/
 theorem cover_of_run {st : State} {c : Card} {a : Anchor} {run : List Card}
-    (hwf : st.WF) (hhold : st.pileHolding c = some a)
+    (hwf : st.WF) (_hhold : st.pileHolding c = some a)
     (hfc : fromCard c ((st.piles a).faceUp) = c :: run) (hrne : run ≠ []) :
     ∃ d, seatOf st d = some (Sum.inr c) := by
   obtain ⟨d, rest', hrun⟩ : ∃ d rest', run = d :: rest' := by
@@ -1032,7 +1026,7 @@ theorem cover_of_run {st : State} {c : Card} {a : Anchor} {run : List Card}
     have hex := (tfc_below_fromCard_excl d
       (below c ((st.piles a).faceUp)) (c :: d :: rest') hdnotbelow).1
     rw [← hshape] at hex
-    rw [hex, below_cons, if_neg hcd, below_cons_self]
+    rw [hex, below_cons, ite_eq_right hcd, below_cons_self]
   have hdmem : d ∈ (st.piles a).faceUp := by
     rw [hshape]
     exact List.mem_append.mpr (Or.inr (List.mem_cons.mpr (Or.inr (List.mem_cons_self ..))))

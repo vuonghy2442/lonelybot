@@ -48,7 +48,7 @@ A definition-level observation, zero content. -/
 theorem swappableIn_of_both_unseated {s : State} {x : Card}
     (h1 : seatOf s x = none) (h2 : seatOf s x.twin = none) :
     SwappableIn s x :=
-  ⟨s, ⟨h1.trans h2.symm, h2.trans h1.symm, fun y _ _ => rfl,
+  ⟨s, ⟨h1.trans h2.symm, h2.trans h1.symm, fun _ _ _ => rfl,
     ⟨fun _ => rfl, rfl⟩, fun _ => rfl, rfl, rfl, rfl⟩,
     sameOrbitSetoid.iseqv.refl s⟩
 

@@ -176,39 +176,13 @@ private theorem notFoundPair_relabelMover {x : Card} {m : Move}
   | tabToTab c b =>
       simp [Move.relabelMover, NotFoundPair]
 
-/-- **The splice functor on pair-free plays.**  A pair-free witness
-shuffle `s → t` maps to a pair-free witness shuffle of the run splices.
-(restated from `Archive/TwinLastPull.lean:201` — the per-file kit norm) -/
-private theorem pairFreeOrbit_splice_of_pairFree {x : Card} {s t : State} {play : List Move}
-    (hwf : s.WF) (hx : ∃ z, seatOf s x = some (Sum.inr z))
-    (hxt : ∃ z : Card, seatOf s x.twin = some (Sum.inr z.twin))
-    (hplay : ShufflePlayW s play t)
-    (hno : ∀ m ∈ play, NotFoundPair x m) :
-    PairFreeOrbit x (s.spliceTwinRuns x) (t.spliceTwinRuns x) := by
-  revert hwf hx hxt hno
-  induction hplay with
-  | nil st =>
-      intro _ _ _ _
-      exact pairFreeOrbit_refl x (st.spliceTwinRuns x)
-  | @cons st s₁ W m ρ hrev hstep hrest ih =>
-      intro hwf hx hxt hno
-      have hm : NotFoundPair x m := hno m (by simp)
-      have hstepS :=
-        TwinSpliceComm.splice_step_comm_rev hwf hx hxt hstep hrev hm
-      have hrevS := reversibleAtW_splice_relabelMover hwf hx hxt hrev hm
-      have hnoS := notFoundPair_relabelMover hm
-      have hseats := seat_inr_of_pairFree_step hwf hstep hrev hm hx hxt
-      have hwf₁ : s₁.WF := step_wf hwf hstep
-      have hsingle : PairFreeOrbit x (st.spliceTwinRuns x) (s₁.spliceTwinRuns x) := by
-        refine pairFreeOrbit_of_play (Walk.cons hrevS hstepS (Walk.nil _)) ?_
-        intro n hn
-        rw [List.mem_singleton] at hn
-        subst hn
-        exact hnoS
-      have htail : PairFreeOrbit x (s₁.spliceTwinRuns x) (W.spliceTwinRuns x) :=
-        ih hwf₁ hseats.1 hseats.2
-          (fun n hn => hno n (List.mem_cons_of_mem m hn))
-      exact PairFreeOrbit.trans hsingle htail
+/- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep; .ilean
+reference-audited): the splice functor on pair-free plays
+(`pairFreeOrbit_splice_of_pairFree`) was orphaned by the wave-2
+delegation of `swappableIn_transfer_of_pairFreePath` — its only
+consumer was that body; zero consumers tree-wide since, struck, the
+compiler as reachability judge.  (Lineage: `Archive/TwinLastPull.lean:201`,
+restated per the per-file kit norm.) -/
 
 /-! ## §2. Foundation arithmetic (restated from
 `Orig2/TwinPairFreeRev.lean:43–133` — the per-file kit norm; the
@@ -987,10 +961,10 @@ private theorem seat_track_step {u v : State} {m : Move} {c : Card}
         | inl a' => exact absurd (canPlace_inl hcp).2 hking
         | inr z' =>
             refine Or.inl ⟨z', ?_⟩
-            rw [tfc_seat_point_edit hwf hstep hrev c, if_pos rfl]
+            rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_left rfl]
       · rcases h with ⟨z, hz⟩ | hmem
         · refine Or.inl ⟨z, ?_⟩
-          rw [tfc_seat_point_edit hwf hstep hrev c, if_neg hcy]
+          rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_right hcy]
           exact hz
         · exact Or.inr (by rw [hfound c.suit]; exact hmem)
 
@@ -1240,7 +1214,7 @@ private theorem head_of_below_nil {c y : Card} {t : List Card}
   rw [below_cons] at h
   by_cases hyc : y = c
   · exact hyc
-  · rw [if_neg hyc] at h
+  · rw [ite_eq_right hyc] at h
     exact absurd h (by simp)
 
 /-- The `.inl` seat is unique: two cards at the same pile bottom are
@@ -1304,9 +1278,9 @@ private theorem seat_inl_track_step {u v : State} {m : Move} {c : Card}
         | inl a' => exact absurd (canPlace_inl hcp).2 hking
         | inr z' =>
             refine Or.inr (Or.inl ⟨z', ?_⟩)
-            rw [tfc_seat_point_edit hwf hstep hrev c, if_pos rfl]
+            rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_left rfl]
       · refine Or.inl ?_
-        rw [tfc_seat_point_edit hwf hstep hrev c, if_neg hcy]
+        rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_right hcy]
         exact h
 
 /-- The play-grade `.inl` tracker: the three-way seat disjunction is
@@ -1446,9 +1420,7 @@ private theorem seatOf_ne_none_of_mem_faceUp {s : State} {c : Card} {a : Anchor}
 private theorem seatOf_ne_none_of_pileHolding {s : State} {c : Card} {a : Anchor}
     (h : s.pileHolding c = some a) : seatOf s c ≠ none := by
   rw [tfc_seatOf_pair h]
-  cases hg : List.getLast? (below c (s.piles a).faceUp) with
-  | none => simp [hg]
-  | some z => simp [hg]
+  split <;> exact Option.some_ne_none _
 
 /-- An unseated card is in no face-up pile. -/
 private theorem not_mem_faceUp_of_seatOf_none {s : State} {c : Card}
@@ -2652,10 +2624,10 @@ private theorem step_raise :
     · rw [ha']
       rfl
     · simp only []
-      rw [if_neg ha']
+      rw [ite_eq_right ha']
       have hk : kworld'.piles a' =
           if a' = Anchor.p0 then (⟨[], [refK]⟩ : Pile) else kworld.piles a' := rfl
-      rw [hk, if_neg ha']
+      rw [hk, ite_eq_right ha']
 
 /-- **THE FOUNDS ROW IS NECESSARY** — the statement without it is
 FALSE.  Witness: the twin kings on full foundations; one reversible
