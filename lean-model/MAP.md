@@ -21,10 +21,11 @@ them.
 Orig2
 ├─ Substrate    game core, fiber transfer, claims ledger, orbit factor,
 │               cargo bridge, free orbit, Position grid
-├─ Fork         ForkCriticalPair, Cover, ForkClass,
-│               LockRung, ForkPosition
+├─ Fork         ForkCriticalPair, Cover, ForkClass, LockRung,
+│               ForkPosition, ForkThird, ForkThirdHigh, FirstPassage
 ├─ Fiber        ArmFiber, ArmSplit, SWDichotomy, FiberHierarchy
-└─ Boundary     vcS/vcT certificate and draw refutation
+└─ Boundary     vcS/vcT certificate and draw refutation,
+                BoundaryForkFree, BoundaryMinPath
 ```
 
 The two quotient axes:
@@ -36,9 +37,13 @@ readout:          RungClass = State / RungEq
 meet:             Position = MacroSpan × RungClass
 ```
 
-The live campaign targets are `SatDifferFork`, `ForkPositionRigid`
-(reduced to `ForkThirdRigid`), and `ArmDichotomySW` (the flat-fiber,
-draw-corrected arm dichotomy).
+The live campaign targets are `SatFlatFiberFork` (the class-global
+flat-fiber invariant; `rung_diff_forces_fork` reduces `SatDifferForkWF`
+to it), `SatEqualCargoSW` (the equal-rung half, at the flat fiber), and
+the minimal-path detour theorem (`ForkFreeLowerBound`).  The fork
+geometry is closed: `ForkThirdRigidHigh`, `ForkThirdRigid`,
+`ForkPositionRigid` and `ForkFoundRigid` are unconditional, so a fork
+class carries at most one fork `Position`.
 
 Kit note (the 2026-10-31 dedup waves): the shared kit stratum leaf is
 `Orig2/Kit.lean` — the below/fromCard calculus, the occurrence-count

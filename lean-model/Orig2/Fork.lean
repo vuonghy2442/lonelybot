@@ -24,8 +24,11 @@ The local and class-level fork cards, in dependency order:
 * `ForkThird` — the third-suit split: cover-suit rigidity, the low-rung
   lock, and the reduction of `ForkThirdRigid` to
   `ForkThirdRigidHigh`.
-* `ForkThirdHigh` — the non-king half of `ForkThirdRigidHigh` proved;
-  the king slice reduced to `KingExodusSeated`.
+* `ForkThirdHigh` — `ForkThirdRigidHigh` PROVED, including the king
+  slice (`KingExodusSeated` via the `KingKeep` invariant); hence
+  unconditional `ForkThirdRigid`, `ForkPositionRigid`,
+  `ForkFoundRigid`, and "a fork class carries at most one fork
+  `Position`".
 * `FirstPassage` — the per-suit first-passage ledger for the
   `SatDifferFork` dip (first passage, first rise, flat seat at the
   climb).

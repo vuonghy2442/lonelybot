@@ -5,10 +5,13 @@ set_option maxHeartbeats 2000000
 set_option linter.unusedVariables false
 
 /-!
-# Orig2.ForkThirdHigh — the non-king half of the third-suit residue
+# Orig2.ForkThirdHigh - the third-suit residue, unconditional
 
-`ForkThirdRigidHigh` is proved for every NON-KING fork; the king slice is
-reduced to one named premise.
+`ForkThirdRigidHigh` is proved in full, including the king fork.  The
+non-king half is `forkThirdRigidHigh_of_not_king`; the king slice is
+`KingExodusSeated`, proved here via the `KingKeep` invariant (§8), which
+yields `forkThirdRigidHigh_unconditional`, `forkThirdRigid_unconditional`
+and `forkPositionRigid_unconditional`.
 
 * `third_rung_le_succ` — at a non-king fork every third-suit rung is at
   most `r + 1` (the rank-`(r+1)` third card is one of the two distinct
@@ -22,11 +25,14 @@ reduced to one named premise.
   S-live, hence a pair member) or covered by a founded rank-`(r-1)`
   pair card (`pair_lowFamily_founded`).
 * `forkThirdRigidHigh_of_not_king` — the non-king half, PROVED.
-* `forkThirdRigidHigh_of_nonKing_and_king` — the king slice is exactly
+* `forkThirdRigidHigh_of_nonKing_and_king` - the king slice is exactly
   `ForkThirdRigidHighKing`.
-* `KingExodusSeated` — the final named king premise: a king founded deep
-  and unfounded shallow is seated at the shallow fork with `hidden = []`.
-  `forkThirdRigidHigh_of_kingSeated` proves the high row from it.
+* `KingExodusSeated` - the king exodus: a king founded deep and unfounded
+  shallow is seated at the shallow fork with `hidden = []`.
+  `forkThirdRigidHigh_of_kingSeated` proves the high row from it, and
+  §8 proves `KingExodusSeated` itself, hence
+  `forkThirdRigidHigh_unconditional`, `forkThirdRigid_unconditional` and
+  `forkPositionRigid_unconditional`.
 
 The naive bound `rung ≤ r` is false; the sharp non-king bound is
 `rung ≤ r + 1`.  Do not chase a `k > r` descent: `third_rung_le_succ`
@@ -641,6 +647,236 @@ theorem forkThirdRigid_of_kingSeated (hseat : KingExodusSeated) :
     ForkThirdRigid :=
   ThirdRigid.forkThirdRigid_of_high (forkThirdRigidHigh_of_kingSeated hseat)
 
+/-! ## §8. `KingExodusSeated` — the premise, proved
+
+The invariant is `KingKeep st c`: the king `c` is either founded, or it is
+`.inl`-seated (the bottom of a pile) over a HIDDEN-FREE pile.
+
+* A king never sits on a tableau card (`canSitOn_king_false`), so it never
+  takes an `.inr` seat.
+* Every landing / slide of a king is therefore an `.inl` landing on an
+  EMPTY anchor (`king_base_inl`), whose pile the letter writes with
+  `hidden := []`.
+* `hidden` never grows (`rev_step_hidden_eq`).
+
+So the invariant survives every reversible letter (`king_keep_step`), hence
+every witness play (`king_keep_transit`), and the exodus pull of
+`found_exodus` seeds it.
+-/
+
+/-- **`KingKeep st c`** — `c` is founded, or it bottoms a hidden-free pile. -/
+def KingKeep (st : State) (c : Card) : Prop :=
+  c ∈ st.found c.suit ∨ ∃ a, seatOf st c = some (Sum.inl a) ∧ (st.piles a).hidden = []
+
+/-- **A king's `foundToTab` landing base is an empty anchor.** -/
+theorem king_base_inl {st : State} {c : Card} {b : Base}
+    (hk : c.rank = Rank.king) (hcp : st.canPlace c b = true) :
+    ∃ a, b = Sum.inl a := by
+  cases b with
+  | inl a => exact ⟨a, rfl⟩
+  | inr z =>
+      exfalso
+      obtain ⟨k, hpk, hfit⟩ := canPlace_inr hcp
+      rw [canSitOn_king_false hk] at hfit
+      exact Bool.noConfusion hfit
+
+/-- **THE KING TRACE IS CLOSED UNDER EVERY REVERSIBLE STEP.** -/
+theorem king_keep_step {st s1 : State} {m : Move} {c : Card}
+    (hwf : st.WF) (hrev : reversibleAtW st m) (hstep : State.step st m = some s1)
+    (hk : c.rank = Rank.king) (hcur : KingKeep st c) : KingKeep s1 c := by
+  cases m with
+  | draw =>
+      have hse := (chart_draw hstep).1
+      rcases hcur with hf | ⟨a, hseat, hhid⟩
+      · left
+        rw [stepDraw_found hstep]
+        exact hf
+      · right
+        exact ⟨a, by rw [hse c, hseat],
+          by rw [rev_step_hidden_eq hwf hstep hrev a]; exact hhid⟩
+  | wasteToFound y => exact absurd hrev (wasteToFound_not_reversibleAtW st y)
+  | wasteToTab y b => exact absurd hrev (wasteToTab_not_reversibleAtW st y b)
+  | tabToFound d =>
+      obtain ⟨-, a, hpa, hsV⟩ := step_tabToFound_inv hstep
+      rcases hcur with hf | ⟨a', hseat, hhid⟩
+      · left
+        rw [hsV]
+        by_cases hcs : c.suit = d.suit
+        · rw [hcs.symm, setFound_found_self]
+          exact List.mem_append_left _ hf
+        · rw [setFound_found_ne hcs]
+          exact hf
+      · by_cases hcd : c = d
+        · left
+          rw [hsV]
+          rw [hcd.symm, setFound_found_self]
+          exact List.mem_append_right _ (List.mem_singleton_self c)
+        · right
+          refine ⟨a', ?_, ?_⟩
+          · rw [raise_seat_change_of_seated hstep hrev (by rw [hseat]; simp) hcd]
+            exact hseat
+          · rw [rev_step_hidden_eq hwf hstep hrev a']
+            exact hhid
+  | foundToTab y b =>
+      obtain ⟨c', htop, hc', hcp, hsV⟩ := step_foundToTab_inv hstep
+      rcases hcur with hf | ⟨a, hseat, hhid⟩
+      · by_cases hcy : c = y
+        · right
+          subst hcy
+          obtain ⟨t, rfl⟩ := king_base_inl hk hcp
+          have hpile : s1.piles t = (⟨[], [c]⟩ : Pile) := by
+            rw [hsV, putCard_piles_inl]
+            simp
+          have hwf1 : s1.WF := step_wf hwf hstep
+          have hmem : c ∈ (s1.piles t).faceUp := by rw [hpile]; simp
+          have hhold : s1.pileHolding c = some t := (pileHolding_eq_some_iff hwf1).2 hmem
+          have hbelow : below c (s1.piles t).faceUp = [] := by rw [hpile, below_cons, ite_eq_left rfl]
+          exact ⟨t, tfc_seatOf_inl_intro hhold hbelow, by rw [hpile]⟩
+        · left
+          rw [hsV, putCard_found]
+          by_cases hcs : c.suit = y.suit
+          · have htop' : st.foundTop c.suit = some y := by
+              rw [hcs, htop, hc']
+            have hsnoc : st.found c.suit = chop (st.found c.suit) ++ [y] :=
+              lastOf_chop htop'
+            rw [hcs.symm, setFound_found_self]
+            rw [hsnoc] at hf
+            rcases List.mem_append.mp hf with h | h
+            · exact h
+            · exact absurd (List.mem_singleton.mp h) hcy
+          · rw [setFound_found_ne hcs]
+            exact hf
+      · by_cases hcy : c = y
+        · right
+          subst hcy
+          obtain ⟨t, rfl⟩ := king_base_inl hk hcp
+          have hpile : s1.piles t = (⟨[], [c]⟩ : Pile) := by
+            rw [hsV, putCard_piles_inl]
+            simp
+          have hwf1 : s1.WF := step_wf hwf hstep
+          have hmem : c ∈ (s1.piles t).faceUp := by rw [hpile]; simp
+          have hhold : s1.pileHolding c = some t := (pileHolding_eq_some_iff hwf1).2 hmem
+          have hbelow : below c (s1.piles t).faceUp = [] := by rw [hpile, below_cons, ite_eq_left rfl]
+          exact ⟨t, tfc_seatOf_inl_intro hhold hbelow, by rw [hpile]⟩
+        · right
+          refine ⟨a, ?_, ?_⟩
+          · rw [pull_seat_change hstep c hcy]
+            exact hseat
+          · rw [rev_step_hidden_eq hwf hstep hrev a]
+            exact hhid
+  | tabToTab y b =>
+      obtain ⟨a0, hhold, hcp, hrun, hsV⟩ := step_tabToTab_inv hstep
+      rcases hcur with hf | ⟨a, hseat, hhid⟩
+      · left
+        rw [hsV, putRun_found, setPile_found]
+        exact hf
+      · right
+        by_cases hcy : c = y
+        · subst hcy
+          cases b with
+          | inl t =>
+              refine ⟨t, ?_, ?_⟩
+              · rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_left rfl]
+              · rw [hsV, putRun_piles_inl_self]
+          | inr z =>
+              exfalso
+              obtain ⟨-, -, hfit⟩ := canPlace_inr hcp
+              rw [canSitOn_king_false hk] at hfit
+              exact Bool.noConfusion hfit
+        · refine ⟨a, ?_, ?_⟩
+          · rw [tfc_seat_point_edit hwf hstep hrev c, ite_eq_right hcy]
+            exact hseat
+          · rw [rev_step_hidden_eq hwf hstep hrev a]
+            exact hhid
+
+/-- **THE KING TRACE SURVIVES A WITNESS PLAY.** -/
+theorem king_keep_transit {A B : State} {ρ : List Move} (h : ShufflePlayW A ρ B)
+    (hwf : A.WF) {c : Card} (hk : c.rank = Rank.king) (hcur : KingKeep A c) :
+    KingKeep B c := by
+  revert hwf hcur
+  induction h with
+  | nil st => intro _ h; exact h
+  | @cons st s1 W m ρ' hrev hstep hrest ih =>
+      intro hwf hcur
+      exact ih (step_wf hwf hstep) (king_keep_step hwf hrev hstep hk hcur)
+
+/-- **SPLIT A WALK AT A LETTER.** -/
+theorem walk_split {A B : State} {ρ : List Move} (h : ShufflePlayW A ρ B)
+    {c : Card} {b : Base} (hm : Move.foundToTab c b ∈ ρ) :
+    ∃ (U U' : State) (l₁ l₂ : List Move),
+      ShufflePlayW A l₁ U ∧ U.step (Move.foundToTab c b) = some U' ∧
+        ShufflePlayW U' l₂ B ∧ ρ = l₁ ++ Move.foundToTab c b :: l₂ := by
+  induction h with
+  | nil st => exact absurd hm (by simp)
+  | @cons st s1 W m ρ' hrev hstep hrest ih =>
+      by_cases hmeq : m = Move.foundToTab c b
+      · subst hmeq
+        exact ⟨st, s1, [], ρ', .nil st, hstep, hrest, rfl⟩
+      · have hm' : Move.foundToTab c b ∈ ρ' := by
+          rcases List.mem_cons.mp hm with h' | h'
+          · exact (hmeq h'.symm).elim
+          · exact h'
+        obtain ⟨U, U', l₁, l₂, h1, h2, h3, h4⟩ := ih hm'
+        exact ⟨U, U', m :: l₁, l₂, .cons hrev hstep h1, h2, h3, by rw [h4]; rfl⟩
+
+/-- **`KingExodusSeated` — PROVED.**  A king founded at the deep end of a
+witness class and unfounded at the shallow one bottoms a hidden-free pile
+at the shallow end.
+
+Route: the exodus pull (`found_exodus`) hands the king to an empty anchor
+(`canPlace_inl`); from there `KingKeep` rides every letter to the shallow
+fork (`king_keep_transit`), and the unfoundedness at that end removes the
+`found` arm. -/
+theorem kingExodusSeated_proved : KingExodusSeated := by
+  intro F G c hF hG hcls hk hcF hcG
+  obtain ⟨play, hplay, -⟩ := hcls
+  obtain ⟨b, hb⟩ := found_exodus hplay hcG hcF
+  obtain ⟨U, U', l₁, l₂, h₁, hstep, h₂, hsplit⟩ := walk_split hplay hb
+  obtain ⟨c', htop, hc', hcp, hsV⟩ := step_foundToTab_inv hstep
+  obtain ⟨a, rfl⟩ := king_base_inl hk hcp
+  have hpile : U'.piles a = (⟨[], [c]⟩ : Pile) := by
+    rw [hsV, putCard_piles_inl]
+    simp
+  have hwfU : U.WF := wf_of_shuffle h₁ hG
+  have hwfU' : U'.WF := step_wf hwfU hstep
+  have hcur : KingKeep U' c := by
+    right
+    have hmem : c ∈ (U'.piles a).faceUp := by rw [hpile]; simp
+    have hhold : U'.pileHolding c = some a := (pileHolding_eq_some_iff hwfU').2 hmem
+    have hbelow : below c (U'.piles a).faceUp = [] := by rw [hpile, below_cons, ite_eq_left rfl]
+    exact ⟨a, tfc_seatOf_inl_intro hhold hbelow, by rw [hpile]⟩
+  have hfin : KingKeep F c := king_keep_transit h₂ hwfU' hk hcur
+  rcases hfin with hf | ⟨a', hseat, hhid⟩
+  · exact absurd hf hcF
+  · obtain ⟨hhold, -⟩ := tfc_seatOf_of_inl hseat
+    exact ⟨a', hhold, hhid⟩
+
+/-- **`ForkThirdRigidHigh` — UNCONDITIONAL.** -/
+theorem forkThirdRigidHigh_unconditional : ThirdRigid.ForkThirdRigidHigh :=
+  forkThirdRigidHigh_of_kingSeated kingExodusSeated_proved
+
+/-- **`ForkThirdRigid` — UNCONDITIONAL.** -/
+theorem forkThirdRigid_unconditional : ForkThirdRigid :=
+  forkThirdRigid_of_kingSeated kingExodusSeated_proved
+
+/-- **`ForkPositionRigid` — UNCONDITIONAL.** -/
+theorem forkPositionRigid_unconditional : ForkPositionRigid :=
+  forkPositionRigid_of_third forkThirdRigid_unconditional
+
+/-! ## §9. The unconditional `Position` consequences -/
+
+/-- **`ForkFoundRigid` — UNCONDITIONAL.** -/
+theorem forkFoundRigid_unconditional : ForkFoundRigid :=
+  forkFoundRigid_iff_forkPositionRigid.mpr forkPositionRigid_unconditional
+
+/-- **A fork class carries AT MOST ONE fork `Position`.**  All its fork
+states present the same grid vertex. -/
+theorem fork_one_position {F G : State} (x y : Card) (hF : F.WF) (hG : G.WF)
+    (hcls : sameOrbitSetoid.r F G) (hx : ForkWitness F x) (hy : ForkWitness G y) :
+    (Quotient.mk orbitRungSetoid ⟨F, hF⟩ : Position) =
+      Quotient.mk orbitRungSetoid ⟨G, hG⟩ :=
+  fork_one_position_of_rigid forkPositionRigid_unconditional x y hF hG hcls hx hy
+
 
 #print axioms ThirdHigh.below_append_cons_notmem
 #print axioms ThirdHigh.under_cards_ne
@@ -655,5 +891,15 @@ theorem forkThirdRigid_of_kingSeated (hseat : KingExodusSeated) :
 #print axioms ThirdHigh.forkThirdRigidHighKing_of_seated
 #print axioms ThirdHigh.forkThirdRigidHigh_of_kingSeated
 #print axioms ThirdHigh.forkThirdRigid_of_kingSeated
+#print axioms ThirdHigh.king_base_inl
+#print axioms ThirdHigh.king_keep_step
+#print axioms ThirdHigh.king_keep_transit
+#print axioms ThirdHigh.walk_split
+#print axioms ThirdHigh.kingExodusSeated_proved
+#print axioms ThirdHigh.forkThirdRigidHigh_unconditional
+#print axioms ThirdHigh.forkThirdRigid_unconditional
+#print axioms ThirdHigh.forkPositionRigid_unconditional
+#print axioms ThirdHigh.forkFoundRigid_unconditional
+#print axioms ThirdHigh.fork_one_position
 
 end ThirdHigh

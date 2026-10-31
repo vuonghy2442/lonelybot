@@ -2,6 +2,8 @@ import Orig2.Substrate
 import Orig2.Fork
 import Orig2.Fiber
 import Orig2.Boundary
+import Orig2.BoundaryForkFree
+import Orig2.BoundaryMinPath
 
 /-!
 # Orig2 — the proof root
