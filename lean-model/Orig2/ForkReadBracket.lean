@@ -693,11 +693,12 @@ theorem raiseSwaps_of_read {Q v : State} {z : Card} {γ β : List Move}
 
 /-! ## §8. The bracket-level residual and its reduction -/
 
-/-- **`ReadBracketElim`** — the residual after the induction: every non-fork
-valley split carries a same-card bracket whose pull landing still raises `z`,
-and whose interior is *syntactically read-safe* (`ReadOK`).  This is strictly
-stronger than `RaiseSwaps` (it is a decidable per-letter condition) and is
-exactly the census's (S1)+(S2) plus "not a slide headed by `z`". -/
+/-- **`ReadBracketElim` — WITHDRAWN, FALSE AS STATED.**  The ungated
+quantifier includes witness LOOPS; the four-letter loop
+(`pull 5H -> 6C ; slide 4C -> 5H ; slide 4C -> 5D ; raise 5H`) refutes it
+(kernel-checked by `ExistRefute.not_readBracketElim`).  The minimality-gated
+form is `ExistKit.ReadBracketElimMin`, equivalent to
+`ExistKit.ValleyForkAtMin` (every minimal valley bottom is a fork). -/
 def ReadBracketElim : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State),
     u.WF → SSaturated u → SSaturated v →

@@ -196,17 +196,13 @@ theorem bracket_delete_gen
 
 /-! ## §4. The local residual and the reduction -/
 
-/-- **THE LOCAL RESIDUAL.**  Every valley split either already exhibits a
-`ForkWitness` at its bottom `F`, or the play carries a same-card bracket
-`pull z ; γ ; raise z` whose raise bubbles left across the interior
-(`RaiseSwaps`).
-
-Compared with `Elim.NonforkBracketElim`, the single global hypothesis `hcomm`
-(the whole commuted play) is replaced by the per-position local datum.  By
-`raise_bubble` they are equivalent, so this is the SAME residual made
-explicit — but the local form is what the play actually certifies
-(`Temp/Nonfork_syntactic_probe.py`: (S1) no interior pull/raise in `z`'s suit
-and (S2) no interior letter targets `z`, on 916/916 witness plays). -/
+/-- **`NonforkBracketLocal` — WITHDRAWN, FALSE AS STATED.**  A four-letter
+witness loop (`pull 5H -> 6C ; slide 4C -> 5H ; slide 4C -> 5D ; raise 5H`)
+has a non-fork bottom whose only same-card bracket begins with a slide landing
+on the bracket card (S2 fails); kernel-checked by
+`ExistRefute.not_nonforkBracketLocal`.  The minimality-gated form is
+`ExistKit.ReadBracketElimMin` / `ExistKit.ValleyForkAtMin`.  This definition is
+kept only as the hypothesis of the reduction. -/
 def NonforkBracketLocal : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State),
     u.WF → SSaturated u → SSaturated v →
