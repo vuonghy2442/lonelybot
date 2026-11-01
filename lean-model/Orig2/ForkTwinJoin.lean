@@ -143,6 +143,24 @@ theorem overshoot_of_exact (h : TwinJoinOrForkTarget) : TwinJoinOrForkOvershoot 
     exact Or.inl ⟨z, joinAt_imp_joinAtLeast hz⟩
   · exact Or.inr hfork
 
+/-- **THE DEFICIENT STEP — the gap-closer.**  The base `s` already has every
+coordinate except `σ` at the target `M`; `σ` is still deficient; the other
+class-mate `s'` provides the room on `σ`.  Then some class-mate raises `σ` by
+one and keeps every other rung.  This is the step the crossed case needs: pick
+the endpoint that already has the maximum on one coordinate (the base), and
+raise its other coordinate toward the other endpoint's value.
+
+The intended proof is `prepare_neutral` for the `σ` card. -/
+def RaiseDeficientGame : Prop :=
+  ∀ (s s' : State) (M : Suit → Nat) (σ : Suit),
+    sameOrbitSetoid.r s s' →
+    (∀ τ, τ ≠ σ → rungAt s τ = M τ) →
+    rungAt s σ < M σ →
+    M σ ≤ rungAt s' σ →
+    ∃ s'', sameOrbitSetoid.r s s'' ∧
+      rungAt s'' σ = rungAt s σ + 1 ∧
+      (∀ τ, τ ≠ σ → rungAt s'' τ = rungAt s τ)
+
 /-- **THE ARGMIN STEP (game level, strengthened).**  If the twin rung is the
 lower (≤ the t rung), the target `s'` is at least the t rung and strictly above
 the twin rung, then some class-mate raises the LOWER twin rung by one, keeping
