@@ -95,6 +95,54 @@ def TwinJoinOrForkTarget : Prop :=
     (∃ s''', JoinAt s s' s''' t) ∨
     (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
 
+/-- The **overshoot join**: a class-mate whose twin-pair columns are at least
+the componentwise maximum (not exactly equal to it).  This is the relaxation
+that makes the overshoot case trivial. -/
+def JoinAtLeast (s s' s''' : State) (t : Suit) : Prop :=
+  sameOrbitSetoid.r s s''' ∧
+    Nat.max (rungAt s t) (rungAt s' t) ≤ rungAt s''' t ∧
+    Nat.max (rungAt s t.twin) (rungAt s' t.twin) ≤ rungAt s''' t.twin
+
+/-- The exact join is an overshoot join. -/
+theorem joinAt_imp_joinAtLeast {s s' s''' : State} {t : Suit}
+    (h : JoinAt s s' s''' t) : JoinAtLeast s s' s''' t := by
+  obtain ⟨horb, h1, h2⟩ := h
+  refine ⟨horb, ?_, ?_⟩
+  · rw [h1]; exact Nat.le_refl _
+  · rw [h2]; exact Nat.le_refl _
+
+/-- **THE OVERSHOOT CASE IS IMMEDIATE.**  If the dip level is already at least
+both endpoint colour maxima, the dip itself is the overshoot join.  So the
+bounded-dip lemma is not needed on this side. -/
+theorem joinAtLeast_of_dip_above {s s' x : State} {t : Suit} {r : Nat}
+    (hclass : sameOrbitSetoid.r s x)
+    (hdip : rungAt x t = r ∧ rungAt x t.twin = r)
+    (habove : Nat.max (rungAt s t) (rungAt s' t) ≤ r ∧
+      Nat.max (rungAt s t.twin) (rungAt s' t.twin) ≤ r) :
+    JoinAtLeast s s' x t := by
+  refine ⟨hclass, ?_, ?_⟩
+  · rw [hdip.1]; exact habove.1
+  · rw [hdip.2]; exact habove.2
+
+/-- **THE RELAXED TARGET.**  Sign swap ⇒ an overshoot join or a fork.  This is
+weaker than `TwinJoinOrForkTarget` (the exact join), and it is what to prove
+first: the dip-above-goal case is already a theorem, and the remaining case is
+the dip below the goal. -/
+def TwinJoinOrForkOvershoot : Prop :=
+  ∀ (s s' : State) (t : Suit),
+    s.WF → s'.WF → sameOrbitSetoid.r s s' →
+    SignSwap s s' t →
+    (∃ s''', JoinAtLeast s s' s''' t) ∨
+    (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
+
+/-- The exact target implies the relaxed one. -/
+theorem overshoot_of_exact (h : TwinJoinOrForkTarget) : TwinJoinOrForkOvershoot := by
+  intro s s' t hs hs' hcls hswap
+  rcases h s s' t hs hs' hcls hswap with hjoin | hfork
+  · obtain ⟨z, hz⟩ := hjoin
+    exact Or.inl ⟨z, joinAt_imp_joinAtLeast hz⟩
+  · exact Or.inr hfork
+
 /-- **The join is symmetric under swapping the endpoints** (given the class
 relation). -/
 theorem joinAt_swap {s s' s''' : State} {t : Suit}
