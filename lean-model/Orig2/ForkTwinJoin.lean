@@ -84,55 +84,32 @@ def DipLemma : Prop :=
     s.WF →
     ShufflePlayW s ρ s' → SignSwap s s' t → DipExists s s' t ρ
 
-/-- **THE TARGET (one-sided in `s`).**  A saturated target endpoint `s'` and
-a class-mate `s` with a twin-pair sign swap: either the componentwise maximum
-is joined by a class-mate, or the class carries a fork witness.  `SSaturated s`
-is deliberately NOT assumed.  OPEN: the `3c` case (both twins covered at the
-dip) lives inside the join disjunct. -/
+/-- **THE TARGET (SATURATION-FREE).**  Two WF class-mates with a twin-pair
+sign swap: either the componentwise maximum is joined by a class-mate, or the
+class carries a fork witness.  NO `SSaturated` at either endpoint.  OPEN: the
+`3c` case (both twins covered at the dip) lives inside the join disjunct. -/
 def TwinJoinOrForkTarget : Prop :=
   ∀ (s s' : State) (t : Suit),
     s.WF → s'.WF → sameOrbitSetoid.r s s' →
-    SSaturated s' → SignSwap s s' t →
+    SignSwap s s' t →
     (∃ s''', JoinAt s s' s''' t) ∨
     (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
 
-/-- The two orientations of the sign swap, separated deliberately.  Because
-the target is one-sided in `s'`, the two orientations are NOT symmetric by
-swapping `s`/`s'` (that would move the saturation to `s`); both must be
-proved, and there is no WLOG. -/
-def SignSwapRight (s s' : State) (t : Suit) : Prop :=
-  rungAt s t.twin ≤ rungAt s t ∧ rungAt s' t ≤ rungAt s' t.twin
-
-def SignSwapLeft (s s' : State) (t : Suit) : Prop :=
-  rungAt s' t.twin ≤ rungAt s' t ∧ rungAt s t ≤ rungAt s t.twin
-
-theorem signSwap_iff_right_or_left {s s' : State} {t : Suit} :
-    SignSwap s s' t ↔ SignSwapRight s s' t ∨ SignSwapLeft s s' t :=
-  Iff.rfl
-
-/-- The one-sided target, RIGHT orientation only. -/
-def TwinJoinOrForkRight : Prop :=
-  ∀ (s s' : State) (t : Suit),
-    s.WF → s'.WF → sameOrbitSetoid.r s s' → SSaturated s' →
-    SignSwapRight s s' t →
-    (∃ s''', JoinAt s s' s''' t) ∨
-    (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
-
-/-- The one-sided target, LEFT orientation only. -/
-def TwinJoinOrForkLeft : Prop :=
-  ∀ (s s' : State) (t : Suit),
-    s.WF → s'.WF → sameOrbitSetoid.r s s' → SSaturated s' →
-    SignSwapLeft s s' t →
-    (∃ s''', JoinAt s s' s''' t) ∨
-    (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
-
-/-- The two orientations together give the full target, with no WLOG. -/
-theorem target_of_right_left (hR : TwinJoinOrForkRight) (hL : TwinJoinOrForkLeft) :
-    TwinJoinOrForkTarget := by
-  intro s s' t hs hs' hcls hsat hswap
-  rcases (signSwap_iff_right_or_left.mp hswap) with hr | hl
-  · exact hR s s' t hs hs' hcls hsat hr
-  · exact hL s s' t hs hs' hcls hsat hl
+/-- **The join is symmetric under swapping the endpoints** (given the class
+relation). -/
+theorem joinAt_swap {s s' s''' : State} {t : Suit}
+    (hcls : sameOrbitSetoid.r s s') (h : JoinAt s s' s''' t) :
+    JoinAt s' s s''' t := by
+  obtain ⟨horbit, h1, h2⟩ := h
+  refine ⟨RevEqW_trans horbit (RevEqW_symm hcls), ?_, ?_⟩
+  · calc
+      rungAt s''' t = Nat.max (rungAt s t) (rungAt s' t) := h1
+      _ = Nat.max (rungAt s' t) (rungAt s t) := by
+        simpa using Nat.max_comm (rungAt s t) (rungAt s' t)
+  · calc
+      rungAt s''' t.twin = Nat.max (rungAt s t.twin) (rungAt s' t.twin) := h2
+      _ = Nat.max (rungAt s' t.twin) (rungAt s t.twin) := by
+        simpa using Nat.max_comm (rungAt s t.twin) (rungAt s' t.twin)
 
 /-- The local engine at a dip, with the three cases explicit.  `CoveredStall`
 is the `3c` residual, named here as a `Prop` over the dip state.  The target
