@@ -195,6 +195,27 @@ theorem joinAt_swap {s s' s''' : State} {t : Suit}
       _ = Nat.max (rungAt s' t.twin) (rungAt s t.twin) := by
         simpa using Nat.max_comm (rungAt s t.twin) (rungAt s' t.twin)
 
+/-- **The deficient step implies the argmin step.**  Given the argmin
+hypotheses, set `M` to the current rungs everywhere except the raised twin,
+where `M twin` is the endpoint's twin rung.  The base matches `M` on all other
+coordinates by construction, and the endpoint supplies the room.  Note the
+`twin ≤ t` and `t ≤ s' t` hypotheses are not even needed: the deficient step
+is strictly stronger. -/
+theorem argmin_of_deficient (h : RaiseDeficientGame) : ArgminStepGame := by
+  intro s s' t hcls hle ht hlt
+  let M : Suit → Nat :=
+    fun τ => if τ = t.twin then rungAt s' t.twin else rungAt s τ
+  have hM : M t.twin = rungAt s' t.twin := by simp [M]
+  have hmatch : ∀ τ, τ ≠ t.twin → rungAt s τ = M τ := by
+    intro τ hτ
+    simp [M, hτ]
+  have hdefc : rungAt s t.twin < M t.twin := by rw [hM]; exact hlt
+  have hroom : M t.twin ≤ rungAt s' t.twin := by rw [hM]; exact Nat.le_refl _
+  obtain ⟨s'', hss'', hrung, hother⟩ :=
+    h s s' M t.twin hcls hmatch hdefc hroom
+  refine ⟨s'', hss'', ?_, hrung⟩
+  exact hother t (by cases t <;> decide)
+
 /-- The local engine at a dip, with the three cases explicit.  `CoveredStall`
 is the `3c` residual, named here as a `Prop` over the dip state.  The target
 above is the iterate-to-the-max of this step; the join branch of `3c` is what
