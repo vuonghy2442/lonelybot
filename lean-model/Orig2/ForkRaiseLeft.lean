@@ -134,14 +134,24 @@ theorem raise_moves_left_window {Q v : State} {c : Card} {γ β : List Move}
 
 /-! ## §3. The named residual -/
 
-/-- **`KeepsForward F c` — THE RESIDUAL.**  Every window `γ` that precedes an
-occurrence of `raise c` in a witness play out of `F` satisfies the
-per-position swap certificate.  At a position `mid` of `γ` reached by a
-prefix, with next letter `q`, this asks for both
-`mid --raise c--> · --q--> e` as a witness play and
-`mid --q--> · --raise c--> e`.
+/-- **`KeepsForward F c` — THE GENERAL FORM, NOT ON THE FRONTIER.**
 
-The obstruction (§6) is obligation (iii): `q` legal at the raise's IMAGE. -/
+Every window `γ` that precedes an occurrence of `raise c` in a witness play out
+of `F` satisfies the per-position swap certificate.  At a position `mid` of `γ`
+reached by a prefix, with next letter `q`, this asks for both
+`mid --raise c--> · --q--> e` as a witness play and `mid --q--> · --raise c--> e`.
+
+STATUS (2026-11-01): **unproved, and NOT refuted** — and **no longer on the
+frontier**.  The live form is the read-safe restriction
+`SlideFwd.KeepsForwardRead`, which is PROVED unconditionally
+(`SlideFwd.keepsForwardRead_unconditional`, from `R12.raiseSwaps_of_read`), and
+the frontier's empty-tail instance is `Window.KeepsForwardEmptyTail`, implied by
+`SlideFwd.EmptyTailNoSelfSlide`.  Obligation (iii) below is why the unrestricted
+form is not provable by the transport route (`SwapsRightFrom`/`SwapsLeftFrom` are
+false, `Temp/Transport_Report.md`); read-safety makes the two letters act on
+disjoint state coordinates, so the obligation becomes vacuous there.
+
+Do not attack this unrestricted form — attack `EmptyTailNoSelfSlide`. -/
 def KeepsForward (F : State) (c : Card) : Prop :=
   ∀ (γ β : List Move) (v : State),
     ShufflePlayW F (γ ++ Move.tabToFound c :: β) v → RaiseSwaps F c γ
@@ -474,7 +484,13 @@ theorem canRaise_mid_of_no_raise_before
 the price of slide-freedom on the window.  Obligation (i) being free (§7), the
 forward half is what an empty-tail residual really has to pay for. -/
 
-/-- **THE FORWARD HALF** of the per-position certificate. -/
+/-- **THE FORWARD HALF** of the per-position certificate.
+
+STATUS (2026-11-01): **SUPERSEDED, not on the frontier.**  This is the slide-free
+route's obligation (used only by `raise_moves_left_window_noslide`); the read-safe
+route (`SlideFwd.KeepsForwardRead`, proved unconditionally) replaced it.  It is
+implied by `RaiseSwaps` (`raiseSwaps_imp_forward`), so it is not false — just no
+longer needed. -/
 def SwapsForward (Q : State) (c : Card) (γ : List Move) : Prop :=
   ∀ (pre : List Move) (mid : State) (q : Move) (rest : List Move),
     pre ++ q :: rest = γ → ShufflePlayW Q pre mid →
