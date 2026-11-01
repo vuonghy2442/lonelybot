@@ -537,11 +537,29 @@ def SeatInert (b : Base) (q : Move) : Prop :=
   | Move.tabToFound w, Sum.inr z => w ≠ z
   | _, _ => True
 
-/-- **THE NAMED RESIDUAL.**  A same-card relocation `raise c ; γ ; pull c b`
-with a *populated* interior shortens, provided the interior is read-safe for
-`c` and inert on the pull's seat.  Its `γ = []` instance is §6
-(`adjacent_raise_pull_shortens`), so this is a strict extension, not a
-restatement. -/
+/-- **THE NAMED RESIDUAL — WITHDRAWN, FALSE AS STATED.**
+
+Kernel counterexample (`Orig2/ForkPermRefute.lean`, `Perm.sameCardRelocation_false`):
+a **17-card** board and the **3-letter shortest** play
+
+```text
+raise 4♠ ; slide 4♣ onto 5♦ ; pull 4♠ onto 5♥
+```
+
+The interior letter is *both* `SlideFwd.ReadSafe 4♠` and `SeatInert (inr 5♥)`, the
+play is shortest (`Perm.no_short : 3 ≤ ρ.length`, from the rung ledger — no
+search), and no shorter play exists.  So the two hypotheses here are satisfiable
+in a shortest play that does **not** shorten.
+
+The only failing hypothesis is **`Pullable` at the raise's image** — exactly the
+readiness clause that `PullKit.SameCardRelocationReady`
+(`Orig2/ForkPullSwaps.lean`) adds, and `PullKit.PullReadyAtImage` shows it is not
+implied by the other two.  So the correct residual is the `Ready`-gated form; this
+un-gated version is kept only so the refutation can name it.
+
+NOTE the campaign's own use is at a `SplitHyp` bottom (saturated endpoints), which
+the witness is not — but do not cite this definition as a dischargeable hypothesis
+without the readiness clause. -/
 def SameCardRelocation : Prop :=
   ∀ (u v : State) (ρ pre γ post : List Move) (c : Card) (b : Base),
     u.WF →
