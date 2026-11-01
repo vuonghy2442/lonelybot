@@ -29,14 +29,17 @@ exactly where the mountain has no reason to hold:
   `raise 5C … pull 5C → 6D`; probe only, see `Temp/Crack_Report.md` regime R4,
   being kernel-certified in `Temp/EqualRung_*`).
 
-So the un-gated forms are **UNDER-GATED**: they may be false, and their consumers
-must not be cited as conditional on a hypothesis the campaign can discharge.
-The campaign's own endpoint hypothesis already supplies the missing gate —
-`SatDifferForkWF` literally carries `∃ σ, rungAt u σ ≠ rungAt v σ` — so the
-corrected forms below are the ones to use.
+So the un-gated forms are **FALSE** (`EqualRung.mountainAtSplits_false`,
+`Orig2/ForkEqualRungMain.lean`): the equal-rung stratum is now probed and
+refuted, and their consumers must not be cited as conditional on a hypothesis
+the campaign can discharge.  The campaign's own endpoint hypothesis already
+supplies the missing gate — `SatDifferForkWF` literally carries
+`∃ σ, rungAt u σ ≠ rungAt v σ` — so the corrected forms below are the ones to
+use.
 
-The two un-gated definitions are kept (marked UNDER-GATED in their docstrings) so
-their consumers still elaborate; re-gating the consumer tower is the follow-up.
+The two un-gated definitions are kept (marked FALSE in their docstrings) only so
+the refutation and the historical consumers can name them; every theorem that
+assumes one is vacuous.
 -/
 
 namespace MountainGate
@@ -67,14 +70,19 @@ def MountainSplitHypDiffering : Prop :=
 theorem mountainSplitHypDiffering_eq : MountainSplitHypDiffering = MountainAtSplitsDiffering :=
   rfl
 
-/-- **The un-gated form implies the gated one** — so gating loses nothing and the
-gate is the only thing given up. -/
+/-- **VACUOUS: the un-gated hypothesis is FALSE.**  This implication is
+vacuously true (`EqualRung.mountainAtSplits_false`), so it is NOT a way to
+obtain the gate and it does NOT show "gating loses nothing".  The gate is
+load-bearing: the equal-rung 13-move relocation refutes the un-gated form while
+`EqualRung.not_rungDiffers` keeps it outside the gated form.  Kept only for
+interface archaeology; do not cite. -/
 theorem mountainAtSplitsDiffering_of_ungated
     (h : Direct.MountainAtSplits) : MountainAtSplitsDiffering :=
   fun u v ρ F left right c d b pre post tail _ hs =>
     h u v ρ F left right c d b pre post tail hs
 
-/-- Same for the frontier spelling. -/
+/-- **VACUOUS**: same statement for the frontier spelling
+(`Direct.MountainAtSplits = Frontier.MountainSplitHyp`, which is FALSE). -/
 theorem mountainSplitHypDiffering_of_ungated
     (h : Frontier.MountainSplitHyp) : MountainSplitHypDiffering :=
   fun u v ρ F left right c d b pre post tail _ hs =>

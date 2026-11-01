@@ -6,12 +6,22 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 
 /-!
-# Temp/InrExp - the `inr` exposure residual of the base-enabling gap
+# Orig2/ForkInrExp - the `inr` exposure analysis of the base-enabling gap
 
-READ-ONLY scratch card (`Temp/`).  No source edits, no commit.  No `sorry`,
-no `Classical.choice`, no `native_decide`; axiom battery at the tail.
+SOURCE CARD (`Orig2/`).  No `sorry`, no `Classical.choice`, no
+`native_decide`; axiom battery at the tail.
 
-`BaseEn.InrExposeResidual` (`Orig2/ForkBaseEnabling.lean:269`) is the last
+**STATUS: THE NAMED RESIDUAL IS WITHDRAWN — IT IS FALSE.**  The analysis below
+is still correct as an *analysis* (the raise/slide/pull identities and the
+adjacent shortening are theorems), but `InrExpHead` and
+`BaseEn.InrExposeResidual` are refuted in `Orig2/ForkInrExpRefute.lean`
+(`InrExpRefute.inrExpHead_false`, `..._via_Perm`,
+`InrExpRefute.inrExposeResidual_false`, `..._via_Perm`).  The `inr` half of
+`BaseEnabling` therefore has no instances.  The live replacement is the gated
+`InrExpRefute.InrExpHeadGated`.  Do not cite the residuals below as
+dischargeable.
+
+`BaseEn.InrExposeResidual` (`Orig2/ForkBaseEnabling.lean:269`) was the last
 base-enabling case of `MtnPr.SameCardRelocation`: the pull lands on an `inr z`
 base that is **buried** at the raise's origin (`A.pileOfTop z = none`) and only
 becomes a pile top somewhere inside the interior `γ₁`.
@@ -295,7 +305,15 @@ theorem inr_expose_raise_adjacent_shortens
 Then the `inr` half of `BaseEn.BaseEnabling` follows, and with the `inl`
 residual so does the (gated, same-card) `MtnPr.SameCardRelocation`. -/
 
-/-- The **head residual**: the first interior letter exposes `z`. -/
+/-- **WITHDRAWN — FALSE.**  The first interior letter exposing `z` does NOT
+shorten in general.  Kernel refutation (`InrExpRefute.inrExpHead_false`, and an
+independent one through `Orig2/ForkPermRefute.lean`:
+`InrExpRefute.inrExpHead_false_via_Perm`): the Perm witness's pull base `5♥` is
+buried under `4♣`, the interior slides `4♣` away, so the head letter does expose
+`z`, yet the play is shortest.  The correct statement needs the gate
+`InrExpHeadGated` ("the head letter is legal at the raise's ORIGIN"), which the
+witness fails (`InrExpRefute.gate_fails_here`).  Kept so the refutation can name
+it; do not cite as a residual. -/
 def InrExpHead : Prop :=
   ∀ (u v : State) (ρ pre γ₁' post : List Move) (c z : Card) (A B Aq : State) (q : Move),
     u.WF → ShufflePlayW u ρ v →
@@ -309,7 +327,11 @@ def InrExpHead : Prop :=
     (∃ k, Aq.pileOfTop z = some k) →
     ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length < ρ.length
 
-/-- The **deep residual**: the head of `γ₁` does not expose `z`. -/
+/-- The **deep residual**: the head of `γ₁` does not expose `z`.
+
+NOTE: its sibling `InrExpHead` is FALSE (see its docstring), so the conjunction
+`InrExpHead ∧ InrExpDeep` — and every theorem consuming it — has no instances.
+`InrExpDeep` itself is not refuted here, but it is no longer a usable residual. -/
 def InrExpDeep : Prop :=
   ∀ (u v : State) (ρ pre γ₁' post : List Move) (c z : Card) (A B Aq : State) (q : Move),
     u.WF → ShufflePlayW u ρ v →

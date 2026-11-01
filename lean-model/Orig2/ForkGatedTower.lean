@@ -521,14 +521,22 @@ theorem satDifferForkWF_of_gated_mountain_of_mateRaiseFree
       (RaiseLeft.raise_moves_left_of_keepsForward hkf')
   exact satDifferForkWF_of_livePair_partsDiffering hl hne hcov hmin
 
-/-! ## §5b. Conservativity: gating loses nothing
+/-! ## §5b. VACUOUS COMPATIBILITY: the un-gated hypothesis is FALSE
 
 `MountainGate.mountainAtSplitsDiffering_of_ungated` turns the un-gated
-hypothesis into the gated one, so the gated theorem recovers the old route
-verbatim. -/
+hypothesis into the gated one, but that implication is now VACUOUS: the
+un-gated form is refuted unconditionally (`EqualRung.mountainAtSplits_false`,
+`Orig2/ForkEqualRungMain.lean`).  The `..._of_ungated_mountain*` twins below
+are kept only for interface archaeology and must not be cited.
 
-/-- The gated theorem from the **un-gated** hypothesis (old Route A's input):
-the gated form is strictly more general. -/
+(LINEAGE: this section was "Conservativity: gating loses nothing"; that reading
+is now wrong - the gate is load-bearing, not removable.  The equal-rung
+relocation has equal rungs, so `EqualRung.not_rungDiffers` keeps it strictly
+outside the gated form.) -/
+
+/-- **VACUOUS.**  The gated theorem from the **FALSE** un-gated hypothesis
+(`EqualRung.mountainAtSplits_false`).  Kept only so the old Route A signature
+can still elaborate; do not cite. -/
 theorem satDifferForkWF_of_ungated_mountain
     (hkf : ∀ (F : State) (c : Card), F.WF → CanRaise F c → Frontier.KeepsForward F c)
     (hms : Direct.MountainAtSplits)

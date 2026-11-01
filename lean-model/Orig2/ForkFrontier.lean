@@ -227,7 +227,8 @@ replace one of the clauses.
   (`Landing.LandingTwinLive`) is independent.  The composition that DOES check
   therefore carries `Landing.LandingTwinLive` (equivalently, under
   `SplitBlock` + containment, the rung pin `SplitTwinRungPin`), the cover half
-  `BlockKit.TailCovers`, and the measured M1 datum `MountainSplitHyp`.
+  `BlockKit.TailCovers`, and the now-FALSE datum `MountainSplitHyp` (the live
+  form is `MountainGate.MountainSplitHypDiffering`).
 * `satDifferForkWF_of_gated_containment_and_twinGe` — Route B, exactly as
   declared in the brief: `SplitBlock → LandingThirdSuitFree →
   SplitTwinRungGe → ShortestPlayExists → SatDifferForkWF`.
@@ -432,10 +433,15 @@ theorem bottomBothRaisableBlock_of_splitBlock (hb : SplitKit.SplitBlock) :
     Frontier.BottomBothRaisableBlock :=
   Pin.bottomBothRaisableBlock_of_splitBlock hb
 
-/-- **`ShortestPlayExists` — THE ACCEPTED INTERFACE HYPOTHESIS.**  Verbatim
-copy of `ValleyElim.ShortestPlayExists` (`Orig2/ForkSplit.lean:874`): between
-two saturated class-mates of differing rungs there is a witness play of minimal
-length.  Choice-free (an existential, no `Classical.choice`). -/
+/-- **`ShortestPlayExists` — NOW A THEOREM, NO LONGER AN INTERFACE HYPOTHESIS.**
+Verbatim copy of `ValleyElim.ShortestPlayExists` (`Orig2/ForkSplit.lean:874`):
+between two saturated class-mates of differing rungs there is a witness play of
+minimal length.  DISCHARGED constructively by
+`DecideKit.shortestPlayExists_choiceFree` (`Orig2/ForkDecide.lean`), axioms
+`[propext, Quot.sound]`: existence is a projection of `sameOrbitSetoid`, and the
+minimum comes from a Bool-decided play-length predicate (the WF reversibility
+oracle) plus a bounded first-satisfier — no `Nat.find`, no EM.  The definition
+is kept as the named statement the reduction cites. -/
 def ShortestPlayExists : Prop :=
   ∀ (u v : State), u.WF → SSaturated u → SSaturated v →
     sameOrbitSetoid.r u v →
@@ -448,15 +454,22 @@ theorem shortestPlayExists_iff_home :
     Frontier.ShortestPlayExists ↔ ValleyElim.ShortestPlayExists :=
   Iff.rfl
 
-/-- **`MountainSplitHyp` — UNDER-GATED; USE `MountainGate.MountainSplitHypDiffering`.**
+/-- **`MountainSplitHyp` - FALSE; DO NOT CITE.  USE `MountainGate.MountainSplitHypDiffering`.**
 
 The mountain-leg datum at every split (left leg raise-free, right leg
-pull-free), MEASURED 51 116/51 116 on 13 boards and not proved.  But
-`SplitKit.SplitHyp` carries **no rung hypothesis**, so this also quantifies over
-the **equal-rung** stratum — unprobed by every census and holding a candidate
-relocation witness (`Temp/Crack_Report.md` R4).  Use the gated form; see
-`MountainGate` for why the gate is exactly the campaign's own endpoint
-hypothesis and why gating loses nothing. -/
+pull-free), MEASURED 51 116/51 116 on 13 boards.  `SplitKit.SplitHyp`
+carries **no rung hypothesis**, so this also quantifies over the **equal-rung**
+stratum.  That stratum is now probed and the statement is FALSE: the equal-rung
+13-move relocation is a unit-shortest `SSaturated -> SSaturated` play whose
+valley split has a raise in its left leg, so `MountainKit.MountainSplit left
+right` fails there (`EqualRung.not_mountainSplit`,
+`EqualRung.mountainAtSplits_false`, `Orig2/ForkEqualRungMain.lean`; see
+`Temp/EqualRung_Report.md`).  Hence this definition proves nothing and every
+theorem that assumes it is vacuous.  The live form is
+`MountainGate.MountainSplitHypDiffering` (= `MountainAtSplitsDiffering`), which
+the equal-rung witness cannot touch (`EqualRung.not_rungDiffers`; the witness
+has equal rungs).  Retained only so the refutation and the historical consumers
+can name it. -/
 def MountainSplitHyp : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base)
@@ -492,8 +505,9 @@ weakens `KeepsForward` or adds an axiom to force it.  The two gaps, precisely:
   Hence `htwin : Landing.LandingTwinLive` (equivalently, given `SplitBlock` +
   containment, the rung pin `SplitTwinRungPin`,
   `TwinKit.splitLandingTwin_iff_splitTwinRungPin`).
-* `hms` is the measured M1 mountain-leg datum — the only input that is neither
-  proved nor a named residual. -/
+* `hms` is the FALSE under-gated datum (`EqualRung.mountainAtSplits_false`);
+  this whole signature is vacuous.  The live Route A is
+  `Gated.satDifferForkWF_of_gated_mountain` (`Orig2/ForkGatedTower.lean`). -/
 theorem satDifferForkWF_of_keepsForward_and_containment
     (hkf : ∀ (F : State) (c : Card), F.WF → CanRaise F c → KeepsForward F c)
     (hms : MountainSplitHyp)

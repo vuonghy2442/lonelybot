@@ -31,8 +31,11 @@ genuine gap:
   but **not** at the raise's image.
 * **§4**  the `inr` analysis: `canSitOn c z = false` kills the base forever;
   enabling forces `z` to be *exposed* as a pile top, and once exposed the base
-  survives every read-safe, seat-inert letter.  The residual is named
-  `InrExposeResidual`.
+  survives every read-safe, seat-inert letter.  The residual was named
+  `InrExposeResidual` — **but it is FALSE** (`Orig2/ForkInrExpRefute.lean`:
+  `InrExpRefute.inrExposeResidual_false`, independently `..._via_Perm`), so the
+  `inr` half of `BaseEnabling` has no instances; see the WITHDRAWN docstring
+  below and the gated replacement `InrExpRefute.InrExpHeadGated`.
 * **§5**  the local net-one identity behind the gap witness
   (`raise_raise_pull_eq_raise_slide`), the local shortening
   (`raise_raise_pull_shortens_local`), and the adjacent interior-enabling
@@ -261,11 +264,15 @@ theorem canPlace_inr_stays {st s' : State} {c z : Card} {q : Move}
     s'.canPlace c (Sum.inr z) = true :=
   (PullKit.pullable_step hst hstep hrev hread hseat ⟨hft, h⟩).2
 
-/-- **THE `inr` EXPOSURE RESIDUAL.**  Every residual play whose pull lands on a
-base card `z` that is exposed (`pileOfTop z = none` → `some k`) during the
-interior shortens.  The exposure letter is a `raise` or a `slide` (a pull can
-never remove a card from a pile), and it must be moved before the raise or
-traded for a slide; this is the exact remaining `inr` hole. -/
+/-- **WITHDRAWN — FALSE.**  Kernel refutation
+(`InrExpRefute.inrExposeResidual_false`, and independently
+`InrExpRefute.inrExposeResidual_false_via_Perm`): the Perm witness
+(`Orig2/ForkPermRefute.lean`) has its pull base `5♥` buried under `4♣`, the
+interior slides `4♣` away, and the play is still shortest.  So "exposure during
+the interior shortens" is not a theorem, and the `inr` half of `BaseEnabling`
+has NO instances (`InrExpRefute.baseEnabling_inr_vacuous`).  The live statement
+needs the legal-at-origin gate (`InrExpRefute.InrExpHeadGated`).  Kept so the
+refutation can name it; do not cite as a residual. -/
 def InrExposeResidual : Prop :=
   ∀ (u v : State) (ρ pre γ₁ γ₂ post : List Move) (c z : Card) (A E : State),
     u.WF → ShufflePlayW u ρ v →

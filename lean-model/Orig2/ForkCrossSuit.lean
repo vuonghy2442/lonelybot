@@ -571,10 +571,16 @@ theorem crossSuitVacuity_of_residual (hres : CrossSuitCorridorResidual)
 ## §4. The sharpened split: same-card interior + the pull-free corridor
 -/
 
-/-- **`SameCardFreeInteriorShortens`** — a same-card relocation with an arbitrary
-interior shortens.  This is `MtnPr.SameCardRelocation` with the read-safety and
-seat-inertness side conditions dropped; the gated version is what
-`BaseEnabling.sameCardRelocation_of_baseEnabling` consumes. -/
+/-- **WITHDRAWN — FALSE.**  A same-card relocation with an arbitrary interior
+does NOT shorten: the unit-shortest equal-rung witness contains
+`raise 5C ; slide 5S ; pull 5C` with a free interior (`EqualRung.play`,
+`EqualRung.witnessMinimality`; checked letter-by-letter in
+`Temp/Pure_Report.md`).  This is `MtnPr.SameCardRelocation` with the
+read-safety and seat-inertness side conditions dropped — and both that un-gated
+form and this free form are false.  Consequently `pureResidual_of_sameCard` /
+`crossSuitVacuity_of_split` are vacuous; use the same-card-free split
+`CrossSuit.FreeCorridorResidual + CrossSuit.InnerRaiseResidual`
+(`Orig2/ForkCrossSuitPure.lean`) instead. -/
 def SameCardFreeInteriorShortens : Prop :=
   ∀ (u v : State) (ρ pre γ post : List Move) (c : Card) (b : Base),
     u.WF → ShufflePlayW u ρ v →

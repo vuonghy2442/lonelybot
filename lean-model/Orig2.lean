@@ -70,9 +70,16 @@ import Orig2.ForkMtnExists
 import Orig2.ForkTailHead
 import Orig2.ForkInrExp
 import Orig2.ForkPermRefute
+import Orig2.ForkInrExpRefute
+import Orig2.ForkReplay
 import Orig2.ForkCrossSuit
+import Orig2.ForkCrossSuitPure
+import Orig2.ForkChain
+import Orig2.ForkFibreCorridor
 import Orig2.ForkMin
 import Orig2.ForkDecide
+import Orig2.ForkEqualRungMain
+import Orig2.ForkMateGate
 
 /-!
 # Orig2 — the proof root

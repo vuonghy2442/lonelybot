@@ -508,11 +508,13 @@ exists** — yet it is a raise followed by a later pull.  `Temp/MtnPr_Report.md`
 finding (1) proves the same obstruction independently (for `c.suit ≠ d.suit` the
 two-letter play is shortest and the letters commute).
 
-WHY THE CAMPAIGN SURVIVES.  Those endpoints are **not saturated**, so the witness
-is outside the gate actually used: `MountainAtSplits` / `MountainSplit`
-quantifies only over minimal plays between `SSaturated` endpoints with differing
-rungs, where `SSaturated u` excludes the initial-raise instance.  `SatDifferForkWF`
-is untouched — but this definition must NOT be used as a proof target.  The
+WHY THE CAMPAIGN SURVIVES.  Those endpoints are **not saturated**, so the
+witness is outside `SplitHyp` (which requires `SSaturated` endpoints).  Note
+that `Direct.MountainAtSplits` itself carries **no** rung gate and is now
+**FALSE** (`EqualRung.mountainAtSplits_false`); only the gated
+`MountainGate.MountainAtSplitsDiffering` is restricted to differing rungs, and
+the local non-saturated witness does not reach either form.  `SatDifferForkWF`
+is untouched — but the ungated definition must NOT be used as a proof target.  The
 honest mountain residual is `Relocate.SameCardRelocation` + `Relocate.SeatInert`
 (same-card only, via the net-one identity `raise_pull_eq_slide`), whose missing
 machine is the pull-side `PullSwaps` certificate.
