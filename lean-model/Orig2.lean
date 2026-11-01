@@ -31,6 +31,8 @@ import Orig2.ForkSurvivor
 import Orig2.ForkPairRung
 import Orig2.ForkEmptyTail
 import Orig2.ForkPin
+import Orig2.ForkMate
+import Orig2.ForkRaiseLeft
 import Orig2.ForkNormalizeTail
 import Orig2.Fiber
 import Orig2.Boundary
