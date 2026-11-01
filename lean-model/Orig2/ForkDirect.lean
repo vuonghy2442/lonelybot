@@ -539,9 +539,21 @@ def MateRaiseFree : Prop :=
         ¬ Occurs (Move.tabToFound e) right ∧
           ¬ Occurs (Move.tabToFound e.twin) right
 
-/-- **`MountainAtSplits` — the standing mountain shape, at the split's own
-turn.**  (Implied by `MountainKit`'s `MountainShape`; kept as its own name so
-the new residual is the only fresh input.) -/
+/-- **`MountainAtSplits` — UNDER-GATED; USE `MountainGate.MountainAtSplitsDiffering`.**
+
+The mountain shape at every split — but `SplitKit.SplitHyp` carries **no rung
+hypothesis**, so this also quantifies over the **equal-rung** stratum, where the
+mountain's budget (`Σ(h_u + h_v − 2m)`) is zero and the shape has no reason to
+hold.  The equal-rung stratum was never probed (every census enumerated
+differing-rung pairs only), and the one equal-rung datum is a *candidate*
+relocation (`Temp/Crack_Report.md` R4).  So do NOT cite this as a dischargeable
+hypothesis.
+
+The gated form is `MountainGate.MountainAtSplitsDiffering` (same statement plus
+`RungDiffers u v`), which is what the campaign's own endpoint hypothesis
+supplies; `MountainGate.mountainAtSplitsDiffering_of_ungated` shows gating loses
+nothing.  Kept so existing consumers still elaborate; the consumer tower still
+needs re-gating. -/
 def MountainAtSplits : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base)

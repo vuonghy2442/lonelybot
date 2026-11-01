@@ -448,11 +448,15 @@ theorem shortestPlayExists_iff_home :
     Frontier.ShortestPlayExists ↔ ValleyElim.ShortestPlayExists :=
   Iff.rfl
 
-/-- **`MountainSplitHyp` — THE MEASURED M1 INPUT of the raise-left route.**
-The mountain-leg datum at every split: the left leg has no raise, the right leg
-no pull (`MountainKit.MountainSplit`).  This is MEASURED, 51,116/51,116 plays
-on 13 boards, not proved; it is the only input of Route A that is not either
-proved or one of the named residuals. -/
+/-- **`MountainSplitHyp` — UNDER-GATED; USE `MountainGate.MountainSplitHypDiffering`.**
+
+The mountain-leg datum at every split (left leg raise-free, right leg
+pull-free), MEASURED 51 116/51 116 on 13 boards and not proved.  But
+`SplitKit.SplitHyp` carries **no rung hypothesis**, so this also quantifies over
+the **equal-rung** stratum — unprobed by every census and holding a candidate
+relocation witness (`Temp/Crack_Report.md` R4).  Use the gated form; see
+`MountainGate` for why the gate is exactly the campaign's own endpoint
+hypothesis and why gating loses nothing. -/
 def MountainSplitHyp : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base)
