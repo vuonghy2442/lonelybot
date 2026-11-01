@@ -47,6 +47,8 @@ import Orig2.ForkDirect
 import Orig2.ForkWindow
 import Orig2.ForkTwinAt
 import Orig2.ForkNoSelf
+import Orig2.ForkPinAt
+import Orig2.ForkNoMate
 
 /-!
 # Orig2 — the proof root
