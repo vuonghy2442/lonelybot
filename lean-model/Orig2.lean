@@ -76,6 +76,7 @@ import Orig2.ForkCrossSuit
 import Orig2.ForkCrossSuitPure
 import Orig2.ForkChain
 import Orig2.ForkFibreCorridor
+import Orig2.ForkCanon
 import Orig2.ForkMin
 import Orig2.ForkDecide
 import Orig2.ForkEqualRungMain
