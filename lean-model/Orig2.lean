@@ -46,6 +46,7 @@ import Orig2.ForkSlideFwd
 import Orig2.ForkDirect
 import Orig2.ForkWindow
 import Orig2.ForkTwinAt
+import Orig2.ForkNoSelf
 
 /-!
 # Orig2 — the proof root
