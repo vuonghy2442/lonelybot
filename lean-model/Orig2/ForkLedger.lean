@@ -70,13 +70,13 @@ theorem raisesOf_pos_iff {ρ : List Move} {σ : Suit} :
       cases m with
       | tabToFound c =>
           by_cases hc : c.suit = σ
-          · simp only [raisesOf, if_pos hc]
+          · simp only [raisesOf, ite_eq_left hc]
             constructor
             · intro _
               exact ⟨c, hc, List.mem_cons_self ..⟩
             · intro _
               omega
-          · simp only [raisesOf, if_neg hc, Nat.zero_add]
+          · simp only [raisesOf, ite_eq_right hc, Nat.zero_add]
             constructor
             · intro h
               obtain ⟨d, hd, hmem⟩ := ih.mp h
@@ -103,13 +103,13 @@ theorem pullsOf_pos_iff {ρ : List Move} {σ : Suit} :
       cases m with
       | foundToTab c b =>
           by_cases hc : c.suit = σ
-          · simp only [pullsOf, if_pos hc]
+          · simp only [pullsOf, ite_eq_left hc]
             constructor
             · intro _
               exact ⟨c, b, hc, List.mem_cons_self ..⟩
             · intro _
               omega
-          · simp only [pullsOf, if_neg hc, Nat.zero_add]
+          · simp only [pullsOf, ite_eq_right hc, Nat.zero_add]
             constructor
             · intro h
               obtain ⟨d, bd, hd, hmem⟩ := ih.mp h
@@ -146,14 +146,14 @@ theorem rungAt_ledger {u v : State} {ρ : List Move} {σ : Suit}
       | tabToFound c =>
           by_cases hc : c.suit = σ
           · have hcs : σ = c.suit := hc.symm
-            simp only [raisesOf, pullsOf, if_pos hc]
+            simp only [raisesOf, pullsOf, ite_eq_left hc]
             have hr : rungAt s₁ σ = rungAt st σ + 1 := by
-              rw [rungAt_tabToFound hstep σ, if_pos hcs]
+              rw [rungAt_tabToFound hstep σ, ite_eq_left hcs]
             omega
           · have hcs : ¬ σ = c.suit := fun h => hc h.symm
-            simp only [raisesOf, pullsOf, if_neg hc]
+            simp only [raisesOf, pullsOf, ite_eq_right hc]
             have hr : rungAt s₁ σ = rungAt st σ := by
-              rw [rungAt_tabToFound hstep σ, if_neg hcs]
+              rw [rungAt_tabToFound hstep σ, ite_eq_right hcs]
             omega
       | foundToTab c b =>
           by_cases hc : c.suit = σ
@@ -162,14 +162,14 @@ theorem rungAt_ledger {u v : State} {ρ : List Move} {σ : Suit}
             have hpos : 0 < rungAt st σ := by
               rw [← hc]; exact rungAt_pos_of_foundTop htop
             have hcs : σ = c.suit := hc.symm
-            simp only [pullsOf, raisesOf, if_pos hc]
+            simp only [pullsOf, raisesOf, ite_eq_left hc]
             have hr : rungAt s₁ σ = rungAt st σ - 1 := by
-              rw [rungAt_foundToTab hstep σ, if_pos hcs]
+              rw [rungAt_foundToTab hstep σ, ite_eq_left hcs]
             omega
           · have hcs : ¬ σ = c.suit := fun h => hc h.symm
-            simp only [pullsOf, raisesOf, if_neg hc]
+            simp only [pullsOf, raisesOf, ite_eq_right hc]
             have hr : rungAt s₁ σ = rungAt st σ := by
-              rw [rungAt_foundToTab hstep σ, if_neg hcs]
+              rw [rungAt_foundToTab hstep σ, ite_eq_right hcs]
             omega
       | tabToTab c b =>
           simpa [pullsOf, raisesOf, rungAt_tabToTab hstep σ] using ih
@@ -320,7 +320,7 @@ theorem exodus_cut {u v : State} {ρ : List Move}
         SatDifferCensus.foundTop_rank_succ hmidwf htop
       have hrung : rungAt post c.suit = rungAt mid c.suit - 1 := by
         have hr := rungAt_foundToTab hstep c.suit
-        rw [if_pos rfl] at hr
+        rw [ite_eq_left rfl] at hr
         exact hr
       have hpos : 0 < rungAt mid c.suit := rungAt_pos_of_foundTop htop
       have hidx : c.rank.toIdx = rungAt post c.suit := by

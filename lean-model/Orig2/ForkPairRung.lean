@@ -96,17 +96,9 @@ open TwinKit
 
 /-! ## §1. Kit: `chop`/`lastOf` of a singleton `fromCard` -/
 
-/-- `chop (bs ++ [c]) = bs`. -/
-theorem chop_append_singleton (bs : List Card) (c : Card) :
-    chop (bs ++ [c]) = bs := by
-  induction bs with
-  | nil => rfl
-  | cons x t ih =>
-      cases t with
-      | nil => rfl
-      | cons y u =>
-          show x :: chop ((y :: u) ++ [c]) = x :: (y :: u)
-          rw [ih]
+/- KIT-HOIST STRIKE (2026-11-01): `chop_append_singleton` is hoisted to
+`Orig2/Kit.lean` (one home below both former copies); the cites
+re-point there by name. -/
 
 /-- If `fromCard c l` is the singleton `[c]`, then `c` is the LAST card of
 `l` (nothing sits above it). -/
@@ -490,7 +482,7 @@ theorem satDifferForkWF_of_block_containment_of_ge_pin
 #check @PairRungKit.splitTwinRungLe_of_block
 #check @PairRungKit.splitPairRungEq_iff_ge_of_block
 
-#print axioms PairRungKit.chop_append_singleton
+#print axioms chop_append_singleton
 #print axioms PairRungKit.lastOf_of_fromCard_singleton
 #print axioms PairRungKit.pileOfTop_of_fromCard_singleton
 #print axioms PairRungKit.pileOfTop_twin_of_block

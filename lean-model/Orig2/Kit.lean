@@ -2357,6 +2357,23 @@ theorem chop_mem {l : List Card} {x : Card} (h : x ∈ chop l) : x ∈ l := by
           · exact List.mem_cons.2 (Or.inl hxy)
           · exact List.mem_cons.2 (Or.inr (ih hrest))
 
+/-- `chop` of an append-singleton: removing the last card is the
+identity on the rest.  HOISTED 2026-11-01 from the scratch arc's two
+forced copies (`CommuteStep.chop_append_singleton` at
+`Orig2/ForkCommuteSlide.lean:864` and `PairRungKit.chop_append_singleton`
+at `Orig2/ForkPairRung.lean:100` - the DAG direction blocked the direct
+cite, one home here below both). -/
+theorem chop_append_singleton {l : List Card} {c : Card} :
+    chop (l ++ [c]) = l := by
+  induction l with
+  | nil => rfl
+  | cons x t ih =>
+      cases t with
+      | nil => rfl
+      | cons y t' =>
+          show x :: chop ((y :: t') ++ [c]) = x :: (y :: t')
+          rw [ih]
+
 theorem afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
     (Pile.afterRunRemoved p pre).faceUp = pre := by
   cases pre with
@@ -2782,6 +2799,7 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 #print axioms canSitOn_twin_left
 #print axioms canSitOn_twin_target
 #print axioms color_eq_of_ne
+#print axioms chop_append_singleton
 #print axioms tfc_fromCard_cons
 #print axioms tfc_below_fromCard
 #print axioms below_not_mem_self

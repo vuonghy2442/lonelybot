@@ -860,16 +860,9 @@ theorem slide_data {st : State} {c : Card} {b : Base}
 
 /-! ## 8b. More run/chop algebra -/
 
-/-- `chop` of an append-singleton. -/
-theorem chop_append_singleton {l : List Card} {c : Card} : chop (l ++ [c]) = l := by
-  induction l with
-  | nil => rfl
-  | cons x t ih =>
-      cases t with
-      | nil => rfl
-      | cons y t' =>
-          show x :: chop ((y :: t') ++ [c]) = x :: (y :: t')
-          rw [ih]
+/- KIT-HOIST STRIKE (2026-11-01): `chop_append_singleton` is hoisted to
+`Orig2/Kit.lean` (one home below both former copies); the cite below
+re-points there. -/
 
 /-- `fromCard` of a member is nonempty. -/
 theorem fromCard_ne_nil_of_mem : ∀ {l : List Card} {c : Card}, c ∈ l → fromCard c l ≠ [] := by
