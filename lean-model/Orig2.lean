@@ -91,6 +91,8 @@ import Orig2.ForkFace2
 import Orig2.ForkReadSafeFace
 import Orig2.ForkBoth
 import Orig2.ForkExtract
+import Orig2.ForkFloor
+import Orig2.ForkFibMeet
 import Orig2.ForkBaseSeat
 import Orig2.ForkBasePile
 import Orig2.ForkBaseAdjoint
