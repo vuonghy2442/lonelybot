@@ -63,6 +63,9 @@ import Orig2.ForkMountainGate
 import Orig2.ForkGatedTower
 import Orig2.ForkChoiceFree
 import Orig2.ForkBaseEnabling
+import Orig2.ForkLandResNetZero
+import Orig2.ForkLandResSeat
+import Orig2.ForkLandResReduction
 
 /-!
 # Orig2 — the proof root
