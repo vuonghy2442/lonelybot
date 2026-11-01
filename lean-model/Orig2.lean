@@ -66,6 +66,7 @@ import Orig2.ForkBaseEnabling
 import Orig2.ForkLandResNetZero
 import Orig2.ForkLandResSeat
 import Orig2.ForkLandResReduction
+import Orig2.ForkMtnExists
 
 /-!
 # Orig2 — the proof root
