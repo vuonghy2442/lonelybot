@@ -427,17 +427,19 @@ theorem chain_rank_lt_thirteen {B v : State} {tail : List Move} {z z' : Card}
 ## §7. The residual, and the reduction
 -/
 
-/-- **`CoverChainResidual`** — THE EXACT RESIDUAL OF THE COVER CHAIN.  In the
-tail of a play from a state where `d` is raisable into a saturated endpoint, no
-chain card `z'` (of rank at most `d`'s) is blocked by
+/-- **WITHDRAWN — FALSE.**  Kernel refutation: `Sat.not_coverChainResidual`
+(`Orig2/ForkSatChain.lean`), with `Sat.not_noChainRaise` refuting the first
+clause on the promoted twin board (`B = Seat.uT`, `v = Seat.BT`, and `BT` IS
+`SSaturated`), `d = z' = ♠3`, `tail = [raise ♠3]`.  `Sat.not_noChainRaiseCorr`
+even refutes the "exclude the trivial `s1 = [], z' = d` case" repair.
 
-* a raise of `z'`, or
-* a slide `x → z'` whose mover `x` is not raisable at the slide's image.
-
-This is a `∀` over the tail: it forbids exactly the two endpoints of the chain
-descending from `d`.  The first clause is the same-card relocation lane
-(`PullKit`/`Relocate` own it: `z'` was pulled and is raised straight back); the
-second is the opposite-coloured cover stall. -/
+ROOT CAUSE: this residual quantifies over **arbitrary** plays `B → v`; neither
+shortest-ness nor the corridor decomposition appears in it, so no event-level
+patch can work.  `freeCorridor_of_coverChain` below is therefore a kernel-checked
+implication from a FALSE premise.  Cross-suit vacuity is NOT closed by this
+route; the live reduction is `NoSeatMateCrossSuit` (`Orig2/ForkBlocks.lean`),
+with the twin/pull-free corner closed modulo `Sat.TwinRelocationResidual`
+(`Orig2/ForkSatChain.lean`). -/
 def CoverChainResidual : Prop :=
   ∀ (B v : State) (tail : List Move) (d : Card),
     B.WF → SSaturated v → CanRaise B d → ShufflePlayW B tail v →
@@ -495,8 +497,9 @@ theorem coverChainResidual_iff :
       exact h2 B v tail d hB hv hcan hplay z' x s1 s2 A Z hle
         (hm ▸ heq) hp hcanA hstep' hblk hx
 
-/-- **THE CHAIN CLOSES THE CORRIDOR.**  `CoverChainResidual` plus the corridor's
-saturation makes every free cross-suit corridor impossible. -/
+/-- **VACUOUS.**  `CoverChainResidual` is FALSE (`Sat.not_coverChainResidual`,
+`Orig2/ForkSatChain.lean`), so this is a kernel-checked implication from a false
+premise.  Kept for lineage; do not cite. -/
 theorem freeCorridor_of_coverChain (h : CoverChainResidual) :
     CrossSuitFreeCorridorResidual := by
   intro u v ρ pre γ tail c d b huwf hu hv hplay hmin heq hne hfree
