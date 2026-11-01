@@ -78,6 +78,7 @@ import Orig2.ForkChain
 import Orig2.ForkFibreCorridor
 import Orig2.ForkCanon
 import Orig2.ForkBlocks
+import Orig2.ForkSeat
 import Orig2.ForkMin
 import Orig2.ForkDecide
 import Orig2.ForkEqualRungMain
