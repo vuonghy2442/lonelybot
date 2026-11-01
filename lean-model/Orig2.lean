@@ -20,6 +20,9 @@ import Orig2.ForkMountain
 import Orig2.ForkLandingLocal
 import Orig2.ForkLedger
 import Orig2.ForkLedgerResidual
+import Orig2.ForkThirdLive
+import Orig2.ForkThirdCrossing
+import Orig2.ForkThirdResidual
 import Orig2.ForkNormalizeTail
 import Orig2.Fiber
 import Orig2.Boundary
