@@ -53,6 +53,7 @@ import Orig2.ForkRankFloor
 import Orig2.ForkRankFloorAttack
 import Orig2.ForkJoint
 import Orig2.ForkPinRight
+import Orig2.ForkRelocate
 
 /-!
 # Orig2 — the proof root
