@@ -39,6 +39,35 @@ def JoinAt (s s' s''' : State) (t : Suit) : Prop :=
     rungAt s''' t = Nat.max (rungAt s t) (rungAt s' t) ∧
     rungAt s''' t.twin = Nat.max (rungAt s t.twin) (rungAt s' t.twin)
 
+/-- `Dominates s s'`: `s` is at least `s'` on every rung coordinate.  In this
+case the join is trivial: `s` itself is the componentwise maximum. -/
+def Dominates (s s' : State) : Prop := ∀ σ : Suit, rungAt s' σ ≤ rungAt s σ
+
+/-- If `s` dominates `s'`, `s` is the join. -/
+theorem joinAt_self_of_dominates {s s' : State} {t : Suit}
+    (h : Dominates s s') : JoinAt s s' s t := by
+  refine ⟨RevEqW_refl s, ?_, ?_⟩
+  · exact (Nat.max_eq_left (h t)).symm
+  · exact (Nat.max_eq_left (h t.twin)).symm
+
+/-- If `s'` dominates `s`, `s'` is the join (given the class relation). -/
+theorem joinAt_other_of_dominates {s s' : State} {t : Suit}
+    (hcls : sameOrbitSetoid.r s s') (h : Dominates s' s) :
+    JoinAt s s' s' t := by
+  refine ⟨hcls, ?_, ?_⟩
+  · exact (Nat.max_eq_right (h t)).symm
+  · exact (Nat.max_eq_right (h t.twin)).symm
+
+/-- **THE DOMINATION CASE IS TRIVIAL.**  If one endpoint dominates the other
+on every coordinate, the join is that endpoint. -/
+theorem join_or_fork_of_dominates {s s' : State} {t : Suit}
+    (hcls : sameOrbitSetoid.r s s') (h : Dominates s s' ∨ Dominates s' s) :
+    (∃ s''', JoinAt s s' s''' t) ∨
+    (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x) := by
+  rcases h with h | h
+  · exact Or.inl ⟨s, joinAt_self_of_dominates h⟩
+  · exact Or.inl ⟨s', joinAt_other_of_dominates hcls h⟩
+
 /-- The IVT conclusion on a fixed play: some prefix state has equal twin-pair
 rungs.  `s.run (ρ.take i) = some x` names the prefix state. -/
 def DipExists (s s' : State) (t : Suit) (ρ : List Move) : Prop :=
@@ -66,6 +95,44 @@ def TwinJoinOrForkTarget : Prop :=
     SSaturated s' → SignSwap s s' t →
     (∃ s''', JoinAt s s' s''' t) ∨
     (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
+
+/-- The two orientations of the sign swap, separated deliberately.  Because
+the target is one-sided in `s'`, the two orientations are NOT symmetric by
+swapping `s`/`s'` (that would move the saturation to `s`); both must be
+proved, and there is no WLOG. -/
+def SignSwapRight (s s' : State) (t : Suit) : Prop :=
+  rungAt s t.twin ≤ rungAt s t ∧ rungAt s' t ≤ rungAt s' t.twin
+
+def SignSwapLeft (s s' : State) (t : Suit) : Prop :=
+  rungAt s' t.twin ≤ rungAt s' t ∧ rungAt s t ≤ rungAt s t.twin
+
+theorem signSwap_iff_right_or_left {s s' : State} {t : Suit} :
+    SignSwap s s' t ↔ SignSwapRight s s' t ∨ SignSwapLeft s s' t :=
+  Iff.rfl
+
+/-- The one-sided target, RIGHT orientation only. -/
+def TwinJoinOrForkRight : Prop :=
+  ∀ (s s' : State) (t : Suit),
+    s.WF → s'.WF → sameOrbitSetoid.r s s' → SSaturated s' →
+    SignSwapRight s s' t →
+    (∃ s''', JoinAt s s' s''' t) ∨
+    (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
+
+/-- The one-sided target, LEFT orientation only. -/
+def TwinJoinOrForkLeft : Prop :=
+  ∀ (s s' : State) (t : Suit),
+    s.WF → s'.WF → sameOrbitSetoid.r s s' → SSaturated s' →
+    SignSwapLeft s s' t →
+    (∃ s''', JoinAt s s' s''' t) ∨
+    (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
+
+/-- The two orientations together give the full target, with no WLOG. -/
+theorem target_of_right_left (hR : TwinJoinOrForkRight) (hL : TwinJoinOrForkLeft) :
+    TwinJoinOrForkTarget := by
+  intro s s' t hs hs' hcls hsat hswap
+  rcases (signSwap_iff_right_or_left.mp hswap) with hr | hl
+  · exact hR s s' t hs hs' hcls hsat hr
+  · exact hL s s' t hs hs' hcls hsat hl
 
 /-- The local engine at a dip, with the three cases explicit.  `CoveredStall`
 is the `3c` residual, named here as a `Prop` over the dip state.  The target
