@@ -95,6 +95,7 @@ import Orig2.ForkPullOrigin
 import Orig2.ForkExtract
 import Orig2.ForkFloor
 import Orig2.ForkFibMeet
+import Orig2.ForkMeetCover
 import Orig2.ForkBaseSeat
 import Orig2.ForkBasePile
 import Orig2.ForkBaseAdjoint
