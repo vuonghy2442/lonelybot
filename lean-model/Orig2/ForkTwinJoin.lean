@@ -143,6 +143,26 @@ theorem overshoot_of_exact (h : TwinJoinOrForkTarget) : TwinJoinOrForkOvershoot 
     exact Or.inl ⟨z, joinAt_imp_joinAtLeast hz⟩
   · exact Or.inr hfork
 
+/-- **THE ARGMIN STEP (game level).**  From a state strictly below a class-mate
+on both twin suits, some class-mate has the smaller twin rung increased by one
+and the other twin rung unchanged.  The rung-level staircase is trivial; the
+content is that the game step exists.  The intended proof is `prepare_neutral`:
+prepare the argmin's next card with rung-neutral moves, then raise it.
+
+OPEN — the AS probe is testing it. -/
+def ArgminStepGame : Prop :=
+  ∀ (s s' : State) (t : Suit),
+    sameOrbitSetoid.r s s' →
+    rungAt s t < rungAt s' t →
+    rungAt s t.twin < rungAt s' t.twin →
+    ∃ s'', sameOrbitSetoid.r s s'' ∧
+      ((rungAt s t ≤ rungAt s t.twin ∧
+          rungAt s'' t = rungAt s t + 1 ∧
+          rungAt s'' t.twin = rungAt s t.twin)
+       ∨ (rungAt s t.twin ≤ rungAt s t ∧
+          rungAt s'' t = rungAt s t ∧
+          rungAt s'' t.twin = rungAt s t.twin + 1))
+
 /-- **The join is symmetric under swapping the endpoints** (given the class
 relation). -/
 theorem joinAt_swap {s s' s''' : State} {t : Suit}
