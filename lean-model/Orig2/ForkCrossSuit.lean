@@ -12,16 +12,24 @@ set_option linter.unusedSimpArgs false
 /-!
 # CrossSuit_Vacuity - the cross-suit raise-before-pull reduction
 
-**THE CENTRAL PREMISE IS FALSE.**  `Temp/Search_Report.md` gives a verified
-shortest `SSaturated → SSaturated` witness play (length 17, `d(u,v) = 17`)
-with `Canon.inv = 8`, and EVERY shortest play of the pair has `inv = 8`
-(25 plays, exact, no caps).  So `CrossSuitCorridorResidual`,
-`CrossSuitPureCorridorResidual`, `CrossSuitInnerRaiseResidual`,
-`crossSuitVacuity` and `noCrossCorridor` are FALSE at the model level
-(kernel certificate pending: a 2308-state distance table).  The cross-suit
-case is REAL; do not cite these rows as residuals.  The kernel-checked
-companion `Orig2/ForkSeatTwinNoGo.lean` shows the literal seat-mate pattern
-is impossible — the counterexample is not seat-mate.
+**THE CENTRAL PREMISE IS FALSE — KERNEL-CERTIFIED.**  The certificate is
+`Orig2/ForkCertMain.lean` / `Orig2/ForkCertInv.lean` (leaf chain; build with
+`Tools/build_crosssuit_cert.ps1`, ~406 s parallel): a 17-letter shortest
+`SSaturated → SSaturated` witness play (`Cert.play`, `Cert.play_shortest`,
+`d(u,v) = 17` from a 2308-state distance table) with `Cert.inv_rho : inv = 8`,
+and
+
+```lean
+Cert.not_crossSuitCorridorResidual      : ¬ CrossSuitCorridorResidual
+Cert.not_crossSuitPureCorridorResidual  : ¬ CrossSuitPureCorridorResidual
+Cert.not_crossSuitVacuityTarget         : ¬ CrossSuitVacuityTarget
+```
+
+Axioms `[propext, Quot.sound]` only.  So `crossSuitVacuity`,
+`noCrossCorridor` and the corridor residuals are FALSE; the cross-suit case
+is REAL.  Do not cite these rows as residuals.  The kernel-checked companion
+`Orig2/ForkSeatTwinNoGo.lean` shows the literal seat-mate pattern is
+impossible — the counterexample is not seat-mate.
 
 Source card (`Orig2/`).  Zero `sorry`, zero `Classical.choice`, zero
 `native_decide`; axiom battery at the tail.
@@ -482,13 +490,12 @@ theorem corridor_pull_is_c {u v : State} {pre γ tail : List Move} {c d : Card} 
 ## §3. The named residual, and the reduction
 -/
 
-/-- **REFUTED — DO NOT CITE AS A RESIDUAL.**  A minimal witness play between
-`SSaturated` `WF` endpoints never carries a raise of `c`, a corridor clean at
-`(c, d)`, and then a pull of `d` - for two different suits.  This is FALSE at
-the model level: `Temp/Search_Report.md` gives a shortest saturated→saturated
-play (length 17, `inv = 8`) whose clean corridor is
-`raise QD ; raise KS ; slide KH→empty ; pull KS (inl 5)`.  Kernel certificate
-pending (2308-state distance table). -/
+/-- **REFUTED — KERNEL-CERTIFIED; DO NOT CITE AS A RESIDUAL.**  A minimal
+witness play between `SSaturated` `WF` endpoints never carries a raise of `c`,
+a corridor clean at `(c, d)`, and then a pull of `d` - for two different suits.
+`Cert.not_crossSuitCorridorResidual` (`Orig2/ForkCertMain.lean`) proves this is
+FALSE, with a 17-letter shortest play whose clean corridor is
+`raise QD ; raise KS ; slide KH→empty ; pull KS (inl 5)`. -/
 def CrossSuitCorridorResidual : Prop :=
   ∀ (u v : State) (ρ pre γ tail : List Move) (c d : Card) (b : Base),
     u.WF → SSaturated u → SSaturated v → ShufflePlayW u ρ v →
@@ -637,9 +644,9 @@ theorem pureResidual_of_sameCard (hpur : CrossSuitPureCorridorResidual)
 -/
 
 /-- **CROSS-SUIT VACUITY** - the brief's target, from the named corridor
-residual.  **REFUTED at the model level** (see the file header): the
-counterexample play has `inv = 8`, so this implication's hypothesis is
-satisfiable while its conclusion is `False`. -/
+residual.  **REFUTED — KERNEL-CERTIFIED** (`Cert.not_crossSuitVacuityTarget`,
+`Orig2/ForkCertMain.lean`): the counterexample play has `inv = 8`, so the
+target proposition is false. -/
 theorem crossSuitVacuity (hres : CrossSuitCorridorResidual)
     {u v : State} (huwf : u.WF) (hu : SSaturated u) (hv : SSaturated v)
     {ρ : List Move} (hplay : ShufflePlayW u ρ v)
