@@ -70,6 +70,7 @@ import Orig2.ForkMtnExists
 import Orig2.ForkTailHead
 import Orig2.ForkInrExp
 import Orig2.ForkPermRefute
+import Orig2.ForkCrossSuit
 
 /-!
 # Orig2 — the proof root
