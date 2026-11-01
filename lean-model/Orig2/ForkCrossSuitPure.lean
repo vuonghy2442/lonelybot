@@ -7,10 +7,16 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 
 /-!
-# Orig2/ForkCrossSuitPure — the pull-free (pure) cross-suit corridor
+# Orig2/ForkCrossSuitPure - the pull-free (pure) cross-suit corridor
 
-Scratch card.  READ-ONLY on `Orig2/`; no source edit, no commit.  Zero `sorry`,
-zero `Classical.choice`, zero `native_decide`; axiom battery at the tail.
+**REFUTED AT THE MODEL LEVEL.**  `Temp/Search_Report.md` gives a shortest
+saturated→saturated play with `inv = 8`; its corridors are clean but have a
+non-free window, so this card's residual and `CrossSuitInnerRaiseResidual`
+do not cover it — the cross-suit case is REAL.  Kernel certificate pending.
+Do not cite the residuals here as dischargeable.
+
+Source card (`Orig2/`).  Zero `sorry`, zero `Classical.choice`, zero
+`native_decide`; axiom battery at the tail.
 
 ## The target
 
@@ -464,8 +470,12 @@ cross-suit raise `c`, a clean pull-free stretch, then an inner same-card
 `raise d ; (free) ; pull d` whose pull is the corridor's pull.
 
 (This is the "twin-seat / relocation" face of the corridor: `d` is raised
-from the tableau and comes straight back down — through the foundation — onto
-the base the interior exposes.) -/
+from the tableau and comes straight back down - through the foundation - onto
+the base the interior exposes.)
+
+**REFUTED at the model level** (see the file header): the counterexample
+corridor has a non-free window, so it is not this shape; the broad cross-suit
+premise is false.  Kernel certificate pending. -/
 def CrossSuitInnerRaiseResidual : Prop :=
   ∀ (u v : State) (ρ pre γ₁ γ₂ tail : List Move) (c d : Card) (b : Base),
     u.WF → SSaturated u → SSaturated v → ShufflePlayW u ρ v →
