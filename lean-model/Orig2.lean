@@ -83,7 +83,9 @@ import Orig2.ForkSatChain
 import Orig2.ForkMin
 import Orig2.ForkDecide
 import Orig2.ForkEqualRungMain
+import Orig2.ForkEqSplitWitness
 import Orig2.ForkMateGate
+import Orig2.ForkEqSplit
 
 /-!
 # Orig2 — the proof root
