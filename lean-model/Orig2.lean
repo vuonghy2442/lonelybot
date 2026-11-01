@@ -54,6 +54,9 @@ import Orig2.ForkRankFloorAttack
 import Orig2.ForkJoint
 import Orig2.ForkPinRight
 import Orig2.ForkRelocate
+import Orig2.ForkMountainRefute
+import Orig2.ForkKingGadget
+import Orig2.ForkRelocGadget
 
 /-!
 # Orig2 — the proof root

@@ -492,14 +492,32 @@ theorem exists_free_between_of_noAdjacent {u v : State} {ρ : List Move}
 
 /-! ## §4. The M1 reduction: one deletion residual -/
 
-/-- **THE M1 RESIDUAL.**  A raise followed later by a pull makes the play
-non-minimal: there is a strictly shorter witness play between the same
-endpoints.
+/-- **THE M1 RESIDUAL — WITHDRAWN, FALSE AS STATED.**
 
-This is the *exact* missing step of M1.  It is stated without minimality and
-without saturation because it is a pure deletion statement: whenever a play
-exhibits `raise c ; … ; pull d b`, it shortens.  §4b records the one case of it
-that is provable with the current kernel. -/
+A raise followed later by a pull does NOT in general make the play non-minimal.
+Kernel counterexample (`Orig2/ForkMountainRefute.lean`, `CrackM1.not_raiseBeforePullShortens`):
+a **7-card** board and the two-letter play
+
+```text
+raise 5H   ;   pull AD → 2S          rungs (4,1,0,0) → (5,0,0,0)
+```
+
+The rung vector moves on TWO coordinates (L1 = 2) while every witness letter
+changes at most one suit's rung (`step_rung_support`), so **no shorter play
+exists** — yet it is a raise followed by a later pull.  `Temp/MtnPr_Report.md`
+finding (1) proves the same obstruction independently (for `c.suit ≠ d.suit` the
+two-letter play is shortest and the letters commute).
+
+WHY THE CAMPAIGN SURVIVES.  Those endpoints are **not saturated**, so the witness
+is outside the gate actually used: `MountainAtSplits` / `MountainSplit`
+quantifies only over minimal plays between `SSaturated` endpoints with differing
+rungs, where `SSaturated u` excludes the initial-raise instance.  `SatDifferForkWF`
+is untouched — but this definition must NOT be used as a proof target.  The
+honest mountain residual is `Relocate.SameCardRelocation` + `Relocate.SeatInert`
+(same-card only, via the net-one identity `raise_pull_eq_slide`), whose missing
+machine is the pull-side `PullSwaps` certificate.
+
+Kept only so the refutation can name it. -/
 def RaiseBeforePullShortens : Prop :=
   ∀ (u v : State) (ρ pre post : List Move) (c d : Card) (b : Base),
     u.WF →
