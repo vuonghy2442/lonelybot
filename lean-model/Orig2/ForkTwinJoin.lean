@@ -143,23 +143,32 @@ theorem overshoot_of_exact (h : TwinJoinOrForkTarget) : TwinJoinOrForkOvershoot 
     exact Or.inl ⟨z, joinAt_imp_joinAtLeast hz⟩
   · exact Or.inr hfork
 
-/-- **THE DEFICIENT STEP — the gap-closer.**  The base `s` already has every
-coordinate except `σ` at the target `M`; `σ` is still deficient; the other
-class-mate `s'` provides the room on `σ`.  Then some class-mate raises `σ` by
-one and keeps every other rung.  This is the step the crossed case needs: pick
-the endpoint that already has the maximum on one coordinate (the base), and
-raise its other coordinate toward the other endpoint's value.
+/-- **WITHDRAWN — FALSE.**  Kernel-adjacent model refutation in
+`Temp/AS_Report.md` (verified over the 2308-state component and the full
+`valley_probe` component; 520/1605 crossed instances fail, 332 components):
 
-The intended proof is `prepare_neutral` for the `σ` card. -/
+```text
+s  rungs (10,12,13,0)        s' rungs (11,10,12,0)
+σ = H,  M = (11,12,13,0)     target (11,12,13,0) is ABSENT
+```
+
+The obstruction is the **twin pull**: `JH` is buried under `TC`; `TC` needs a
+rank-10 red base, and the only one is `JD`, which is on the `D` FOUNDATION.
+Exposing `JH` therefore forces `pull JD`, which lowers the twin `D` from 12.
+So the twin cannot stay fixed: the colour-pinned version fails too.
+
+Consequence: the gap-closer is dead in this form, and `argmin_of_deficient`
+below is vacuous (a true implication from a false premise).  Do not cite this
+definition as a dischargeable hypothesis. -/
 def RaiseDeficientGame : Prop :=
   ∀ (s s' : State) (M : Suit → Nat) (σ : Suit),
     sameOrbitSetoid.r s s' →
-    (∀ τ, τ ≠ σ → rungAt s τ = M τ) →
+    rungAt s σ.twin = M σ.twin →
     rungAt s σ < M σ →
     M σ ≤ rungAt s' σ →
     ∃ s'', sameOrbitSetoid.r s s'' ∧
       rungAt s'' σ = rungAt s σ + 1 ∧
-      (∀ τ, τ ≠ σ → rungAt s'' τ = rungAt s τ)
+      rungAt s'' σ.twin = rungAt s σ.twin
 
 /-- **THE ARGMIN STEP (game level, strengthened).**  If the twin rung is the
 lower (≤ the t rung), the target `s'` is at least the t rung and strictly above
@@ -197,24 +206,25 @@ theorem joinAt_swap {s s' s''' : State} {t : Suit}
 
 /-- **The deficient step implies the argmin step.**  Given the argmin
 hypotheses, set `M` to the current rungs everywhere except the raised twin,
-where `M twin` is the endpoint's twin rung.  The base matches `M` on all other
-coordinates by construction, and the endpoint supplies the room.  Note the
-`twin ≤ t` and `t ≤ s' t` hypotheses are not even needed: the deficient step
-is strictly stronger. -/
+where `M twin` is the endpoint's twin rung.  The other twin is `t`, already at
+`M t = rungAt s t`; the endpoint supplies the room.  Note the `twin ≤ t` and
+`t ≤ s' t` hypotheses are not even needed: the deficient step is strictly
+stronger. -/
 theorem argmin_of_deficient (h : RaiseDeficientGame) : ArgminStepGame := by
   intro s s' t hcls hle ht hlt
+  have htwin_ne : t ≠ t.twin := by cases t <;> decide
   let M : Suit → Nat :=
     fun τ => if τ = t.twin then rungAt s' t.twin else rungAt s τ
   have hM : M t.twin = rungAt s' t.twin := by simp [M]
-  have hmatch : ∀ τ, τ ≠ t.twin → rungAt s τ = M τ := by
-    intro τ hτ
-    simp [M, hτ]
+  have hMt : M t = rungAt s t := by simp [M, htwin_ne]
+  have hmatch : rungAt s (t.twin).twin = M (t.twin).twin := by
+    simp [Suit.twin_twin, hMt]
   have hdefc : rungAt s t.twin < M t.twin := by rw [hM]; exact hlt
   have hroom : M t.twin ≤ rungAt s' t.twin := by rw [hM]; exact Nat.le_refl _
   obtain ⟨s'', hss'', hrung, hother⟩ :=
     h s s' M t.twin hcls hmatch hdefc hroom
   refine ⟨s'', hss'', ?_, hrung⟩
-  exact hother t (by cases t <;> decide)
+  simpa [Suit.twin_twin] using hother
 
 /-- The local engine at a dip, with the three cases explicit.  `CoveredStall`
 is the `3c` residual, named here as a `Prop` over the dip state.  The target
@@ -244,5 +254,128 @@ on the remaining distance to the maximum.  This is the assembly, not the
 open case. -/
 def TargetOfStep : Prop :=
   DipStepOrFork → TwinJoinOrForkTarget
+
+/-- Iterate the argmin step until `b`'s twin reaches `R`, keeping `b`'s high
+suit at `H`.  `b` is the base (it already carries the high coordinate `H`), the
+raised coordinate is `hs.twin` with target `R ≤ H`, and `z` is the upper
+class-mate supplying the room. -/
+theorem argmin_iterate
+    (h : ArgminStepGame)
+    {b z : State} {hs : Suit} {H R : Nat}
+    (hcls : sameOrbitSetoid.r b z)
+    (hH : rungAt b hs = H)
+    (hle : rungAt b hs.twin ≤ R)
+    (hRH : R ≤ H)
+    (hroomH : H ≤ rungAt z hs)
+    (hroomR : R ≤ rungAt z hs.twin) :
+    ∃ c, sameOrbitSetoid.r b c ∧ rungAt c hs = H ∧
+      rungAt c hs.twin = R := by
+  have hmain : ∀ k, k ≤ R - rungAt b hs.twin →
+      ∃ c, sameOrbitSetoid.r b c ∧ sameOrbitSetoid.r c z ∧
+        rungAt c hs = H ∧
+        rungAt c hs.twin = rungAt b hs.twin + k := by
+    intro k
+    induction k with
+    | zero =>
+        intro _
+        exact ⟨b, RevEqW_refl b, hcls, hH, rfl⟩
+    | succ k ih =>
+        intro hk
+        obtain ⟨c, hbc, hcz, hHc, htc⟩ := ih (Nat.le_of_succ_le hk)
+        have hlt : rungAt c hs.twin < R := by
+          rw [htc]; omega
+        have h1 : rungAt c hs.twin ≤ rungAt c hs := by
+          rw [hHc]; omega
+        have h2 : rungAt c hs ≤ rungAt z hs := by
+          rw [hHc]; exact hroomH
+        have h3 : rungAt c hs.twin < rungAt z hs.twin := by omega
+        obtain ⟨c', hcc', hHc', htc'⟩ := h c z hs hcz h1 h2 h3
+        refine ⟨c', sameOrbitSetoid.trans hbc hcc', ?_, ?_, ?_⟩
+        · exact sameOrbitSetoid.trans (sameOrbitSetoid.symm hcc') hcz
+        · rw [hHc', hHc]
+        · rw [htc', htc]; omega
+  obtain ⟨c, hbc, -, hHc, htc⟩ := hmain (R - rungAt b hs.twin) (Nat.le_refl _)
+  refine ⟨c, hbc, hHc, ?_⟩
+  rw [htc]; omega
+
+/-- **THE REDUCTION.**  Overshoot + argmin ⇒ exact join.  The base is the
+endpoint carrying the LARGER of the two componentwise maxima; the argmin step
+raises its other pair coordinate to its max, which is at most the base's fixed
+high coordinate.  The overshoot class-mate `z` is used only as the room. -/
+theorem target_of_overshoot_and_argmin
+    (hover : TwinJoinOrForkOvershoot) (harg : ArgminStepGame) :
+    TwinJoinOrForkTarget := by
+  intro s s' t hs hs' hcls hswap
+  rcases hover s s' t hs hs' hcls hswap with hz | hfork
+  · obtain ⟨z, hcls_z, hz_t, hz_w⟩ := hz
+    let Mt : Nat := Nat.max (rungAt s t) (rungAt s' t)
+    let Mw : Nat := Nat.max (rungAt s t.twin) (rungAt s' t.twin)
+    have hMt : Mt = Nat.max (rungAt s t) (rungAt s' t) := rfl
+    have hMw : Mw = Nat.max (rungAt s t.twin) (rungAt s' t.twin) := rfl
+    by_cases hcase : Mt ≤ Mw
+    · -- the TWIN max is the larger; the high suit is t.twin, raised suit t
+      by_cases hb : rungAt s' t.twin ≤ rungAt s t.twin
+      · -- base s
+        have hH : rungAt s (t.twin) = Mw := by
+          rw [hMw]; exact (Nat.max_eq_left hb).symm
+        have hle : rungAt s (t.twin).twin ≤ Mt := by
+          rw [Suit.twin_twin]; exact Nat.le_max_left _ _
+        have hroomH : Mw ≤ rungAt z (t.twin) := hz_w
+        have hroomR : Mt ≤ rungAt z t := hz_t
+        obtain ⟨c, hsc, hHc, hRc⟩ :=
+          argmin_iterate (b := s) (z := z) (hs := t.twin) (H := Mw) (R := Mt)
+            harg hcls_z hH hle hcase hroomH
+            (by simpa [Suit.twin_twin] using hroomR)
+        refine Or.inl ⟨c, hsc, ?_, ?_⟩
+        · rw [show rungAt c t = Mt by simpa [Suit.twin_twin] using hRc, hMt]
+        · rw [hHc, hMw]
+      · -- base s'
+        have hb' : rungAt s t.twin ≤ rungAt s' t.twin := Nat.le_of_not_ge hb
+        have hH : rungAt s' (t.twin) = Mw := by
+          rw [hMw]; exact (Nat.max_eq_right hb').symm
+        have hle : rungAt s' (t.twin).twin ≤ Mt := by
+          rw [Suit.twin_twin]; exact Nat.le_max_right _ _
+        have hcls' : sameOrbitSetoid.r s' z :=
+          sameOrbitSetoid.trans (sameOrbitSetoid.symm hcls) hcls_z
+        have hroomH : Mw ≤ rungAt z (t.twin) := hz_w
+        have hroomR : Mt ≤ rungAt z t := hz_t
+        obtain ⟨c, hsc, hHc, hRc⟩ :=
+          argmin_iterate (b := s') (z := z) (hs := t.twin) (H := Mw) (R := Mt)
+            harg hcls' hH hle hcase hroomH
+            (by simpa [Suit.twin_twin] using hroomR)
+        refine Or.inl ⟨c, ?_, ?_, ?_⟩
+        · exact sameOrbitSetoid.trans hcls hsc
+        · rw [show rungAt c t = Mt by simpa [Suit.twin_twin] using hRc, hMt]
+        · rw [hHc, hMw]
+    · -- the T max is the larger; the high suit is t, the raised suit is t.twin
+      have hMwlt : Mw < Mt := Nat.lt_of_not_ge hcase
+      by_cases hb : rungAt s' t ≤ rungAt s t
+      · -- base s
+        have hH : rungAt s t = Mt := by
+          rw [hMt]; exact (Nat.max_eq_left hb).symm
+        have hle : rungAt s t.twin ≤ Mw := Nat.le_max_left _ _
+        have hroomH : Mt ≤ rungAt z t := hz_t
+        have hroomR : Mw ≤ rungAt z t.twin := hz_w
+        obtain ⟨c, hsc, hHc, hRc⟩ :=
+          argmin_iterate harg hcls_z hH hle (Nat.le_of_lt hMwlt) hroomH hroomR
+        refine Or.inl ⟨c, hsc, ?_, ?_⟩
+        · rw [hHc, hMt]
+        · rw [hRc, hMw]
+      · -- base s'
+        have hb' : rungAt s t ≤ rungAt s' t := Nat.le_of_not_ge hb
+        have hH : rungAt s' t = Mt := by
+          rw [hMt]; exact (Nat.max_eq_right hb').symm
+        have hle : rungAt s' t.twin ≤ Mw := Nat.le_max_right _ _
+        have hcls' : sameOrbitSetoid.r s' z :=
+          sameOrbitSetoid.trans (sameOrbitSetoid.symm hcls) hcls_z
+        have hroomH : Mt ≤ rungAt z t := hz_t
+        have hroomR : Mw ≤ rungAt z t.twin := hz_w
+        obtain ⟨c, hsc, hHc, hRc⟩ :=
+          argmin_iterate harg hcls' hH hle (Nat.le_of_lt hMwlt) hroomH hroomR
+        refine Or.inl ⟨c, ?_, ?_, ?_⟩
+        · exact sameOrbitSetoid.trans hcls hsc
+        · rw [hHc, hMt]
+        · rw [hRc, hMw]
+  · exact Or.inr hfork
 
 end TwinJoin
