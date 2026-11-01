@@ -52,7 +52,7 @@ and cannot jump over zero.  Stated as a `def` so it is not mistaken for the
 open content. -/
 def DipLemma : Prop :=
   ∀ (s s' : State) (t : Suit) (ρ : List Move),
-    s.WF → SSaturated s' →
+    s.WF →
     ShufflePlayW s ρ s' → SignSwap s s' t → DipExists s s' t ρ
 
 /-- **THE TARGET (one-sided in `s`).**  A saturated target endpoint `s'` and
