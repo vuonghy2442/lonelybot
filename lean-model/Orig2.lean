@@ -99,6 +99,7 @@ import Orig2.ForkMeetCover
 import Orig2.ForkSeatTwinNoGo
 import Orig2.ForkNonComp
 import Orig2.ForkTwinJoin
+import Orig2.ForkSignSwap
 import Orig2.ForkBaseSeat
 import Orig2.ForkBasePile
 import Orig2.ForkBaseAdjoint
