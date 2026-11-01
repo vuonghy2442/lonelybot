@@ -30,9 +30,10 @@ The fiber hierarchy (Chapter~\ref{chap:fiber}) assembles the
 dichotomy family and the campaign payoff.  The boundary cases
 (Chapter~\ref{chap:boundary}) are the counterexamples that fix the
 target shapes.  The campaign target (Chapter~\ref{chap:campaign})
-is the open summit \texttt{SatDifferFork}, standing at the
-flat-fiber vertex with the valley route as the live attack
-front; fork-position rigidity is closed unconditionally.
+is the open summit \texttt{SatDifferFork}; the drain and the
+asymmetry bridge are closed, the remaining obligations are the
+bracket existence at the minimality gate and the split block, and
+fork-position rigidity is closed unconditionally.
 
 \paragraph{How to read the graph.}  A green border means the
 statement is formalized in Lean; a light green fill means the
@@ -175,19 +176,86 @@ Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Qu
 \begin{theorem}[The fiber transfer, discharged]\label{thm:transferFull}
 \lean{fiber_transfer_full}
 \leanok
-\uses{thm:nonking, thm:king}
+\uses{thm:twinMembership}
 The original ledger stub's statement, verbatim: well-formed
 same-orbit states with equal foundations and a strict witness
 swap at the source carry a strict witness swap to every class-mate
-that holds both twins.  No rank split appears in the statement; the
-proof splits on the rank.
+that holds both twins.  After the tower collapse this is a
+one-line delegate: the seat-free strengthening beneath it proved
+strong enough to carry the crown directly, and the rank split
+lives in its own skeleton home.
 \end{theorem}
 
 \begin{proof}
 \leanok
+\uses{thm:twinMembership}
+Exact the seat-free strengthening --- the tower collapsed when
+the seat dichotomy (both-or-neither) made the pile-holding
+premises redundant.
+\end{proof}
+
+\begin{theorem}[The twin-membership transfer]\label{thm:twinMembership}
+\lean{fiber_transfer_twin_membership, fiber_transfer_seat_free, fiber_transfer_founds_necessary}
+\leanok
 \uses{thm:nonking, thm:king}
-By cases on the rank of the pair: the non-king case rides the
-non-king transfer, the king case the king transfer.
+The companion strengthenings: the swap witness transfers along
+the class whenever the twins' foundation-membership is preserved
+--- the first-seat-change argument, since a twin's only exits
+are a raise or a slide onto an exposed fitting top, and the
+fitting class is exactly the two parents.  The seat premises
+are redundant (both-or-neither), and the founds rows are
+necessary.  This closes the depth-0 rung of the
+ladder-completeness residue.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The stratified quotient's universal property]\label{thm:stratifiedQuotient}
+\lean{stratOrbit, swappable_stratum_invariant, SwappableStratum, swappableStratum_mk, stratOrbit_universal, swappableStratum_unique, swappable_of_pairFreePlay}
+\leanok
+\uses{thm:twinMembership}
+The transfer, generalized: within a fiber of the map taking a
+well-formed state to its reversible class and its twins'
+membership profile, swappability is constant --- so
+\texttt{SwappableIn} descends to the stratified quotient,
+uniquely, and so does every stratum-invariant predicate.  The
+two house axioms become load-bearing by design:
+\texttt{Quot.sound} is the quotient's universal property.  This
+discharges the quotient-formalization residue.  The unified
+pair-free transfer rides the same stratum constancy: no seat
+premises, both directions, subsuming the engine-grade pair-free
+shape for every external consumer --- and the supersession
+survey's verdict is that the pair-free family is topologically
+un-supersessable, the stratum kit sitting above it by DAG
+necessity.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The stratification link]\label{thm:stratificationLink}
+\lean{stratOrbit_of_class_rungs, swappable_of_class_rungs, stratOrbit_of_bareFlat, swappable_of_bareFlat}
+\leanok
+\uses{def:position, def:fibers, thm:stratifiedQuotient}
+Positions refine strata, and so do flat fibers: two states with
+the same class and the same rung vector --- the kernel of the
+Position meet --- lie in one stratum, since the rungs pin the
+founds and the founds pin the twins' membership profile; and a
+flat path never moves a foundation row, so each flat fiber lies
+in a single stratum.  Hence swappability is both
+position-determined and flat-fiber-determined: the stratified
+quotient sees strictly coarser than both live axes of the
+campaign.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
 \end{proof}
 
 \begin{theorem}[The decidability bridge]\label{thm:decidable}
@@ -630,7 +698,7 @@ Discharged in the Orig2 sources --- the card's axiom battery prints [propext, Qu
 \end{proof}
 
 \begin{theorem}[The first-passage ledger]\label{thm:firstPassage}
-\lean{SatDifferCensus.FirstPassage.classification, SatDifferCensus.firstPassage_exists, SatDifferCensus.firstRise_or_firstFall_of_rung_ne}
+\lean{SatDifferCensus.step_rung_classification, SatDifferCensus.firstPassage_exists, SatDifferCensus.firstRise_or_firstFall_of_rung_ne}
 \leanok
 \uses{def:orbit}
 Every suit-crossing of a witness journey has a first passage, and
@@ -661,18 +729,17 @@ forkless classes have rung-agreeing saturated endpoints.
 \end{theorem}
 
 \begin{proof}
-\uses{thm:flatVertex, thm:valleyReduction, thm:drainSkeleton, thm:forkLabelClass, thm:rungCensus, thm:firstPassage, thm:dipFalse, thm:minPath}
+\uses{thm:flatVertex, thm:bridge, thm:forkLabelClass, thm:rungCensus, thm:firstPassage, thm:dipFalse, thm:minPath}
 Open --- no formal proof yet, on two fronts.  The vertex front:
 the flat-fiber invariant discharges the WF-gated form, and the SW
 arm dichotomy supplies the invariant, so the gap is the SW
-dichotomy itself.  The valley front: the mountain normal form is
-refuted in general and the surviving form is valley-at-a-fork;
-the valley-elimination kit reduces the target to valley
-elimination without forks plus a shortest play, the drain
-skeleton is the conditional descent to the fork, and the blocked
-pieces are named --- the crossing locator, the free slide/draw
-tail, and the drain's remaining inputs (the third-live-card
-regulation and the measure step; the transport is discharged).  The saturation grade is
+dichotomy itself.  The valley front: the drain is complete (fork
+existence from the asymmetry is unconditional) and the bridge
+from the bottom asymmetry to the target is proved from the
+corrected residual; the campaign hangs from two named finite
+residuals --- valley elimination at the minimality gate (the
+bracket existence, after the normalizer and the read-invariance
+induction) and the split block (the post-cover analysis).  The saturation grade is
 load-bearing at the endpoints: it bars the cover's own raise and
 the covered card's cascade license.  The journey-local versions
 are refuted, the minimal-path boundary certifies the detour's
@@ -681,11 +748,14 @@ cost, and the payoff is the ceiling bridge.
 
 \section{The valley route}
 
-The live attack front.  The valley-turn and safe-transport cards
-are promoted into Orig2; the crossing-elimination and
-drain-skeleton kits still run in the Temp scratch pen.  The
-mountain normal form was refuted in general; what survived is
-sharper.
+The live attack front, now some twenty-five cards strong, on two
+converging routes.  The crossing route runs through the normalizer
+(the commutation kit, the read-invariance induction, the bracket
+existence at the minimality gate); the bridge route runs through
+the corrected split residual (the live pair plus the block).  The
+refutations on the way --- the mountain form, the ungated
+locator, the transport rows, the binder-scope split residual ---
+were each corrected into a sharper statement.
 
 \begin{theorem}[Valley-at-a-fork]\label{thm:valleyForm}
 \uses{def:fork}
@@ -733,23 +803,73 @@ Discharged in the Temp kit (green, axiom battery [propext, Quot.sound]).
 \end{proof}
 
 \begin{theorem}[Valley elimination, no forks]\label{thm:valleyTarget}
-\lean{ValleyElim.ValleyElimNonfork, ValleyElim.ShortestPlayExists}
+\lean{ValleyElim.ValleyElimNonfork, ValleyElim.ShortestPlayExists, ExistKit.ValleyElimNonforkMin}
 \leanok
 \uses{thm:valleyKit, thm:valleyTurn}
-The named main target of the route: crossing valleys can be
-eliminated without ever introducing a fork, and a shortest play
-exists between any two states.  The blocked piece is the crossing
-locator --- locating the matching pull and raise as a contiguous
-block in an arbitrary crossing valley --- plus the free
-slide/draw tail at the turn.
+The lead target: crossing valleys can be eliminated without
+ever introducing a fork, and a shortest play exists between any
+two states.  The ungated crossing locator was refuted and
+corrected (the partner locator); the elimination is reduced to
+the bracket deletion at the minimality gate.
 \end{theorem}
 
 \begin{proof}
+\uses{thm:normalizer, thm:minimalityGate}
+The commuted brackets delete, the read-invariance induction
+carries the letters past the normalizer's moves, and the
+remaining obligation is the bracket existence at a
+minimum-length play.  Open --- no formal proof yet.
+\end{proof}
+
+\begin{theorem}[The crossing normalizer]\label{thm:normalizer}
+\lean{NonforkKit.RaiseSwaps, NonforkKit.bracket_play_of_swaps, NonforkKit.bracket_delete_gen, Bubble.DiamondAt, Bubble.Commutes, LocatorCorrected.ValleyCrossingPartnerLocator, LocatorCorrected.CrossingBracketNormalizer, LocatorCorrected.normalizer_shortens, Elim.bracket_delete_of_commuted, Elim.bubble_bracket_shortens}
+\leanok
 \uses{thm:valleyKit}
-The same-card branch is unconditional.  The crossing branch is
-reduced to the locator and the free tail; the report gives the
-non-contiguous decomposition and the deletion side conditions.
-Open --- no formal proof yet.
+The commutation kit, promoted: raise sequences commute past
+unrelated letters (the slide rows are now free in the
+normalizer), commuted brackets delete, and the bubble shortens.
+The crossing locator was refuted and corrected --- the partner
+locator finds the matching pull and raise, and the corrected
+normalizer shortens the play.  The ungated transport rows were
+refuted: the commuting normalizer needs the read-invariance
+side conditions.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 cards (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The read-invariance induction]\label{thm:readInvariance}
+\lean{R12.canRaise_preserve_of_pile, R12.canRaise_survives_raise, R12.canRaise_survives_pull, R12.canRaise_survives_slide}
+\leanok
+\uses{thm:decidable}
+CanRaise survives a raise in another suit, a pull, and a
+slide: the read of a card's raisability is stable under exactly
+the letters the normalizer moves.  With this the commutation
+half is complete; only the bracket existence remains.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The minimality gate]\label{thm:minimalityGate}
+\lean{ExistKit.ReadBracketElimMin, ExistKit.ValleyForkAtMin, ExistKit.readBracketElimMin_of_readBracket, ExistKit.bracket_of_samecard_window, ExistKit.ReadWindowExists}
+\leanok
+\uses{thm:readInvariance, thm:normalizer}
+The ungated bracket residuals are refuted --- a four-letter
+loop play (pull, slide, slide back, raise) is a cycle whose
+only bracket fails the read condition, exactly the kind of play
+that cannot occur at minimum length.  The corrected residuals
+carry the minimality gate: the valley fork occurs already at a
+minimum-length play.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 cards (green, axiom battery [propext, Quot.sound]).
 \end{proof}
 
 \begin{theorem}[The reduction]\label{thm:valleyReduction}
@@ -770,23 +890,20 @@ Discharged in the Temp kit (green, axiom battery [propext, Quot.sound]).
 \begin{theorem}[The drain-to-fork skeleton]\label{thm:drainSkeleton}
 \lean{Drain.drain_to_fork, Drain.drain_terminal_fork, Drain.drain_terminal_forkState, Drain.raise_step_preserves, Drain.rungSum_le_52, Drain.drainTerminal_decidable, ValleyDrain.canRaise_of_raise_other, ValleyDrain.not_canRaise_of_raise_other, ValleyDrain.canRaise_of_raise_high}
 \leanok
-\uses{thm:valleyForm, thm:safePath, def:fork}
-The conditional skeleton of the descent: raise the live cards
-while the blocked twin stays blocked (an unrelated or
-higher-ranked raise cannot be the cover), terminate by rank
-monotonicity (the rung sum is bounded by 52), and the terminal
-state is a fork outright.  Of the four named inputs, the twin's
-S-liveness transport is discharged by the safe transport; the
-remaining inputs are the third-live-card regulation (the uniform
-one-slide agent) and the measure-decreasing step, and the
-asymmetry-production bridge is the last conceptual gap.
+\uses{thm:safePath, def:fork}
+The skeleton of the descent, promoted into the library: raise
+the live cards while the blocked twin stays blocked (an
+unrelated or higher-ranked raise cannot be the cover),
+terminate by rank monotonicity (the rung sum is bounded by 52),
+and the terminal state is a fork outright.  Every named input is
+now discharged --- the transport by the safe transport, the
+regulation by the one-slide live card, and the step by the
+closed form --- completing the drain below.
 \end{theorem}
 
 \begin{proof}
 \leanok
-The skeleton implications are discharged in the Temp kit (green,
-axiom battery [propext, Quot.sound]); the remaining inputs are
-explicit hypotheses, not hidden.
+Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
 \end{proof}
 
 \begin{theorem}[The safe cargo path and the transport]\label{thm:safePath}
@@ -807,6 +924,100 @@ named input.
 \begin{proof}
 \leanok
 Discharged in the Orig2 cards (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The one-slide live regulation]\label{thm:oneSlideLive}
+\lean{OneSlide.one_slide_of_blocked_live, OneSlide.twin_top_of_cover, OneSlide.cover_slide_exists, OneSlide.cover_unique}
+\leanok
+\uses{thm:decidable, def:fork}
+The live-card regulation: the twin tops the cover pile, the
+cover is unique, and no twin sits below the blocked card --- the
+one-slide frame confines every live card at the drain.  This
+discharged the skeleton's regulation input.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The drain, complete]\label{thm:drainComplete}
+\lean{DrainClose.fork_exists_of_asymmetry, DrainClose.drain_to_fork_discharged, DrainClose.slide_frame, DrainClose.floor_slide, DrainClose.floor_raise, DrainClose.tabToFoundR_of_canRaise}
+\leanok
+\uses{thm:drainSkeleton, thm:safePath, thm:oneSlideLive}
+Fork existence is unconditional: from a live card whose twin is
+S-live but vanilla-blocked, with the rank floor, a fork exists
+in the class.  The slide frame gives the four exact pile rows of
+the cover slide; the rank floor holds on both halves (the slide
+by cargo-reachability, the raise by the flat characterization);
+the side-residuals vanished --- every vanilla raise is
+reversible, and blocked cards are handled by slide-and-raise.
+Termination is the measure $52 - \mathrm{rungSum}$; the terminal
+branch is the fork.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The corrected split residual]\label{thm:splitResidual}
+\lean{SplitKit.SplitResidualData, SplitKit.splitResidualData_iff_parts, SplitKit.splitResidualData_of_livePair_block, SplitKit.splitTwin_of_livePair_block, SplitKit.splitFloor_of_livePair_twin, SplitKit.bottomDip_of_splitResidualData, SplitKit.not_splitResidual_of_split}
+\leanok
+\uses{thm:valleyKit, thm:valleyTurn}
+The corrected residual.  The original statement was false as
+literally written --- its split binders never occurred in the
+hypotheses, so it demanded the twin equation for arbitrary
+cards, refuted by machine --- and the correction supplies the
+split equations as hypotheses.  The corrected form decomposes
+three ways (the twin equation, the block, the rank floor), and
+the two-way reduction proves the twin equation and the floor
+outright from the live pair plus the block.  The corrected dip
+row feeds the bridge.
+\end{theorem}
+
+\begin{proof}
+\uses{thm:splitMechanism}
+The residual is the live pair plus the block; the mechanism
+chain below closes both halves in pieces.  Open --- no formal
+proof yet.
+\end{proof}
+
+\begin{theorem}[The split mechanism]\label{thm:splitMechanism}
+\lean{LiveKit.splitLivePair_of_valleyElim, LiveKit.splitLivePair_of_forkAtRaise, Landing.landingLivePair_of_twinLivePair_F, Landing.splitLivePair_of_landing_parts, Landing.ThirdSuitBracket, Landing.thirdSuitBracket_iff_landingThirdSuitFree, BlockKit.PostCover, BlockKit.splitBlock_iff_postCover, BlockKit.NoEmptyTail, BlockKit.TailCovers, Mech.NoMover, Mech.mover_or_last_mover}
+\leanok
+\uses{thm:valleyKit}
+The mechanism chain: the live pair follows from valley
+elimination outright (and from a fork at the raise); the landing
+live pair equals the split live pair; the block is a
+post-cover --- the free tail covering --- reduced to
+no-empty-tail plus tail covers, with the pile half closed; and
+the mover analysis pins the seat changes.  The last step is
+the third-suit bracket.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 cards (green, axiom battery [propext, Quot.sound]).
+\end{proof}
+
+\begin{theorem}[The asymmetry-production bridge]\label{thm:bridge}
+\lean{Bridge.satDifferForkWF_of_bottom_asymmetry, Bridge.forkExistence_of_drainInputs, Bridge.bottom_asymmetry_of_split_data, Bridge.bottomAsymmetry_of_bottomDip, Bridge.valley_bottom_no_twin_block, Bridge.valley_bottom_twins_both_raisable, Bridge.no_forkWitness_at_pull_landing, Bridge.blocked_pull_needs_free_tail}
+\leanok
+\uses{thm:splitResidual, thm:drainComplete}
+The bridge from the residual to the target: the split residual
+implies the bottom dip, the dip implies the bottom asymmetry,
+and with the drain complete the asymmetry discharges the
+WF-gated target.  The no-go rows confine the residual's shape:
+the raise card is reversible hence never the blocked twin, at
+the pull's landing both twins are raisable so the cover must
+come from a free slide after the pull, and the pull-landing
+bottom is never a fork.
+\end{theorem}
+
+\begin{proof}
+\leanok
+Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
 \end{proof}
 
 \section{The rigidity arc, closed}

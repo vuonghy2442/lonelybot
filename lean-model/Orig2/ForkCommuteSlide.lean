@@ -427,7 +427,7 @@ theorem slideSt_piles_source {st : State} {c : Card} {b : Base} {a k : Anchor}
       show (if a = k then ({ hidden := [], faceUp := fromCard c (st.piles a).faceUp } : Pile)
         else (st.setPile a ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles a)
         = { st.piles a with faceUp := below c (st.piles a).faceUp }
-      rw [if_neg (Ne.symm hak), setPile_piles_self, hQ]
+      rw [ite_eq_right (Ne.symm hak), setPile_piles_self, hQ]
   | inr z =>
       have hz : st.pileOfTop z = some k := hk
       rw [slideSt, putRun_piles_inr _ _ _ _
@@ -435,7 +435,7 @@ theorem slideSt_piles_source {st : State} {c : Card} {b : Base} {a k : Anchor}
       show (if a = k then _ else
         (st.setPile a ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles a)
         = { st.piles a with faceUp := below c (st.piles a).faceUp }
-      rw [if_neg (Ne.symm hak), setPile_piles_self, hQ]
+      rw [ite_eq_right (Ne.symm hak), setPile_piles_self, hQ]
 
 /-- The target pile after the slide. -/
 theorem slideSt_piles_target {st : State} {c : Card} {b : Base} {a k : Anchor}
@@ -455,7 +455,7 @@ theorem slideSt_piles_target {st : State} {c : Card} {b : Base} {a k : Anchor}
       show (if k = k then ({ hidden := [], faceUp := fromCard c (st.piles a).faceUp } : Pile)
         else (st.setPile a ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles k)
         = { st.piles k with faceUp := (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp }
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       obtain ⟨hhid, hfu⟩ := (Pile.isEmpty_eq _).mp ((canPlace_inl hcp).1)
       show ({ hidden := [], faceUp := fromCard c (st.piles a).faceUp } : Pile)
         = ({ hidden := (st.piles k).hidden,
@@ -468,7 +468,7 @@ theorem slideSt_piles_target {st : State} {c : Card} {b : Base} {a k : Anchor}
       show (if k = k then _ else
         (st.setPile a ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles k)
         = { st.piles k with faceUp := (st.piles k).faceUp ++ fromCard c (st.piles a).faceUp }
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       rw [show (st.setPile a ((st.piles a).afterRunRemoved
             (below c (st.piles a).faceUp))).piles k = st.piles k from
         setPile_piles_ne hak]
@@ -488,7 +488,7 @@ theorem slideSt_piles_other {st : State} {c : Card} {b : Base} {a k : Anchor}
       show (if j = k then _ else
         (st.setPile a ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles j)
         = st.piles j
-      rw [if_neg hjk, setPile_piles_ne hja]
+      rw [ite_eq_right hjk, setPile_piles_ne hja]
   | inr z =>
       have hz : st.pileOfTop z = some k := hk
       rw [slideSt, putRun_piles_inr _ _ _ _
@@ -496,7 +496,7 @@ theorem slideSt_piles_other {st : State} {c : Card} {b : Base} {a k : Anchor}
       show (if j = k then _ else
         (st.setPile a ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles j)
         = st.piles j
-      rw [if_neg hjk, setPile_piles_ne hja]
+      rw [ite_eq_right hjk, setPile_piles_ne hja]
 
 /-- **The single pointwise normal form of a slide.** -/
 theorem slideSt_piles_at {st : State} {c : Card} {b : Base} {a k : Anchor}
@@ -512,13 +512,13 @@ theorem slideSt_piles_at {st : State} {c : Card} {b : Base} {a k : Anchor}
        else st.piles j) := by
   by_cases hja : j = a
   · subst hja
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact slideSt_piles_source hwf hcp hk hak hcell
   · by_cases hjk : j = k
     · subst hjk
-      rw [if_neg hja, if_pos rfl]
+      rw [ite_eq_right hja, ite_eq_left rfl]
       exact slideSt_piles_target hwf hcp hk hak hcell
-    · rw [if_neg hja, if_neg hjk]
+    · rw [ite_eq_right hja, ite_eq_right hjk]
       exact slideSt_piles_other hwf hcp hk hak hcell hja hjk
 
 /-! ## 6. Search transfer across `putRun` / `putCard` / `pullSt` -/
