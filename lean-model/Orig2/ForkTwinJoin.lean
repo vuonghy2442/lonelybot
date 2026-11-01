@@ -52,17 +52,18 @@ and cannot jump over zero.  Stated as a `def` so it is not mistaken for the
 open content. -/
 def DipLemma : Prop :=
   ∀ (s s' : State) (t : Suit) (ρ : List Move),
-    s.WF → SSaturated s → SSaturated s' →
+    s.WF → SSaturated s' →
     ShufflePlayW s ρ s' → SignSwap s s' t → DipExists s s' t ρ
 
-/-- **THE TARGET.**  For saturated class-mates with a twin-pair sign swap:
-either the componentwise maximum is joined by a class-mate, or the class
-carries a fork witness.  OPEN: the `3c` case (both twins covered at the dip)
-lives inside the join disjunct. -/
+/-- **THE TARGET (one-sided in `s`).**  A saturated target endpoint `s'` and
+a class-mate `s` with a twin-pair sign swap: either the componentwise maximum
+is joined by a class-mate, or the class carries a fork witness.  `SSaturated s`
+is deliberately NOT assumed.  OPEN: the `3c` case (both twins covered at the
+dip) lives inside the join disjunct. -/
 def TwinJoinOrForkTarget : Prop :=
   ∀ (s s' : State) (t : Suit),
     s.WF → s'.WF → sameOrbitSetoid.r s s' →
-    SSaturated s → SSaturated s' → SignSwap s s' t →
+    SSaturated s' → SignSwap s s' t →
     (∃ s''', JoinAt s s' s''' t) ∨
     (∃ F x, sameOrbitSetoid.r s F ∧ ForkWitness F x)
 
@@ -80,7 +81,7 @@ covered/covered stall.  OPEN only at the stall; 3a/3b are assembly of
 `fork_exists_of_asymmetry` / the raise-both step. -/
 def DipStepOrFork : Prop :=
   ∀ (x : State) (c : Card),
-    x.WF → SSaturated x →
+    x.WF →
     rungAt x c.suit = c.rank.toIdx ∧ rungAt x c.twin.suit = c.rank.toIdx →
     (∃ y, sameOrbitSetoid.r x y ∧
         rungAt y c.suit = c.rank.toIdx + 1 ∧
