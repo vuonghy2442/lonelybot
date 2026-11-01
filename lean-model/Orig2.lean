@@ -71,6 +71,7 @@ import Orig2.ForkTailHead
 import Orig2.ForkInrExp
 import Orig2.ForkPermRefute
 import Orig2.ForkCrossSuit
+import Orig2.ForkMin
 
 /-!
 # Orig2 — the proof root
