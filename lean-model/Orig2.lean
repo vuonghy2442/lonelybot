@@ -88,6 +88,7 @@ import Orig2.ForkEqSplitSlide
 import Orig2.ForkTwinBarrier
 import Orig2.ForkReveal
 import Orig2.ForkFace2
+import Orig2.ForkReadSafeFace
 import Orig2.ForkMin
 import Orig2.ForkDecide
 import Orig2.ForkEqualRungMain
