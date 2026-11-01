@@ -143,25 +143,23 @@ theorem overshoot_of_exact (h : TwinJoinOrForkTarget) : TwinJoinOrForkOvershoot 
     exact Or.inl ⟨z, joinAt_imp_joinAtLeast hz⟩
   · exact Or.inr hfork
 
-/-- **THE ARGMIN STEP (game level).**  From a state strictly below a class-mate
-on both twin suits, some class-mate has the smaller twin rung increased by one
-and the other twin rung unchanged.  The rung-level staircase is trivial; the
-content is that the game step exists.  The intended proof is `prepare_neutral`:
-prepare the argmin's next card with rung-neutral moves, then raise it.
+/-- **THE ARGMIN STEP (game level, strengthened).**  If the twin rung is the
+lower (≤ the t rung), the target `s'` is at least the t rung and strictly above
+the twin rung, then some class-mate raises the LOWER twin rung by one, keeping
+the t rung unchanged.  This is the target-compatible step: it stays ≤ `s'` on
+the colour.  The intended proof is `prepare_neutral` (prepare the twin's next
+card with rung-neutral moves, then raise it).
 
 OPEN — the AS probe is testing it. -/
 def ArgminStepGame : Prop :=
   ∀ (s s' : State) (t : Suit),
     sameOrbitSetoid.r s s' →
-    rungAt s t < rungAt s' t →
+    rungAt s t.twin ≤ rungAt s t →
+    rungAt s t ≤ rungAt s' t →
     rungAt s t.twin < rungAt s' t.twin →
     ∃ s'', sameOrbitSetoid.r s s'' ∧
-      ((rungAt s t ≤ rungAt s t.twin ∧
-          rungAt s'' t = rungAt s t + 1 ∧
-          rungAt s'' t.twin = rungAt s t.twin)
-       ∨ (rungAt s t.twin ≤ rungAt s t ∧
-          rungAt s'' t = rungAt s t ∧
-          rungAt s'' t.twin = rungAt s t.twin + 1))
+      rungAt s'' t = rungAt s t ∧
+      rungAt s'' t.twin = rungAt s t.twin + 1
 
 /-- **The join is symmetric under swapping the endpoints** (given the class
 relation). -/
