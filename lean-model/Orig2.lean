@@ -52,6 +52,7 @@ import Orig2.ForkNoMate
 import Orig2.ForkRankFloor
 import Orig2.ForkRankFloorAttack
 import Orig2.ForkJoint
+import Orig2.ForkPinRight
 
 /-!
 # Orig2 — the proof root
