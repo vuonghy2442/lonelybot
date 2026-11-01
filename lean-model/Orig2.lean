@@ -57,6 +57,7 @@ import Orig2.ForkRelocate
 import Orig2.ForkMountainRefute
 import Orig2.ForkKingGadget
 import Orig2.ForkRelocGadget
+import Orig2.ForkStraddle
 
 /-!
 # Orig2 — the proof root
