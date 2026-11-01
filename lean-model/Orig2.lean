@@ -83,6 +83,7 @@ import Orig2.ForkSatChain
 import Orig2.ForkCrossSuitPartition
 import Orig2.ForkGap
 import Orig2.ForkFace1
+import Orig2.ForkOffWindow
 import Orig2.ForkMin
 import Orig2.ForkDecide
 import Orig2.ForkEqualRungMain
