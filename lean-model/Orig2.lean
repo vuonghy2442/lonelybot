@@ -43,6 +43,7 @@ import Orig2.BoundaryForkFree
 import Orig2.BoundaryMinPath
 import Orig2.ForkFrontier
 import Orig2.ForkSlideFwd
+import Orig2.ForkDirect
 
 /-!
 # Orig2 — the proof root
