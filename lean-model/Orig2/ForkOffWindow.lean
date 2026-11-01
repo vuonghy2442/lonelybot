@@ -431,7 +431,16 @@ twin exchange is a **legal** two-move seat relay (both halves fire,
 revealed when a pile's whole face-up run was slid away.  Concretely, the cover
 run is the *entire* face-up stack (`below p faceUp = []`, so nothing sits below
 the mover) and `z` is the head of the hidden deck.  No twin identity connects
-`p` and `d` in this case. -/
+`p` and `d` in this case.
+
+**THE STATE PREDICATE IS INHABITED** (`Reveal.revealResidual_of_singleton`):
+any singleton face-up run over a nonempty hidden deck qualifies, so do NOT try
+to prove `¬ RevealResidual`.  The VOID is at the LETTER GRADE: a reveal slide
+strictly drops `hiddenTotal`, no legal step raises it, so the slide is not
+`reversibleAtW` and is never a `ShufflePlayW` letter.  See `Orig2/ForkReveal.lean`
+(`reveal_not_witness_letter`, `corridor_reveal_window_impossible`,
+`reveal_not_twin_window`).  The face is closed by the reversibility oracle, not
+by an empty predicate. -/
 def RevealResidual (B : State) (a : Anchor) (p z : Card) : Prop :=
   (B.piles a).faceUp ≠ [] ∧ below p (B.piles a).faceUp = [] ∧
     ∃ rest, (B.piles a).hidden = z :: rest
