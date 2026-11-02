@@ -1,5 +1,5 @@
-import Orig2.SeatMateStack
-import Orig2.TwinRelabel
+import Orig2.Fiber.SeatMateStack
+import Orig2.Fiber.TwinRelabel
 
 /-!
 # Orig2.TwinDrawTransfer — draws commute with the strict twin swap
@@ -196,8 +196,8 @@ private theorem run_stock_ne_of_drawStep_zero :
 
 /-- At a positive deal quantum, a reversible draw stays reversible at
 any state sharing the draw zone.  (Restatement of the private
-`Orig2/OrbitFactor.lean:659` census, whose mint and denial rows are the
-public `Orig2/Kit.lean` rows.) -/
+`Orig2/Fiber/OrbitFactor.lean:659` census, whose mint and denial rows are the
+public `Orig2/Substrate/Kit.lean` rows.) -/
 private theorem draw_revTransfer_pos {x y : State} (hpos : 0 < x.drawStep)
     (hs : x.stock = y.stock) (hw : x.waste = y.waste)
     (hds : x.drawStep = y.drawStep)

@@ -1,4 +1,4 @@
-import Orig2.ForkCrossSuit
+import Orig2.Fork.ForkCrossSuit
 import Orig2.ForkEqualRungMin
 
 set_option autoImplicit false

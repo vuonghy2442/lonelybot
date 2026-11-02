@@ -1,6 +1,6 @@
 import Orig2.TwinCargoKernel
-import Orig2.SeatMateStack
-import Orig2.Integrity
+import Orig2.Fiber.SeatMateStack
+import Orig2.Substrate.Integrity
 import Orig2.TwinDetourArbitraryMid
 
 set_option linter.unusedSectionVars false

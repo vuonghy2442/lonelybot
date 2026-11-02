@@ -1,7 +1,7 @@
-import Orig2.ArmFiber
-import Orig2.ArmSplit
-import Orig2.SWDichotomy
-import Orig2.FiberHierarchy
+import Orig2.Fiber.ArmFiber
+import Orig2.Fiber.ArmSplit
+import Orig2.Fiber.SWDichotomy
+import Orig2.Fiber.FiberHierarchy
 
 /-!
 # Orig2.Fiber — the fiber hierarchy umbrella

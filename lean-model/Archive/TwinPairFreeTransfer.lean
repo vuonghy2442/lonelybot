@@ -1,4 +1,4 @@
-import Orig2.TwinPointTransfer
+import Orig2.Fiber.TwinPointTransfer
 import Orig2.TwinLastPull
 
 set_option linter.unusedSectionVars false
@@ -9,10 +9,10 @@ set_option linter.unnecessarySimpa false
 # Orig2.TwinPairFreeTransfer — the pair-free transfer, DISCHARGED
 
 The owner's stepping-stone toward the corrected fiber transfer
-(`fiber_transfer_corrected`, `Orig2/ClaimsScrutiny.lean:248`): prove the
+(`fiber_transfer_corrected`, `Orig2/Claims/ClaimsScrutiny.lean:248`): prove the
 transfer FIRST under the added condition that the class journey can be
 traversed without touching the twin — a `NotFoundPair` witness play
-(`Orig2/TwinEquivariance.lean:800`: never a `tabToFound`/`foundToTab` of
+(`Orig2/Fiber/TwinEquivariance.lean:800`: never a `tabToFound`/`foundToTab` of
 either twin).
 
 The two grades already in-tree, and this card's delta:
@@ -21,7 +21,7 @@ The two grades already in-tree, and this card's delta:
   strict-swap target is the relabeling (`TwinSwapUnique`), the transfer
   rides the relabeling equivariance.  Its docstring leaves the
   rider-general case as "the next card's content".
-* `Orig2/TwinPointTransfer.lean` — the RIDER-GENERAL chain, but with the
+* `Orig2/Fiber/TwinPointTransfer.lean` — the RIDER-GENERAL chain, but with the
   point-hom square `sameOrbitSetoid.r (s.spliceTwinRuns x)
   (t.spliceTwinRuns x)` as a HYPOTHESIS (`hpoint`).
 * THIS CARD — the square is discharged from the play itself: the splice
@@ -80,7 +80,7 @@ corrected fiber transfer's statement with the class row STRENGTHENED to
 `PairFreeOrbit x s s'` (a witness play that never raises or pulls either
 twin); the founds row is dropped — the proof does not read it, so the
 journey may change founds via other cards' letters.  `SwappableIn` is
-definitionally the stub's existential shape (`Orig2/Vocab.lean`), so the
+definitionally the stub's existential shape (`Orig2/Substrate/Vocab.lean`), so the
 conclusion is the stub's verbatim. -/
 theorem fiber_transfer_corrected_of_pairFreePath :
     ∀ (s s' : State) (x : Card), s.WF → s'.WF →

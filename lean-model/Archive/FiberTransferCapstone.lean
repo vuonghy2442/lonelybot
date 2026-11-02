@@ -1,8 +1,8 @@
 import Orig2.TwinPointNormalize
 import Orig2.TwinPointOrbit
 import Orig2.TwinDrawTransfer
-import Orig2.OrbitFactor
-import Orig2.KingSwapAssembly
+import Orig2.Fiber.OrbitFactor
+import Orig2.Fiber.KingSwapAssembly
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
@@ -367,8 +367,8 @@ Deviations from the literal task route, and why:
    the first seat-changing reversible step (`vacancy_of_seat_change_step`
    / `vacancy_of_walk_change`).
 3. The no-vacancy row `not_swappableIn_king_of_not_vacant`
-   (`Orig2/KingSwapAssembly.lean`) and the class-invariance
-   `sameOrbitVacant_iff` (`Orig2/KingOrbitFull.lean`) are both available;
+   (`Orig2/Fiber/KingSwapAssembly.lean`) and the class-invariance
+   `sameOrbitVacant_iff` (`Orig2/Fiber/KingOrbitFull.lean`) are both available;
    the constructive route above makes the negative arm unnecessary.
 4. The king pair data is stronger than `hseats'`: the landed vacancy arm
    needs both twins to bottom singleton piles at distinct anchors with

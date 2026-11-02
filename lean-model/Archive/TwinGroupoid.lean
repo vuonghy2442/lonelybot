@@ -1,7 +1,7 @@
 import Orig2.TwinTransferRiderFree
-import Orig2.TwinEquivariance
-import Orig2.TwinRelabel
-import Orig2.TwinSplice
+import Orig2.Fiber.TwinEquivariance
+import Orig2.Fiber.TwinRelabel
+import Orig2.Fiber.TwinSplice
 
 /-!
 # Orig2.TwinGroupoid — the tableau subgroupoid and its twin flip

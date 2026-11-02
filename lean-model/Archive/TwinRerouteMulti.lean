@@ -1,5 +1,5 @@
 import Orig2.TwinReroute
-import Orig2.DetourKit
+import Orig2.Substrate.DetourKit
 
 /-!
 # Orig2.TwinRerouteMulti — iterating the base-case reroute

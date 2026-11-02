@@ -1,7 +1,7 @@
 import Orig2.ForkEqSplitSlide
 import Orig2.ForkLandResSeat
 import Orig2.ForkChoiceFree
-import Orig2.Integrity
+import Orig2.Substrate.Integrity
 import Orig2.ForkBaseSeat
 import Orig2.ForkBasePile
 import Orig2.ForkBaseMain

@@ -1,6 +1,6 @@
-import Orig2.ForkCrossSuit
-import Orig2.ForkCommuteSlide
-import Orig2.ForkBlocks
+import Orig2.Fork.ForkCrossSuit
+import Orig2.Fork.ForkCommuteSlide
+import Orig2.Fork.ForkBlocks
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -15,7 +15,7 @@ zero `Classical.choice`, zero `native_decide`; battery at the tail.
 
 ## The audit that motivated this card
 
-`Orig2/ForkBlocks.lean` stopped the cross-suit lane at
+`Orig2/Fork/ForkBlocks.lean` stopped the cross-suit lane at
 `Blocks.NoSeatMateCrossSuit` — "the exact surviving shape".  But that
 residual (and the `∃`-form `canonical_no_crossSuit_corridor` beneath it)
 quantifies only over corridors whose window is **nice**:

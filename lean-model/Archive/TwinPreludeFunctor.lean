@@ -2,8 +2,8 @@ import Orig2.TwinPreludePath
 import Orig2.TwinRecipeRiders
 import Orig2.TwinBothCovered
 import Orig2.TwinDrawTransfer
-import Orig2.OrbitFactor
-import Orig2.DetourKit
+import Orig2.Fiber.OrbitFactor
+import Orig2.Substrate.DetourKit
 import Orig2.FiberTransferCapstonePrelude
 
 set_option linter.unusedSectionVars false

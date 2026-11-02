@@ -1,10 +1,10 @@
 import Orig2.TwinSpliceUnique
 import Orig2.TwinSplicePlay
-import Orig2.TwinEquivariance
+import Orig2.Fiber.TwinEquivariance
 import Orig2.TwinParentShift
 import Orig2.TwinSuffixExchange
-import Orig2.TwinSwapRecipe
-import Orig2.Classification
+import Orig2.Fiber.TwinSwapRecipe
+import Orig2.Substrate.Classification
 
 set_option linter.unusedSectionVars false
 

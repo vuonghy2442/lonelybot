@@ -1,7 +1,7 @@
-import Orig2.OrbitFactor
-import Orig2.RevSteps
-import Orig2.FloatOrbit
-import Orig2.StepWF
+import Orig2.Fiber.OrbitFactor
+import Orig2.Substrate.RevSteps
+import Orig2.Fiber.FloatOrbit
+import Orig2.Substrate.StepWF
 
 /-!
 # Orig2.FlagShip — THE FLAGSHIP DOOR (the library's single-question
@@ -29,8 +29,8 @@ independent channels.  Everything else in the tree either feeds it
 (the R-shapes, the reversibility carrier, the walk/steps generics),
 rides it (the spine candidates, the pins, the fiber program), or
 follows from it (`phaseFixed` as a class invariant, the
-`class_card_zone` row).  Certified home: `Orig2/OrbitFactor.lean`
-§4b — the claims ledger's `Orig2/Claims.lean` §1B row, discharged at
+`class_card_zone` row).  Certified home: `Orig2/Fiber/OrbitFactor.lean`
+§4b — the claims ledger's `Orig2/Claims/Claims.lean` §1B row, discharged at
 promotion 2026-10-17; five green batches; the frozen tier's
 3,000-line engine route beaten by the general commutation square and
 the restated pull core; battery [propext, Quot.sound], zero sorry,
@@ -43,7 +43,7 @@ reversible closure — the adjudication's named runner-up, installed
 the same hour: the row the flagship's every leg rides by construction
 (witness closures enforce per-leg reversibility at DEFINITION time;
 this row proved once and for all that the enforcement never shrank a
-closure).  Certified home: `Orig2/RevSteps.lean` (installed
+closure).  Certified home: `Orig2/Substrate/RevSteps.lean` (installed
 2026-10-17; battery [propext]; WF-free, oracle-free, choice-free).
 
 ## THE CARGO-TIER KEYSTONE — the conservation law
@@ -58,7 +58,7 @@ claims book §1F).  Ranked below the class tier and honest about it:
 bare cargo, not the certified class; one program (the floater
 books), not the whole tree; invariance, not structure.  The door's
   third row by owner call 2026-10-17.  Certified home:
-`Orig2/FloatOrbit.lean` §H6 (the chain lift is now shared as
+`Orig2/Fiber/FloatOrbit.lean` §H6 (the chain lift is now shared as
 `CargoKit.tfa_chain_lift`; promoted from the
 `Temp/float_agent_check.lean` dry-run; WF-gated — the leg engine
 consumes occurrence uniqueness off the gate; battery [propext,
@@ -78,7 +78,7 @@ while the fuel set is what every reversible leg preserves
 (`king_assignment_reachable`, greedy cycle-fixer over the fuel set)
 plus the residual twin chart.  The per-rank factorization is
 `bareCargo_iff_split` (king half over `VKSet`, twin half).
-Certified home: `Orig2/FloatOrbit.lean` §M11 and §§M11a–g; battery
+Certified home: `Orig2/Fiber/FloatOrbit.lean` §M11 and §§M11a–g; battery
 [propext, Quot.sound], zero sorry, zero `Classical.choice`; the WF
 gate supplies the chart round trip, so no ambient rigidity binder.
 
@@ -94,7 +94,7 @@ needs every state it names certified, which is why the frozen
 tier re-derived this fence per-file at its consumers
 (`Orig/Dominance.lean:9177`, the ForkFloor/ForkCensus lifts) —
 it had no home to import.  The rebuild gives it one.  Fifth seat
-by owner call 2026-10-18.  Certified home: `Orig2/StepWF.lean`
+by owner call 2026-10-18.  Certified home: `Orig2/Substrate/StepWF.lean`
 (ported the same day from `Orig/Reach.lean:2104`'s fence chapter:
 the `tabToTab` case consumed as CargoKit's `tfc_tabToTab_wf`, the
 five other constructor arms ported verbatim at the kit rows;
@@ -114,13 +114,13 @@ CAUSE (a sorry, a hoisted premise, a fence).  A mention grows into
 a seat only by owner call.  The roll:
 
 * `reversibleOf_iff_reversibleAtW` (home:
-  `Orig2/Classification.lean` §7, the card's battery) — the
+  `Orig2/Substrate/Classification.lean` §7, the card's battery) — the
   zero-choice carrier dictionary: at WF, the Bool undoability
   oracle decides the constructive witness carrier exactly, per
   move — `reversibleOf st m = true ↔ reversibleAtW st m`.  The
   vocabulary's own promised substitute for the classical
   unconditioned iff (the carrier's design note,
-  `reversibleAtW`'s docstring in `Orig2/Vocab.lean`: that iff
+  `reversibleAtW`'s docstring in `Orig2/Substrate/Vocab.lean`: that iff
   drags `Classical.choice` through the vocabulary; this row
   supplies the effective dichotomy instead, both halves
   constructive).  The most-cited practical row in the tree —
@@ -132,10 +132,10 @@ a seat only by owner call.  The roll:
 
 * Below the roll's bar, verdict recorded (2026-10-17):
   `floater_classification` (`Floater` iff `FloaterSpec`,
-  `Orig2/FloatFiber.lean` §H3) — certified green, no sorry and no
+  `Orig2/Fiber/FloatFiber.lean` §H3) — certified green, no sorry and no
   hoist of its own; excluded by RANK, not debt: its consumers are
   the floater books alone (the flat-iff harnesses and the
-  conservation seat's own engine, `Orig2/FloatOrbit.lean`'s chain
+  conservation seat's own engine, `Orig2/Fiber/FloatOrbit.lean`'s chain
   lift) — a def-vs-spec characterization, feeder-grade within one
   tier.  The roll stays tree-grade; opening it here queues the
   quartet and the kit behind.  The debt in its program belongs to
@@ -147,11 +147,11 @@ By DEBT — the floater books' capstones still re-hoist the priced
 `chart_round_trip` as a hypothesis (`floater_seat_to_equiv'`, the
 `floater_iff_cargoEdit` harness, and the flat class
 characterization `bareCargo_iff_chartEdits`,
-`Orig2/FloatFiber.lean` §H4-§H5): nothing they cover exports
+`Orig2/Fiber/FloatFiber.lean` §H4-§H5): nothing they cover exports
 until that stub discharges, at which point the hoists drop per the
 debt linkage.  AMENDMENT (2026-10-18): the stub's UNGATED shape is
 refuted — the chart card landed it WF-GATED with a kernel
-refutation of the ungated form (`Orig2/Chart.lean` §10-§11,
+refutation of the ungated form (`Orig2/Claims/Chart.lean` §10-§11,
 battery [propext, Quot.sound] / [propext]) — so the hoists above do
 not drop verbatim: they await each site's mate-pinning amendment
 (mate-side WF, or the card's conservation grade
@@ -159,7 +159,7 @@ not drop verbatim: they await each site's mate-pinning amendment
 floater books' own debt, see the ledger's §1F UPDATE.  The
 scrutiny phase's own flagship
 candidate — `fiber_product_schematic`, the (Z/2)^k bit-group
-decomposition over the `twinBit` index, `Orig2/ClaimsScrutiny.lean`
+decomposition over the `twinBit` index, `Orig2/Claims/ClaimsScrutiny.lean`
 §S4 — is a PRICED SCHEMATIC carrying its honest sorry; it remains
 the successor candidate, entering this door the day its quotient
 formalization discharges.  No sorry, no forced premise, no
@@ -178,7 +178,7 @@ audit discipline.
 /-- **THE FLAGSHIP EXPORT** — the phase factorization at a citable
 name: a reversible-class membership factors as a draw-free board
 reshuffle to a phase-mate followed by a pure rotation round.  Trivial
-forward of `sameOrbit_factor` (`Orig2/OrbitFactor.lean` §4b, battery
+forward of `sameOrbit_factor` (`Orig2/Fiber/OrbitFactor.lean` §4b, battery
 [propext, Quot.sound], zero sorry, zero choice) — every leg of both
 channels reversible by construction, the license row below. -/
 theorem flagship_sameOrbitFactor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
@@ -188,7 +188,7 @@ theorem flagship_sameOrbitFactor {u v : State} (hwf₁ : u.WF) (hwf₂ : v.WF) :
 /-- **THE KEYSTONE LICENSE EXPORT** — over ANY letter family the dumb
 both-ways span closure equals the reversible closure: the row the
 flagship's every leg rides by construction.  Trivial forward of
-`rev_steps_iff` (`Orig2/RevSteps.lean`, battery [propext], zero
+`rev_steps_iff` (`Orig2/Substrate/RevSteps.lean`, battery [propext], zero
 sorry, zero choice). -/
 theorem flagship_revStepsLicense (P : State → Move → Prop) (A B : State) :
     (Steps (StepOf P) A B ∧ Steps (StepOf P) B A) ↔
@@ -198,7 +198,7 @@ theorem flagship_revStepsLicense (P : State → Move → Prop) (A B : State) :
 /-- **THE CARGO-TIER KEYSTONE EXPORT** — the conservation law at a
 citable name: along a whole bare-cargo class, which cards are
 floaters is FIXED, card by card.  Trivial forward of
-`floater_orbit_invariant` (`Orig2/FloatOrbit.lean`, promoted from
+`floater_orbit_invariant` (`Orig2/Fiber/FloatOrbit.lean`, promoted from
 the dry-run 2026-10-17; battery [propext, Quot.sound], zero sorry,
 zero choice; WF-gated). -/
 theorem flagship_floaterOrbitInvariant {st w : State} {c : Card}
@@ -209,7 +209,7 @@ theorem flagship_floaterOrbitInvariant {st w : State} {c : Card}
 changed-card normal form: every card whose seat changes is either a licensed
 twin hop or a licensed king landing on a node of the origin's fuel set, and
 the readouts agree.  Trivial forward of `bareCargo_iff_vk`
-(`Orig2/FloatOrbit.lean` §M11; battery [propext, Quot.sound], zero sorry,
+(`Orig2/Fiber/FloatOrbit.lean` §M11; battery [propext, Quot.sound], zero sorry,
 zero choice; WF-gated both sides, which also supplies the chart round trip).
 The redundant total per-card relation (unchanged arm and st-side king anchor)
 stays in the direction lemmas `bareCargo_to_chartDiff_vk` /
@@ -227,7 +227,7 @@ theorem flagship_bareCargoIffVK {st w : State} (hwfst : st.WF) (hw : w.WF) :
 
 /-- **THE INVARIANT FENCE EXPORT** — the working world is conserved:
 a legal step from a well-formed position lands well-formed.  Trivial
-forward of `step_wf` (`Orig2/StepWF.lean`, ported from
+forward of `step_wf` (`Orig2/Substrate/StepWF.lean`, ported from
 `Orig/Reach.lean:2104`; battery [propext, Quot.sound], zero sorry,
 zero choice); the play lift `run_wf` stays at the home card. -/
 theorem flagship_stepWF {st st' : State} {m : Move} (hwf : st.WF)

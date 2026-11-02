@@ -1,6 +1,6 @@
 import Orig2.TwinAbstract7L
 import Orig2.TwinPreludePath
-import Orig2.TwinSwapRecipe
+import Orig2.Fiber.TwinSwapRecipe
 import Orig2.TwinSpliceUnique
 
 set_option linter.unusedSectionVars false

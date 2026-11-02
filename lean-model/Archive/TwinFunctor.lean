@@ -1,6 +1,6 @@
 import Orig2.TwinGroupoid
-import Orig2.TwinEquivariance
-import Orig2.DetourKit
+import Orig2.Fiber.TwinEquivariance
+import Orig2.Substrate.DetourKit
 
 /-!
 # Orig2.TwinFunctor — the rider-free twin flip as a tableau-groupoid isomorphism

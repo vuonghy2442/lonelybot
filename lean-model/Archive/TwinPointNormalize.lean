@@ -1,5 +1,5 @@
 import Orig2.TwinPointOrbit
-import Orig2.DetourKit
+import Orig2.Substrate.DetourKit
 import Orig2.TwinSplicePlay
 
 /-!

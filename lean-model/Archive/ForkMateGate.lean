@@ -1,5 +1,5 @@
-import Orig2.ForkGatedTower
-import Orig2.ForkNoMate
+import Orig2.Fork.ForkGatedTower
+import Orig2.Fork.ForkNoMate
 
 set_option autoImplicit false
 set_option maxHeartbeats 3000000

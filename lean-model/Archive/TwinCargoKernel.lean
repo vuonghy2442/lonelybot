@@ -1,5 +1,5 @@
-import Orig2.Classification
-import Orig2.CargoKit
+import Orig2.Substrate.Classification
+import Orig2.Substrate.CargoKit
 import Orig2.TwinLastPull
 import Orig2.TwinRaiseCommute
 

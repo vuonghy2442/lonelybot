@@ -1,7 +1,7 @@
 import Orig2.TwinRecipeRiders
 import Orig2.TwinSplicePlay
 import Orig2.TwinSpliceUnique
-import Orig2.TwinPointTransfer
+import Orig2.Fiber.TwinPointTransfer
 
 /-!
 # Temp/TwinRiderPath — the rider-general `PointPath` transfer

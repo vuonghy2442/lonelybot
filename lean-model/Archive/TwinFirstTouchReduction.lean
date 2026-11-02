@@ -1,9 +1,9 @@
 import Orig2.TwinPairFreeTransfer
 import Orig2.TwinSplicePlay
 import Orig2.TwinForcedCancel
-import Orig2.DetourKit
-import Orig2.Kit
-import Orig2.StepWF
+import Orig2.Substrate.DetourKit
+import Orig2.Substrate.Kit
+import Orig2.Substrate.StepWF
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
@@ -13,7 +13,7 @@ set_option linter.unnecessarySimpa false
 # Orig2.TwinFirstTouchReduction — the full transfer reduced to the first touch
 
 The owner's reduction step toward `fiber_transfer_corrected`
-(`Orig2/ClaimsScrutiny.lean:248`): every witness journey either never
+(`Orig2/Claims/ClaimsScrutiny.lean:248`): every witness journey either never
 touches the twin, or has a FIRST touching move — and at that state the
 swap availability has already arrived, by the pair-free transfer
 (`Orig2/TwinPairFreeTransfer.lean`, landed 2026-10-25).

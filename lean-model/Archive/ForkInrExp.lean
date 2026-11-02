@@ -1,4 +1,4 @@
-import Orig2.ForkBaseEnabling
+import Orig2.Fork.ForkBaseEnabling
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
@@ -21,24 +21,24 @@ adjacent shortening are theorems), but `InrExpHead` and
 `InrExpRefute.InrExpHeadGated`.  Do not cite the residuals below as
 dischargeable.
 
-`BaseEn.InrExposeResidual` (`Orig2/ForkBaseEnabling.lean:269`) was the last
+`BaseEn.InrExposeResidual` (`Orig2/Fork/ForkBaseEnabling.lean:269`) was the last
 base-enabling case of `MtnPr.SameCardRelocation`: the pull lands on an `inr z`
 base that is **buried** at the raise's origin (`A.pileOfTop z = none`) and only
 becomes a pile top somewhere inside the interior `γ₁`.
 
 * §0  two-line helpers.
 * §1  `pullSt_raiseSt_eq_slideSt`: `MtnPr.raise_pull_eq_slide`
-  (`Orig2/ForkRelocate.lean:90`) in the explicit `pullSt`/`slideSt` normal form.
+  (`Orig2/Fork/ForkRelocate.lean:90`) in the explicit `pullSt`/`slideSt` normal form.
 * §2  the **exposing raise** identity: `raise c ; raise x ; pull c (inr z)` =
   `raise x ; slide c (inr z)` (`raise_raise_pull_eq_raise_slide_inr`), via
-  `raiseSt_commute` (`Orig2/ForkCriticalPair.lean:206`) + §1.
+  `raiseSt_commute` (`Orig2/Fork/ForkCriticalPair.lean:206`) + §1.
 * §3  the **exposing slide** identity: `raise c ; slide w b'' ; pull c (inr z)`
   = `slide w b'' ; slide c (inr z)` (`raise_slide_pull_eq_slide_slide_inr`),
-  via `CommuteStep.step_comm_slide_raise` (`Orig2/ForkCommuteSlide.lean:951`)
+  via `CommuteStep.step_comm_slide_raise` (`Orig2/Fork/ForkCommuteSlide.lean:951`)
   + §1.
 * §4  the full-play adjacent shortening built on the raising identity, the
   exact `inr` analogue of `BaseEn.baseEnabling_inl_interior_adjacent_shortens`
-  (`Orig2/ForkBaseEnabling.lean:452`): bubble the pull across the read-safe,
+  (`Orig2/Fork/ForkBaseEnabling.lean:452`): bubble the pull across the read-safe,
   seat-inert tail (`PullKit.pull_bubble`), then replace the three letters.
 * §5  the residual bookkeeping and the composition chain; the exact residual is
   `InrExpDeep` (§5) together with the play-level *lift* named `InrExpLift`.
@@ -347,7 +347,7 @@ def InrExpDeep : Prop :=
 
 /-- **THE READY-AT-IMAGE CASE OF THE `inr` RESIDUAL.**  If the pull is legal at
 the raise's image (in particular when the raise itself exposes `z`, or when
-`γ₁ = []`), §1 of `Orig2/ForkBaseEnabling.lean` closes the play. -/
+`γ₁ = []`), §1 of `Orig2/Fork/ForkBaseEnabling.lean` closes the play. -/
 theorem inrExpose_ready_shortens
     {u v : State} {ρ pre γ post : List Move} {c z : Card} {A B : State}
     (huwf : u.WF) (hplay : ShufflePlayW u ρ v)

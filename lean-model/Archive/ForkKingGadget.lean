@@ -1,4 +1,4 @@
-import Orig2.ForkDipPin
+import Orig2.Fork.ForkDipPin
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -14,7 +14,7 @@ the tail.
 
 ## What this card does
 
-`BlockMin.BothRaisableBlock` (`Orig2/ForkDipPin.lean:246`) says: at a `WF` state
+`BlockMin.BothRaisableBlock` (`Orig2/Fork/ForkDipPin.lean:246`) says: at a `WF` state
 whose S-live set is a twin pair `{x, x.twin}`, if BOTH twins are vanilla-raisable
 then one of them carries a `BlockMin.BlockerReady` (a card that fits it, face-up
 with company beneath, and with the twin a pile top).
@@ -23,7 +23,7 @@ For an ACE `Pin.not_bothRaisableBlock_of_ace` (`Temp/Pin_Main.lean:320`) shows
 the premise is unsatisfiable *with* the conclusion: nothing fits an ace, so no
 blocker can exist.  The **king** is the sharper boundary case, because the bare
 king is a legitimate raise seat (`CanRaise`'s `hidden = [] ∧ rank = king`
-disjunct, `Orig2/Vocab.lean:214`), so the twins are raisable for a *seat* reason,
+disjunct, `Orig2/Substrate/Vocab.lean:214`), so the twins are raisable for a *seat* reason,
 not a rung-companion reason — and still nothing fits a king.
 
 Proved here, kernel-checked:

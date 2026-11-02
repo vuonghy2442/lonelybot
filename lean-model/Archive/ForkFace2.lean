@@ -1,4 +1,4 @@
-import Orig2.ForkFace1
+import Orig2.Fork.ForkFace1
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -222,7 +222,7 @@ theorem faceUp_window_back :
 /-- **THE COVER ON THE PREPARED SEAT IS ALWAYS THE PULLEE'S TWIN.**  Face
 1b's `hface` hypothesis is now a theorem: `z` is face-up at the window's
 end (it is a pile top there), hence face-up at its start (§6).  The twin
-cover of `Orig2/ForkFace1.lean` is unconditional. -/
+cover of `Orig2/Fork/ForkFace1.lean` is unconditional. -/
 theorem cover_is_twin' {B P C0 : State} {γ : List Move} {d z : Card}
     (hwfB : B.WF)
     (hγ : ShufflePlayW B γ P) (hfree : Canon.FreeOnly γ)

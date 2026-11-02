@@ -1,5 +1,5 @@
-import Orig2.TwinEquivariance
-import Orig2.TwinSwapUnique
+import Orig2.Fiber.TwinEquivariance
+import Orig2.Fiber.TwinSwapUnique
 
 /-!
 # Orig2.TwinTransferRiderFree — the rider-free both-seated transfer

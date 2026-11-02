@@ -1,5 +1,5 @@
 import Orig2.ForkEqSplit
-import Orig2.FiberTransfer
+import Orig2.Fiber.FiberTransfer
 
 set_option autoImplicit false
 set_option maxHeartbeats 3000000

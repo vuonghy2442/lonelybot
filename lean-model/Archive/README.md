@@ -42,7 +42,7 @@ A second pass can widen this set once the campaign lands.
 
 The 53 excursion/attachment lane cards moved here the same day the
 campaign target closed (`fiber_transfer_corrected`, proven by the
-last-return route - see FARM_MEMORY and Orig2/FiberTransfer.lean):
+last-return route - see FARM_MEMORY and Orig2/Fiber/FiberTransfer.lean):
 the TwinAtt* functor world, the cover tables, the both-unseated
 arms, the Britton calculus, the excursion-closure lane, the
 campaign pad, the fiber quotient skeleton, the mirror routes, the
@@ -91,8 +91,10 @@ machinery):
 from `TwinAttShapes.lean:1026` and `TwinExcursionClosure.lean:832`,
 both retired with the campaign wave above.)
 
-Restore recipe: `git mv` the file back to `Orig2/`, rebuild - the
-retired cards were green at HEAD when archived.
+Restore recipe: `git mv` the file back to its lane directory under `Orig2/`
+(2026-11-02 layout: `Orig2/Substrate/`, `Orig2/Fork/`, `Orig2/Fiber/`,
+`Orig2/Boundary/`, `Orig2/Claims/`), rebuild - the retired cards were green
+at HEAD when archived.
 
 ## Scratch-card retirees (2026-11-02)
 
@@ -156,9 +158,10 @@ no other edits.  `lake build Orig2` re-verified green at **145 jobs**
 | route utilities | `ForkBoth`, `ForkChoiceFree`, `ForkFloor`, `ForkLeftRaise`, `ForkLedgerResidual`, `ForkPullOrigin`, `ForkReveal`, `ForkSignSwap` |
 
 These are RETIRED, not refuted: most carry live negative results or
-unfinished residuals, and the journal still cites them.  Restore recipe:
-`git mv` the card back to `Orig2/`, re-add `import Orig2.<Card>` to
-`Orig2.lean`, rebuild.
+unfinished residuals, and the journal still cites them.  Restore recipe
+(all 39 are `Fork*`, so they return to `Orig2/Fork/`):
+`git mv Archive/<Card>.lean Orig2/Fork/<Card>.lean`, re-add
+`import Orig2.Fork.<Card>` to `Orig2.lean`, rebuild.
 
 Caveat: about twenty `Temp/*.lean` probe scripts still `import Orig2.<card>`
 for these lanes (the base-clause probes, `InrExp2_*`, `EqSplit_*`,
@@ -187,7 +190,7 @@ foreach ($f in 'ForkCertBase','ForkCertBoard','ForkCertInv','ForkCertMain',
                'ForkCertPart0','ForkCertPart1','ForkCertPart2','ForkCertPart3',
                'ForkCertPart4','ForkCertPart5','ForkCertPart6','ForkCertPart7',
                'ForkEqualRungBall','ForkEqualRungBoard','ForkEqualRungMin') {
-  git mv "Archive/Cert/$f.lean" "Orig2/$f.lean" }
+  git mv "Archive/Cert/$f.lean" "Orig2/Fork/$f.lean" }
 ```
 
 With this move `Orig2/` is 139 cards, and every one of them is now reachable

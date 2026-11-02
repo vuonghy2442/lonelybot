@@ -1,7 +1,7 @@
-import Orig2.CargoRaise
-import Orig2.TwinEquivariance
-import Orig2.ArmSplit
-import Orig2.StepWF
+import Orig2.Substrate.CargoRaise
+import Orig2.Fiber.TwinEquivariance
+import Orig2.Fiber.ArmSplit
+import Orig2.Substrate.StepWF
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
@@ -33,7 +33,7 @@ fork.  Hence:
 ```
 
 The repairs are `ArmDichotomyRung` (rung branch; exactly `SatDifferFork`)
-and the flat-fiber `ArmDichotomySW` (`Orig2/SWDichotomy.lean`).
+and the flat-fiber `ArmDichotomySW` (`Orig2/Fiber/SWDichotomy.lean`).
 
 House compliance: additive leaf (`Orig2.CargoRaise`,
 `Orig2.TwinEquivariance`, `Orig2.ArmSplit`, `Orig2.StepWF`); zero `sorry`,

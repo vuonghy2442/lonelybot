@@ -1,6 +1,6 @@
 import Orig2.TwinPointFunctor
-import Orig2.TwinSwapUnique
-import Orig2.Integrity
+import Orig2.Fiber.TwinSwapUnique
+import Orig2.Substrate.Integrity
 
 set_option linter.unusedSectionVars false
 

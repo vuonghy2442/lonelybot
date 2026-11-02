@@ -1,5 +1,5 @@
-import Orig2.ForkDirect
-import Orig2.CargoRaise
+import Orig2.Fork.ForkDirect
+import Orig2.Substrate.CargoRaise
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000

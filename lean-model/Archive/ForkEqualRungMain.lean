@@ -1,6 +1,6 @@
 import Orig2.ForkEqualRungMin
 import Orig2.ForkEqualRungDist
-import Orig2.ForkMountainGate
+import Orig2.Fork.ForkMountainGate
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
@@ -19,14 +19,14 @@ The mountain hypothesis was **re-gated in source** while this card was being
 written:
 
 ```lean
--- Orig2/ForkMountainGate.lean
+-- Orig2/Fork/ForkMountainGate.lean
 MountainGate.RungDiffers u v           := ∃ σ : Suit, rungAt u σ ≠ rungAt v σ
 MountainGate.MountainAtSplitsDiffering :=
   ∀ (split data), RungDiffers u v → SplitHyp … → MountainSplit left right
 ```
 
 `Direct.MountainAtSplits` (and `Frontier.MountainSplitHyp`) are now marked
-**UNDER-GATED**; `Orig2/ForkGatedTower.lean` re-derives the consumer tower from
+**UNDER-GATED**; `Orig2/Fork/ForkGatedTower.lean` re-derives the consumer tower from
 `MountainAtSplitsDiffering`.
 
 The witness transcribed here has **equal** rung vectors `(4,0,3,2)` at its

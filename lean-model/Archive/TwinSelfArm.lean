@@ -1,8 +1,8 @@
-import Orig2.Kit
+import Orig2.Substrate.Kit
 import Orig2.TwinPairFreeRev
-import Orig2.Integrity
-import Orig2.StepWF
-import Orig2.Classification
+import Orig2.Substrate.Integrity
+import Orig2.Substrate.StepWF
+import Orig2.Substrate.Classification
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false

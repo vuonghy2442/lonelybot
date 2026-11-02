@@ -1,4 +1,4 @@
-import Orig2.Vocab
+import Orig2.Substrate.Vocab
 
 /-!
 # The chart book's kernel probe (2026-10-18)

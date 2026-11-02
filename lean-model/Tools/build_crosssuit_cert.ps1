@@ -22,15 +22,15 @@ if (Test-Path $log) { Remove-Item $log }
 #                  'ForkCertPart0','ForkCertPart1','ForkCertPart2','ForkCertPart3',
 #                  'ForkCertPart4','ForkCertPart5','ForkCertPart6','ForkCertPart7',
 #                  'ForkEqualRungBall','ForkEqualRungBoard','ForkEqualRungMin') {
-#     git mv "Archive/Cert/$f.lean" "Orig2/$f.lean" }
-if (-not (Test-Path 'Orig2/ForkCertBoard.lean')) {
+#     git mv "Archive/Cert/$f.lean" "Orig2/Fork/$f.lean" }
+if (-not (Test-Path 'Orig2/Fork/ForkCertBoard.lean')) {
   Write-Host 'Certificate cluster lives in Archive/Cert; restore it first (recipe above).'
   exit 1
 }
 
 function Step([string]$file, [string]$mod) {
   $t0 = Get-Date
-  & lake env lean -o "$out/$mod.olean" "Orig2/$file"
+  & lake env lean -o "$out/$mod.olean" "Orig2/Fork/$file"
   if ($LASTEXITCODE -ne 0) { throw "BUILD FAILED: $file" }
   $dt = [int]((Get-Date) - $t0).TotalSeconds
   Write-Host ("{0,-30} {1,5}s" -f $file, $dt)
@@ -38,7 +38,7 @@ function Step([string]$file, [string]$mod) {
 
 function Check([string]$file) {
   $t0 = Get-Date
-  & lake env lean "Orig2/$file" 2>&1 | Tee-Object -FilePath $log -Append
+  & lake env lean "Orig2/Fork/$file" 2>&1 | Tee-Object -FilePath $log -Append
   if ($LASTEXITCODE -ne 0) { throw "CHECK FAILED: $file" }
   $dt = [int]((Get-Date) - $t0).TotalSeconds
   Write-Host ("{0,-30} {1,5}s" -f $file, $dt)
@@ -51,7 +51,7 @@ Step 'ForkCertBase.lean'  'ForkCertBase'
 $tp = Get-Date
 $procs = 0..7 | ForEach-Object {
   Start-Process -PassThru -NoNewWindow -FilePath 'C:\Users\hy\.elan\bin\lake.exe' `
-    -ArgumentList 'env','lean','-o',"$out/ForkCertPart$_.olean","Orig2/ForkCertPart$_.lean" `
+    -ArgumentList 'env','lean','-o',"$out/ForkCertPart$_.olean","Orig2/Fork/ForkCertPart$_.lean" `
     -RedirectStandardOutput "Temp\certpart$_.out" -RedirectStandardError "Temp\certpart$_.err"
 }
 $procs | Wait-Process

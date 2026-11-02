@@ -1,5 +1,5 @@
-import Orig2.DetourKit
-import Orig2.Kit
+import Orig2.Substrate.DetourKit
+import Orig2.Substrate.Kit
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false

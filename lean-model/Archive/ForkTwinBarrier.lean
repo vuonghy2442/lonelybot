@@ -1,9 +1,9 @@
 import Orig2.ForkGap
-import Orig2.ForkFrontier
-import Orig2.ForkTwinLive
-import Orig2.ForkLanding
-import Orig2.ForkPin
-import Orig2.ForkSplitResidual
+import Orig2.Fork.ForkFrontier
+import Orig2.Fork.ForkTwinLive
+import Orig2.Fork.ForkLanding
+import Orig2.Fork.ForkPin
+import Orig2.Fork.ForkSplitResidual
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
@@ -504,7 +504,7 @@ theorem not_twinLive_of_residual_and_noRaiseD
 raise letter IS the twin raise -/
 
 /-- **THE CAMPAIGN'S SPLIT RAISE IS THE PULLED CARD'S TWIN.**  Re-export of
-`SplitKit.splitTwin_of_livePair_block` (`Orig2/ForkSplitResidual.lean:360`):
+`SplitKit.splitTwin_of_livePair_block` (`Orig2/Fork/ForkSplitResidual.lean:360`):
 from `SplitLivePair` (the live set at the bottom is the raise card's twin pair)
 and `SplitBlock`, the raise card `d` of the split's right leg is exactly `c.twin`,
 where `c` is the *pulled* card.  So in the campaign's decomposition the split's

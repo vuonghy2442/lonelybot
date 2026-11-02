@@ -46,7 +46,7 @@ geometry is closed: `ForkThirdRigidHigh`, `ForkThirdRigid`,
 class carries at most one fork `Position`.
 
 Kit note (the 2026-10-31 dedup waves): the shared kit stratum leaf is
-`Orig2/Kit.lean` — the below/fromCard calculus, the occurrence-count
+`Orig2/Substrate/Kit.lean` — the below/fromCard calculus, the occurrence-count
 word (`tfc_cnt` family), the lastOf/getLast? bridge, the seat
 readers, and `below_not_mem_self` live there under their `tfc_`
 names (Chart's closed-seam import surface rides it; the founding

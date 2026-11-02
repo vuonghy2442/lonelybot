@@ -131,7 +131,7 @@ theorem mem_of_below_nil {c : Card} {l : List Card}
       exact List.mem_cons_self ..
 
 /-- **THE REVEAL SLIDE DROPS THE HIDDEN TOTAL.**  `hiddenTotal` is the flat
-length of the seven hidden decks (`Orig2/Kit.lean:138`); the reveal converts one
+length of the seven hidden decks (`Orig2/Substrate/Kit.lean:138`); the reveal converts one
 hidden card to face-up and nothing else grows. -/
 theorem reveal_slide_hidden_drop
     {st s' : State} {a : Anchor} {p z : Card} {b : Base}
@@ -220,7 +220,7 @@ theorem reveal_no_returning_play
 
 /-! ## §3. The commit oracle agrees -/
 
-/-- **THE COMMIT SHAPE READS `false`.**  `tabToTabR` (`Orig2/Vocab.lean:174`)
+/-- **THE COMMIT SHAPE READS `false`.**  `tabToTabR` (`Orig2/Substrate/Vocab.lean:174`)
 is the reveal-vs-company discriminator: `below = []` plus a nonempty hidden deck
 is the commit arm. -/
 theorem reveal_tabToTabR_eq_false
@@ -235,7 +235,7 @@ theorem reveal_tabToTabR_eq_false
   | true => simp [tabToTabR, hhold, hcp, hbelow, hhid]
 
 /-- **SECOND ROUTE.**  The classification's WF bridge
-(`Orig2/Classification.lean:2350`) re-derives the impossibility from the shape
+(`Orig2/Substrate/Classification.lean:2350`) re-derives the impossibility from the shape
 row above. -/
 theorem reveal_slide_not_reversibleAtW_via_classification
     {st : State} {a : Anchor} {p z : Card} {b : Base}

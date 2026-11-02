@@ -1,5 +1,5 @@
 import Orig2.TwinFunctor
-import Orig2.TwinSpliceWF
+import Orig2.Fiber.TwinSpliceWF
 
 set_option linter.unusedSectionVars false
 

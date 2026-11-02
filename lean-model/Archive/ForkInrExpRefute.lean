@@ -12,7 +12,7 @@ set_option linter.unusedSimpArgs false
 READ-ONLY scratch card (`Temp/`).  No source edit, no commit.  No `sorry`,
 no `Classical.choice`, no `native_decide`; axiom battery at the tail.
 
-`BaseEn.InrExposeResidual` (`Orig2/ForkBaseEnabling.lean:269`) — and its head
+`BaseEn.InrExposeResidual` (`Orig2/Fork/ForkBaseEnabling.lean:269`) — and its head
 case `InrExp.InrExpHead` (`Orig2/ForkInrExp.lean:299`) — claim:
 
 > if a play contains `raise c ; γ ; pull c (inr z)` with `γ` read-safe for `c`

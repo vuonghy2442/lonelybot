@@ -1,6 +1,6 @@
 import Orig2.ForkCrossSuitPartition
-import Orig2.Integrity
-import Orig2.PairClassSeed
+import Orig2.Substrate.Integrity
+import Orig2.Substrate.PairClassSeed
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000

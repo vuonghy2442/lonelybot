@@ -1,4 +1,4 @@
-import Orig2.DetourKit
+import Orig2.Substrate.DetourKit
 import Orig2.TwinRecipeSegment
 
 /-!

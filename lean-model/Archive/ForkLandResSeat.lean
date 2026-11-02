@@ -1,4 +1,4 @@
-import Orig2.ForkStraddle
+import Orig2.Fork.ForkStraddle
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000

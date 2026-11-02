@@ -1,8 +1,8 @@
-import Orig2.TwinPointTransfer
+import Orig2.Fiber.TwinPointTransfer
 import Orig2.TwinSplicePlay
 import Orig2.TwinRerouteMulti
 import Orig2.TwinDrawTransfer
-import Orig2.OrbitFactor
+import Orig2.Fiber.OrbitFactor
 
 /-!
 # Temp/TwinPointOrbit — the point transfer along pair-free/recipe paths

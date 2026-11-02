@@ -1,6 +1,6 @@
 import Orig2.ForkEqSplitSlide
 import Orig2.ForkLandResSeat
-import Orig2.ForkCommuteSlide
+import Orig2.Fork.ForkCommuteSlide
 import Orig2.ForkChoiceFree
 import Orig2.ForkBaseSeat
 

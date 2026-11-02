@@ -1,10 +1,10 @@
 import Orig2.TwinPairFreeClass
 import Orig2.TwinRaiseCommute
 import Orig2.TwinSplicePlay
-import Orig2.Classification
-import Orig2.SeatMateStack
-import Orig2.Integrity
-import Orig2.Kit
+import Orig2.Substrate.Classification
+import Orig2.Fiber.SeatMateStack
+import Orig2.Substrate.Integrity
+import Orig2.Substrate.Kit
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false

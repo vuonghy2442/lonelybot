@@ -1,7 +1,7 @@
 import Orig2.FiberTransferCapstoneRider
 import Orig2.TwinPreludePath
 import Orig2.TwinDrawTransfer
-import Orig2.OrbitFactor
+import Orig2.Fiber.OrbitFactor
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false

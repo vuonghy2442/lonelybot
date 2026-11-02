@@ -1,6 +1,6 @@
 import Orig2.TwinSuffixExchange
-import Orig2.TwinSplice
-import Orig2.Integrity
+import Orig2.Fiber.TwinSplice
+import Orig2.Substrate.Integrity
 
 set_option linter.unusedSectionVars false
 

@@ -1,8 +1,8 @@
-import Orig2.TwinSplice
-import Orig2.TwinSpliceWF
-import Orig2.TwinRelabel
-import Orig2.TwinEquivariance
-import Orig2.Integrity
+import Orig2.Fiber.TwinSplice
+import Orig2.Fiber.TwinSpliceWF
+import Orig2.Fiber.TwinRelabel
+import Orig2.Fiber.TwinEquivariance
+import Orig2.Substrate.Integrity
 
 set_option linter.unusedSectionVars false
 

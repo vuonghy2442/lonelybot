@@ -1,7 +1,7 @@
-import Orig2.ForkPin
-import Orig2.ForkTailHead
-import Orig2.ForkSplitResidual
-import Orig2.ForkLivePair
+import Orig2.Fork.ForkPin
+import Orig2.Fork.ForkTailHead
+import Orig2.Fork.ForkSplitResidual
+import Orig2.Fork.ForkLivePair
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000

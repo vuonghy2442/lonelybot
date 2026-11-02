@@ -1,12 +1,12 @@
 import Orig2.TwinPairFreeTransfer
 import Orig2.TwinFirstTouchReduction
 import Orig2.TwinSelfArm
-import Orig2.TwinSwapRecipe
+import Orig2.Fiber.TwinSwapRecipe
 import Orig2.TwinBothCovered
 import Orig2.TwinFoundationRow
-import Orig2.TwinSpliceComm
-import Orig2.Chart
-import Orig2.StepWF
+import Orig2.Fiber.TwinSpliceComm
+import Orig2.Claims.Chart
+import Orig2.Substrate.StepWF
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false

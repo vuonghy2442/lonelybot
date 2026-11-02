@@ -1,5 +1,5 @@
 import Orig2.ForkCrossSuitPartition
-import Orig2.ForkFace1
+import Orig2.Fork.ForkFace1
 import Orig2.ForkOffWindow
 
 set_option autoImplicit false
