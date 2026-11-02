@@ -641,13 +641,33 @@ theorem minimalFullJoin_of_prefixWitness {u s s' : State} {cap : Suit -> Nat}
 #print axioms capRealised
 #print axioms minimalFullJoin_of_prefixWitness
 
+
+
+
+
+
+
+
+
+
+/-! ## The lone-over-hidden blocker -/
+
+/-- A card that is the only face-up card of its pile, over nonempty hidden
+cards, is NOT raisable (the reveal ban, at the licence level). -/
+theorem canRaise_false_of_lone {st : State} {a : Anchor} {z : Card}
+    (hpod : st.pileOfTop z = some a)
+    (hface : (st.piles a).faceUp = [z])
+    (hhid : (st.piles a).hidden ≠ []) :
+    ¬ CanRaise st z := by
+  intro hcan
+  obtain ⟨-, a', hpod', hside⟩ := hcan
+  have haa : a' = a := pileOfTop_inj hpod' hpod
+  subst haa
+  rcases hside with h | ⟨hh, -⟩
+  · rw [hface] at h
+    exact h rfl
+  · exact hhid hh
+
+#print axioms canRaise_false_of_lone
+
 end PrefixClimb
-
-
-
-
-
-
-
-
-
