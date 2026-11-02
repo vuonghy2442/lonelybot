@@ -101,6 +101,75 @@ def FullJoinAtLeastOneColourOrFork : Prop :=
   ∀ s s', s.WF → s'.WF → sameOrbitSetoid.r s s' →
     (∃ w, FullJoinAtLeastOneColour s s' w) ∨ Fork s
 
+/-- A least upper bound of the target `z` in the class of `u`. -/
+def IsLUBTarget (u : State) (z : Suit → Nat) (w : State) : Prop :=
+  UpperTarget u z w ∧
+    ∀ v, UpperTarget u z v → ∀ σ : Suit, rungAt w σ ≤ rungAt v σ
+
+/-- The **minimal** full overshoot join for `s,s'`: the least class-mate
+above the componentwise maximum. -/
+def MinimalFullJoin (s s' w : State) : Prop :=
+  IsLUBTarget s (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) w
+
+/-- **THE EXACT MINIMAL OVERSHOOT IS ONE-COLOUR EXACT.**  In a forkless
+class, the least upper bound of the componentwise maximum is exact on at
+least one twin pair.  Consequently all strict overshoot is confined to the
+other twin pair, so the overshoot support has size at most two. -/
+theorem minimalFullJoin_oneColourExact
+    (hcl : ForklessOneColourClosure)
+    {s s' w : State}
+    (hs : s.WF) (hfl : Forkless s) (hmin : MinimalFullJoin s s' w) :
+    OneColourExactTarget
+      (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) w := by
+  let z : Suit → Nat := fun σ => Nat.max (rungAt s σ) (rungAt s' σ)
+  have hbounded : ∃ e, UpperTarget s z e :=
+    ⟨w, hmin.1.1, hmin.1.2⟩
+  obtain ⟨e, he_upper, he_exact⟩ := hcl s hs hfl z hbounded
+  have hwle : ∀ σ : Suit, rungAt w σ ≤ rungAt e σ :=
+    hmin.2 e he_upper
+  obtain ⟨t, ht, htt⟩ := he_exact
+  refine ⟨t, ?_, ?_⟩
+  · have hge : z t ≤ rungAt w t := hmin.1.2 t
+    have hle : rungAt w t ≤ z t := by
+      have := hwle t
+      rwa [ht] at this
+    exact Nat.le_antisymm hle hge
+  · have hge : z t.twin ≤ rungAt w t.twin := hmin.1.2 t.twin
+    have hle : rungAt w t.twin ≤ z t.twin := by
+      have := hwle t.twin
+      rwa [htt] at this
+    exact Nat.le_antisymm hle hge
+
+/-- The support form: all strict overshoot lies outside the exact twin
+pair, hence in the other colour. -/
+theorem minimalFullJoin_overshoot_oneColour
+    (hcl : ForklessOneColourClosure)
+    {s s' w : State}
+    (hs : s.WF) (hfl : Forkless s) (hmin : MinimalFullJoin s s' w) :
+    ∃ t : Suit,
+      (rungAt w t = Nat.max (rungAt s t) (rungAt s' t) ∧
+       rungAt w t.twin =
+         Nat.max (rungAt s t.twin) (rungAt s' t.twin)) ∧
+      (∀ σ : Suit,
+        Nat.max (rungAt s σ) (rungAt s' σ) < rungAt w σ →
+          σ ≠ t ∧ σ ≠ t.twin) := by
+  obtain ⟨t, ht, htt⟩ :=
+    minimalFullJoin_oneColourExact hcl hs hfl hmin
+  have ht' : rungAt w t = Nat.max (rungAt s t) (rungAt s' t) := by
+    simpa using ht
+  have htt' : rungAt w t.twin =
+      Nat.max (rungAt s t.twin) (rungAt s' t.twin) := by
+    simpa using htt
+  refine ⟨t, ⟨ht', htt'⟩, ?_⟩
+  intro σ hgt
+  constructor
+  · intro hσt
+    rw [hσt, ht'] at hgt
+    exact Nat.lt_irrefl _ hgt
+  · intro hσtw
+    rw [hσtw, htt'] at hgt
+    exact Nat.lt_irrefl _ hgt
+
 /-- **THE REDUCTION.**  Top + one-colour closure + fork split gives the
 one-colour-exact overshoot target. -/
 theorem fullJoinAtLeastOneColourOrFork_of_top_and_closure
@@ -146,3 +215,5 @@ end OneColourClosure
 
 #print axioms OneColourClosure.fullJoinAtLeastOneColourOrFork_of_top_and_closure
 #print axioms OneColourClosure.fullJoinAtLeastOrFork_of_top_and_closure
+#print axioms OneColourClosure.minimalFullJoin_oneColourExact
+#print axioms OneColourClosure.minimalFullJoin_overshoot_oneColour
