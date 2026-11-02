@@ -7,10 +7,11 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 
 /-!
-# Orig2/ForkMeetCover — `MeetConstancy` is a THEOREM given a fork at the meet
+# Orig2/Fork/Class/ForkMeetCover — `MeetConstancy` is a THEOREM given a fork at the meet
 
-READ-ONLY scratch card (no `Orig2/` edit; nothing committed).  Zero `sorry`,
-zero `Classical.choice`, zero `native_decide`; axiom battery at the tail.
+Promoted leaf (root-imported; the earlier READ-ONLY scratch banner is retired).
+Zero `sorry`, zero `Classical.choice`, zero `native_decide`; axiom battery at
+the tail.
 
 ## The result
 
@@ -41,6 +42,10 @@ removes `MeetConstancy` from the critical path:
   only ever sit on `x` or `x.twin` for the rest of the orbit; combined with the
   local engine `canRaise_or_covered` (S-live + not covered ⇒ raisable) the pin
   is therefore never lost on the position's fibre.
+* **`forkState_iff_of_same_position` (PROVED)** — the biconditional form: two
+  same-position members always agree on forkness, with no extra hypothesis.
+  It is `forkState_of_same_position` run in both directions; it is constancy,
+  not existence (an all-forkless fibre satisfies it too).
 * **`meetConstancy_of_forkAtMeet` (PROVED)** — `ForkAtMeet` (a `forkState`
   presenting the named pair AT the meet position) implies `MeetConstancy`.
 * **`satDifferFork_of_forkAtMeet` (PROVED)** — `MeetPositionForkLike +
@@ -135,6 +140,39 @@ theorem forkState_of_same_position {F : State} (hF : F.WF) {x : Card}
     exact (h1.symm.trans h2).trans (hx.1 c).symm
   exact forkState_of_covered_twin hlP hcovP
 
+/-- **FORKNESS IS CONSTANT ON A POSITION (the biconditional form).**  The row
+above is one direction; the other is the same row with the roles of the two
+states swapped, so no extra hypothesis is needed — and neither end has to be
+known a fork. -/
+theorem forkState_iff_of_rungEq {p q : WFState} (h : orbitRungSetoid.r p q) :
+    forkState p.1 ↔ forkState q.1 := by
+  have hp : (Quotient.mk orbitRungSetoid p : Position) =
+      (Quotient.mk orbitRungSetoid q : Position) := Quotient.sound h
+  constructor
+  · intro hf
+    obtain ⟨x, hx⟩ := forkState_iff.mp hf
+    exact forkState_of_same_position p.2 hx hp.symm
+  · intro hf
+    obtain ⟨y, hy⟩ := forkState_iff.mp hf
+    exact forkState_of_same_position q.2 hy hp
+
+/-- The `Quotient.mk` spelling of `forkState_iff_of_rungEq`. -/
+theorem forkState_iff_of_same_position {p q : WFState}
+    (h : (Quotient.mk orbitRungSetoid p : Position) =
+      (Quotient.mk orbitRungSetoid q : Position)) :
+    forkState p.1 ↔ forkState q.1 :=
+  forkState_iff_of_rungEq (Quotient.exact h)
+
+-- PACKAGING NOTE (deliberately NOT landed — no consumer yet): the strong grade
+-- descends to a `Position` predicate by the house `fiberFork` pattern,
+--   `posFork : Position → Prop :=
+--      Quotient.lift (fun p : WFState => forkState p.1)
+--        (fun _ _ h => propext (forkState_iff_of_rungEq h))`
+-- with `posFork_mk : posFork (mk p) ↔ forkState p.1 := Iff.rfl`, mirroring
+-- `fiberFork` (CargoFiber) and `forkLikePos` (Position); the `exists ↔ forall`
+-- fibre row then follows from `Quot.exists_rep`.  Land it when a consumer
+-- appears; until then this iff is the whole interface.
+
 /-! ## §3. `MeetConstancy` from a fork AT the meet -/
 
 /-- **`ForkAtMeet` — THE REMAINING OBLIGATION, AND IT IS A LOCATOR.**  At the
@@ -227,6 +265,8 @@ end MeetCoverTwo
 #print axioms MeetCoverTwo.forkState_of_covered_twin
 #print axioms MeetCoverTwo.fork_cover_on_pair
 #print axioms MeetCoverTwo.forkState_of_same_position
+#print axioms MeetCoverTwo.forkState_iff_of_rungEq
+#print axioms MeetCoverTwo.forkState_iff_of_same_position
 #print axioms MeetCoverTwo.meetConstancy_of_forkAtMeet
 #print axioms MeetCoverTwo.satDifferFork_of_forkAtMeet
 #print axioms MeetCoverTwo.forkless_found_unique_of_forkAtMeet

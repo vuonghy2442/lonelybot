@@ -354,7 +354,9 @@ theorem gFin_not_forkState : ¬ forkState BlockMin.gFin := by
 
 /-- **THE UNGATED POINTWISE FORM IS FALSE.**  There is a `WF`, fork-like state
 that is not a fork state, so `forkState` is not a function of `forkLikePos`
-alone and the `forkState s <-> forkState s'` reading cannot be stated globally.
+alone: `forkLikePos q → forkState` fails.  (Constancy along a fibre is a
+DIFFERENT statement and IS a theorem — `MeetCoverTwo.forkState_iff_of_same_position`;
+what `MeetConstancy` adds is EXISTENCE at the meet, not constancy.)
 This is exactly why `MeetConstancy` below is gated at meet positions. -/
 theorem not_forkLikePos_implies_forkState :
     ¬ (∀ (p : WFState),
@@ -412,8 +414,10 @@ def MeetPositionForkLike : Prop :=
 
 At a meet position (a Position carrying `PairMeetAt` for a fork's own twin pair)
 fork-likeness is CONSTANT: every same-orbit member of that Position is a FULL
-`forkState`.  This is exactly the ungated `forkState s ↔ forkState s'` on the
-fibre — but read only at meet positions, where the campaign needs it.
+`forkState`.  This is STRONGER than the constancy that holds on every fibre
+(`MeetCoverTwo.forkState_iff_of_same_position`): it asserts that every member
+of the meet Position is a fork — EXISTENCE at the meet, where the campaign
+needs it.
 
 EVIDENCE: the `Temp/Sat_fork_probe.py` census reads ALL-FORK 13/13 — at every
 fork's rung vector, every state of the class at that vector (group sizes 4–16)
@@ -424,7 +428,9 @@ WHY THE GATE: the ungated statement is FALSE.  The `Temp/TwinPin_Report.md`
 two-move gadget's end state `BlockMin.gFin` is `WF` with spectrum `{5H,5D}`, both
 twins vanilla-raisable and no ready blocker; it is fork-like but NOT a fork state
 (`not_forkLikePos_implies_forkState`, §5).  So `forkLikePos q → forkState` is not
-a theorem, and neither is the global `forkState s ↔ forkState s'`.
+a theorem.  Constancy on a fibre is a separate, TRUE statement
+(`MeetCoverTwo.forkState_iff_of_same_position`); the gate below is needed for
+EXISTENCE, not for constancy.
 
 STATUS: unproved.  If `MeetTest` finds a broader-board counterexample this def
 is the false hypothesis and the bridge must be re-stated (the constancy route),
@@ -484,9 +490,12 @@ theorem satDifferFork_of_meet_of_data
   obtain ⟨y, hy⟩ := forkState_iff.mp hfs
   exact ⟨p'.1, y, hcls', hy⟩
 
-/-- **THE UNGATED IFF AT MEET POSITIONS** — the docstring claim of
-`MeetConstancy`, made explicit: at a meet position, two same-orbit members are
-fork states IF AND ONLY IF each other (both are, by constancy). -/
+/-- **THE UNGATED IFF AT MEET POSITIONS** — the pairwise half of
+`MeetConstancy`: at a meet position, two same-orbit members agree on forkness.
+NOTE: the `hc` slot is not needed for this pairwise claim — the hypothesis-free
+form is `MeetCoverTwo.forkState_iff_of_same_position`, downstream of this
+module, so it cannot be cited here; the extra arguments are kept because this
+row is the meet-level spelling used by the bridge's consumers. -/
 theorem meetConstancy_forkState_iff (hc : MeetConstancy)
     {u v : State} {x : Card} {q : Position}
     (hsu : SSaturated u) (hsv : SSaturated v) (hcls : sameOrbitSetoid.r u v)
