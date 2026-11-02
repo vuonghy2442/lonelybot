@@ -68,6 +68,14 @@ bounds and yet no upper bound exact on either colour.  Witnesses (exact
 black-exact; also `greedy-57` and `random12-19`.  Failure counts over the
 sample: random8 4/2168, greedy 14/1519, random12 6/1344 bounded targets.
 
+The sharpest witness has a **unique** upper bound, so no one-colour-exact
+upper bound exists at all: `random8-167` (seed 301, 1000-board random8,
+component `|P| = 9`, top `(5,3,2,6)`), `z = (4,3,1,6)`, upper bounds
+`[(5,3,2,6)]`; red moves `(4,3) -> (5,3)` and black moves `(1,6) -> (2,6)`.
+Full-model verified (`both_move = 1`, `bounded = 16`) and independently
+re-checked.  The larger sweep finds 5 334 such targets in 209 forkless
+components out of 643 933 bounded targets.
+
 Every consumer below applies the law only to a **pair target**
 `max(s,s')` of two class-mates, where it holds with 0 failures (the
 census's pairwise slice dichotomy: on a missing exact join exactly one
