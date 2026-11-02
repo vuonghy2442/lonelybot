@@ -1,4 +1,4 @@
-import Orig2.Fork.ForkMountainShape
+import Orig2.Fork.Split.ForkMountainShape
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -14,7 +14,7 @@ the tail.
 
 ## The clause
 
-`MountainKit.RaiseBeforePullShortens` (`Orig2/Fork/ForkMountainShape.lean:503`) is
+`MountainKit.RaiseBeforePullShortens` (`Orig2/Fork/Split/ForkMountainShape.lean:503`) is
 the M1 deletion residual of the mountain route:
 
 ```
@@ -26,7 +26,7 @@ the M1 deletion residual of the mountain route:
 
 Note the binders: `c` (the raised card) and `d` (the later pulled card) are
 **unrelated**, and the statement is **not gated at `SSaturated` endpoints**.
-`noRaiseBeforePull_of_minimal` (`Orig2/Fork/ForkMountainShape.lean:534`) feeds it
+`noRaiseBeforePull_of_minimal` (`Orig2/Fork/Split/ForkMountainShape.lean:534`) feeds it
 from a minimal play, so the campaign only consumes the saturated/minimal case —
 but the clause as written is global, and this card kills the global form.
 

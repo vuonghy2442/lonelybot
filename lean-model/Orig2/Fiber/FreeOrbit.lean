@@ -1,7 +1,7 @@
 import Orig2.Substrate.CargoRaise
 import Orig2.Fiber.SeatMateStack
 import Orig2.Substrate.Integrity
-import Orig2.Fork.CeilingBridge
+import Orig2.Fork.Class.CeilingBridge
 
 /-!
 # Orig2.FreeOrbit — THE FREE-CARD ORBIT INVARIANCE (the campaign card)

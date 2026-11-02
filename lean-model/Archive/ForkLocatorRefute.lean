@@ -1,5 +1,5 @@
-import Orig2.Fork.ForkSplit
-import Orig2.Fork.ForkCommute
+import Orig2.Fork.Split.ForkSplit
+import Orig2.Fork.Local.ForkCommute
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -14,7 +14,7 @@ tail.
 
 ## Headline
 
-`ValleyElim.ValleyCrossingLocator` (`Orig2/Fork/ForkSplit.lean:912`) is
+`ValleyElim.ValleyCrossingLocator` (`Orig2/Fork/Split/ForkSplit.lean:912`) is
 **refutable in the kernel**.  The statement demands that every witness
 play containing an adjacent crossing turn `pull c ; raise d` contain a
 contiguous four-letter crossing block.  But a two-letter play *is* such

@@ -1,5 +1,5 @@
-import Orig2.Fork.ForkMinCross
-import Orig2.Fork.ForkMechanism
+import Orig2.Fork.Class.ForkMinCross
+import Orig2.Fork.Local.ForkMechanism
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -34,7 +34,7 @@ visits a fork*.  It is not a trivial restatement of the target:
 
 What remains open is exactly the local mechanism at the dip: showing that
 the tail after the exodus pull *does* visit a fork.  The repository's
-mechanism kit (`Orig2/Fork/ForkMechanism.lean`: `coverEvent_iff_block`,
+mechanism kit (`Orig2/Fork/Local/ForkMechanism.lean`: `coverEvent_iff_block`,
 `twinLivePair_landing_iff`, `mechanism_yields`) is the intended tool;
 `Temp/TwinPin_Report.md` shows that no pure `CanRaiseS`-spectrum
 argument can do it (the live set can be an exact twin pair with both
@@ -240,7 +240,7 @@ theorem satDifferForkWF_of_exodusAfterFork
 
 /-! ## §6. The mechanism kit closes the residual
 
-`Mech.MechanismResidual` (`Orig2/Fork/ForkMechanism.lean:414`) is the
+`Mech.MechanismResidual` (`Orig2/Fork/Local/ForkMechanism.lean:414`) is the
 repository's already named pair of landing clauses (`LandingLivePair` +
 `CoverEvent`).  `mechanism_yields` turns them into `d = c.twin`, the exact
 twin live set and the orientation pin — literally a `ForkWitness` at the

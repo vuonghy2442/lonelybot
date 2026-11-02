@@ -2,7 +2,7 @@ import Orig2.ForkEqSplitSlide
 import Orig2.ForkLandResNetZero
 import Orig2.ForkLandResSeat
 import Orig2.ForkChoiceFree
-import Orig2.Fork.ForkNoSelf
+import Orig2.Fork.Local.ForkNoSelf
 
 set_option autoImplicit false
 set_option maxHeartbeats 3000000

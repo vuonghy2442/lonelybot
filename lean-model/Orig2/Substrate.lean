@@ -3,7 +3,7 @@ import Orig2.Fiber.StratifiedQuotient
 import Orig2.Claims.ClaimsScrutiny
 import Orig2.Claims.Claims
 import Orig2.Fiber.OrbitFactor
-import Orig2.Fork.CeilingBridge
+import Orig2.Fork.Class.CeilingBridge
 import Orig2.Substrate.CargoRaise
 import Orig2.Fiber.FreeOrbit
 import Orig2.Substrate.Position

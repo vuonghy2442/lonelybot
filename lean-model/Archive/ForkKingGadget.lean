@@ -1,4 +1,4 @@
-import Orig2.Fork.ForkDipPin
+import Orig2.Fork.Split.ForkDipPin
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -14,7 +14,7 @@ the tail.
 
 ## What this card does
 
-`BlockMin.BothRaisableBlock` (`Orig2/Fork/ForkDipPin.lean:246`) says: at a `WF` state
+`BlockMin.BothRaisableBlock` (`Orig2/Fork/Split/ForkDipPin.lean:246`) says: at a `WF` state
 whose S-live set is a twin pair `{x, x.twin}`, if BOTH twins are vanilla-raisable
 then one of them carries a `BlockMin.BlockerReady` (a card that fits it, face-up
 with company beneath, and with the twin a pile top).

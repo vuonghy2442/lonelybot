@@ -56,7 +56,7 @@ open CommuteStep
 /-- **`InertInteriorShortens` — THE REPLAY LEMMA, EXACTLY AS POSED.**  Every
 play `pre ++ raise c :: γ ++ pull c b :: post` with `γ` non-empty, read-safe for
 `c` and seat-inert on `b` strictly shortens.  (This is the un-gated
-`MtnPr.SameCardRelocation` — `Orig2/Fork/ForkRelocate.lean:563` — with the
+`MtnPr.SameCardRelocation` — `Orig2/Fork/Local/ForkRelocate.lean:563` — with the
 non-emptiness of `γ` made explicit.) -/
 def InertInteriorShortens : Prop :=
   ∀ (u v : State) (ρ pre γ post : List Move) (c : Card) (b : Base) (A B : State),
@@ -84,7 +84,7 @@ def InertInteriorShortensGated : Prop :=
 
 /-- **`GateForced`** — the inertness hypotheses would already force the pull to
 be legal at the raise's image (the gate of `PullKit.PullReadyAtImage`,
-`Orig2/Fork/ForkPullSwaps.lean:768`, with the explicit non-emptiness). -/
+`Orig2/Fork/Local/ForkPullSwaps.lean:768`, with the explicit non-emptiness). -/
 def GateForced : Prop :=
   ∀ (u v : State) (ρ pre γ post : List Move) (c : Card) (b : Base) (A B : State),
     u.WF → ShufflePlayW u ρ v →
@@ -185,7 +185,7 @@ theorem replay_trichotomy :
 
 /-! ## §6. What this means for the two campaign lanes
 
-* **`LandingResidual` / `UncoverResidual`** (`Orig2/Fork/ForkLandResReduction.lean`)
+* **`LandingResidual` / `UncoverResidual`** (`Orig2/Fork/Split/ForkLandResReduction.lean`)
   do **not** fit `InertInteriorShortens`: there the cover and the uncover are
   slides of the *same* card `x`, and the state-level net-zero
   `LandRes.slideSt_slideSt_self` already identifies the pair with the single
@@ -195,7 +195,7 @@ theorem replay_trichotomy :
   the witness: the witness's interior is a slide of a different card `w`).
 
 * **`TailHead.sameCard_turn_atLeastTwoSlides`**
-  (`Orig2/Fork/ForkTailHead.lean:429`) lives in `InertInteriorShortens`'s regime: a
+  (`Orig2/Fork/Split/ForkTailHead.lean:429`) lives in `InertInteriorShortens`'s regime: a
   same-card raise/pull with ≥ 2 slides in the free tail.  By (b)+(c) that case
   cannot be closed by a play-level replay lemma; the needed fact is structural
   (saturation / the split's `SplitHyp` data).  The `|slides| ≤ 1` stratum is

@@ -1,4 +1,4 @@
-import Orig2.Fork.ForkMountainShape
+import Orig2.Fork.Split.ForkMountainShape
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -14,7 +14,7 @@ the tail.
 
 ## The target
 
-`MountainKit.RaiseBeforePullShortens` (`Orig2/Fork/ForkMountainShape.lean:503`) is
+`MountainKit.RaiseBeforePullShortens` (`Orig2/Fork/Split/ForkMountainShape.lean:503`) is
 the M1 deletion residual of the mountain route:
 
 ```

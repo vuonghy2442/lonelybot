@@ -1,22 +1,22 @@
-import Orig2.Fork.ForkCriticalPair
-import Orig2.Fork.Cover
-import Orig2.Fork.ForkClass
+import Orig2.Fork.Local.ForkCriticalPair
+import Orig2.Fork.Local.Cover
+import Orig2.Fork.Class.ForkClass
 import Orig2.Fiber.LockRung
-import Orig2.Fork.ForkPosition
-import Orig2.Fork.ForkThird
-import Orig2.Fork.ForkThirdHigh
-import Orig2.Fork.FirstPassage
-import Orig2.Fork.ForkValley
-import Orig2.Fork.ForkNoPull
-import Orig2.Fork.ForkDrain
-import Orig2.Fork.ForkOneSlide
-import Orig2.Fork.ForkSafeTransport
-import Orig2.Fork.ForkOneSlideLive
-import Orig2.Fork.ForkSplit
-import Orig2.Fork.ForkCommute
-import Orig2.Fork.ForkCommuteSlide
-import Orig2.Fork.ForkBubble
-import Orig2.Fork.ForkNormalize
+import Orig2.Fork.Class.ForkPosition
+import Orig2.Fork.Third.ForkThird
+import Orig2.Fork.Third.ForkThirdHigh
+import Orig2.Fork.Split.FirstPassage
+import Orig2.Fork.Local.ForkValley
+import Orig2.Fork.Local.ForkNoPull
+import Orig2.Fork.Split.ForkDrain
+import Orig2.Fork.Local.ForkOneSlide
+import Orig2.Fork.Local.ForkSafeTransport
+import Orig2.Fork.Local.ForkOneSlideLive
+import Orig2.Fork.Split.ForkSplit
+import Orig2.Fork.Local.ForkCommute
+import Orig2.Fork.Local.ForkCommuteSlide
+import Orig2.Fork.Local.ForkBubble
+import Orig2.Fork.Local.ForkNormalize
 
 /-!
 # Orig2.Fork — the fork theory umbrella

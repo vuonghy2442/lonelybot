@@ -1,5 +1,5 @@
-import Orig2.Fork.ForkBlocks
-import Orig2.Fork.ForkRelocate
+import Orig2.Fork.Local.ForkBlocks
+import Orig2.Fork.Local.ForkRelocate
 import Orig2.Substrate.Position
 import Orig2.Substrate.StepWF
 import Orig2.Substrate.Classification
@@ -18,7 +18,7 @@ Zero `sorry`, zero `Classical.choice`, zero `nativeDecide`, no `decide` on
 
 ## What this card does
 
-`Blocks.NoSeatMateCrossSuit` (`Orig2/Fork/ForkBlocks.lean:499`) is the last
+`Blocks.NoSeatMateCrossSuit` (`Orig2/Fork/Local/ForkBlocks.lean:499`) is the last
 surviving shape of cross-suit vacuity:
 
 > no canonical (shortest, min-`inv`) cross-suit free corridor between two

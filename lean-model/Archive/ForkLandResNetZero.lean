@@ -1,4 +1,4 @@
-import Orig2.Fork.ForkStraddle
+import Orig2.Fork.Local.ForkStraddle
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
@@ -13,7 +13,7 @@ Zero `sorry`, zero `Classical.choice`, no `native_decide`.
 
 ## What this card is for
 
-`StradKit.LandingResidual` (`Orig2/Fork/ForkStraddle.lean:393`) says: in the interior
+`StradKit.LandingResidual` (`Orig2/Fork/Local/ForkStraddle.lean:393`) says: in the interior
 of a straddling self-bracket `pull d ; ... ; raise d`, no letter LANDS a card
 on `d`.  A landing is not fatal by itself (`StradKit.existRefute_landing_not_fatal`),
 so the benchmark can still close the bracket only if a LATER letter uncovers

@@ -1,6 +1,6 @@
-import Orig2.Fork.ForkThirdHigh
+import Orig2.Fork.Third.ForkThirdHigh
 import Orig2.Fiber.SWDichotomy
-import Orig2.Fork.ForkPinAt
+import Orig2.Fork.Split.ForkPinAt
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -30,7 +30,7 @@ What this file PROVES:
 
 * `fork_pair_floor_of_fork`  — the EASY COROLLARY: if `G` is itself a fork
   state, rigidity (`forkPositionRigid_unconditional`,
-  `Orig2/Fork/ForkThirdHigh.lean:845`) gives `RungEq F G` and the floor is
+  `Orig2/Fork/Third/ForkThirdHigh.lean:845`) gives `RungEq F G` and the floor is
   immediate.  So the content is exactly the NON-FORK saturated `G`.
 * `PairFloorNonFork` + `fork_pair_floor_of_nonfork` — the exact REDUCTION of
   the target to its non-fork-`G` instance (a case split on "is `G` a fork").
@@ -207,7 +207,7 @@ supported (sit on a card) at `G`.
 This is exactly the content the exodus route produces: a floor violation
 `rungAt G σ = k < r` names the frontier card `c = (σ, Rk k)`, which is
 founded at `F`, absent from `G.found`, hence `Supported G c`
-(`ThirdHigh.supported_of_forked_transit`, `Orig2/Fork/ForkThirdHigh.lean:295`) and
+(`ThirdHigh.supported_of_forked_transit`, `Orig2/Fork/Third/ForkThirdHigh.lean:295`) and
 next-up at `G`.
 
 The class relation `sameOrbitSetoid.r F G` is NOT droppable: the class-free

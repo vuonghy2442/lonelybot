@@ -1,5 +1,5 @@
 import Orig2.Fiber.ArmFiber
-import Orig2.Fork.CeilingBridge
+import Orig2.Fork.Class.CeilingBridge
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000

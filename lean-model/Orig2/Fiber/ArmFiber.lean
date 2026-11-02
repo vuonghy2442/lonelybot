@@ -1,4 +1,4 @@
-import Orig2.Fork.ForkCriticalPair
+import Orig2.Fork.Local.ForkCriticalPair
 import Orig2.Substrate.PairClassSeed
 
 set_option autoImplicit false

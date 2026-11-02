@@ -1,4 +1,4 @@
-import Orig2.Fork.ForkRelocate
+import Orig2.Fork.Local.ForkRelocate
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -49,9 +49,9 @@ returning to `u ≠ v`.
 The interior letter `slide 4C → 5D` is both `ReadSafe 4S` and
 `SeatInert (inr 5H)` (§5), but the pull is **not** legal at the raise's image.
 So the source's named residual `MtnPr.SameCardRelocation`
-(`Orig2/Fork/ForkRelocate.lean:545`) is refuted by the same play (§7), and the
+(`Orig2/Fork/Local/ForkRelocate.lean:545`) is refuted by the same play (§7), and the
 readiness clause of `PullKit.SameCardRelocationReady`
-(`Orig2/Fork/ForkPullSwaps.lean:721`) is indispensable.
+(`Orig2/Fork/Local/ForkPullSwaps.lean:721`) is indispensable.
 
 The file also records what *is* true (§7): the **adjacent** pair never occurs in
 a shortest play, in either order.  The refutation shows the long-range statement
@@ -510,7 +510,7 @@ theorem interior_seatInert : MtnPr.SeatInert (Sum.inr cB) (Move.tabToTab cZ (Sum
 
 /-- **THE READINESS FAILURE, IN THIS INSTANCE.**  At the raise's image `s₁` the
 pull `4S → 5H` is not legal: `5H` is still covered by `4C`.  (This is
-`PullKit.Pullable s₁ cX (inr cB)`, `Orig2/Fork/ForkPullSwaps.lean:51`.) -/
+`PullKit.Pullable s₁ cX (inr cB)`, `Orig2/Fork/Local/ForkPullSwaps.lean:51`.) -/
 theorem not_pullable_at_image :
     ¬ (s₁.foundTop cX.suit = some cX ∧ s₁.canPlace cX (Sum.inr cB) = true) := by
   rintro ⟨-, hcp⟩

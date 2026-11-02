@@ -1,7 +1,7 @@
 import Orig2.Fiber.StratifiedQuotient
 import Orig2.Fiber.FreeOrbit
 import Orig2.Fiber.OrbitFactor
-import Orig2.Fork.CeilingBridge
+import Orig2.Fork.Class.CeilingBridge
 import Orig2.Fiber.TwinEquivariance
 
 /-!

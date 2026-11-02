@@ -465,7 +465,7 @@ theorem reach_spec (n : Nat) (a : State) (hawf : a.WF) :
 
 **SCOPE AND MEMORY NOTE.**  The equal-rung witness below is **OUT OF SCOPE**
 for the campaign since the mountain hypothesis was re-gated
-(`MountainGate.MountainAtSplitsDiffering`, `Orig2/Fork/ForkMountainGate.lean`): an
+(`MountainGate.MountainAtSplitsDiffering`, `Orig2/Fork/Split/ForkMountainGate.lean`): an
 equal-rung play cannot refute the gated form.  This card therefore stops at the
 honest boundary and does **not** claim minimality.  (Minimality is discharged
 separately in `Orig2/ForkEqualRungDist.lean`; the under-gated

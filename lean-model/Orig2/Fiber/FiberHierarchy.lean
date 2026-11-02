@@ -192,7 +192,7 @@ is flat-invariant and each flat fiber lies in one stratum. -/
 /-- **POSITIONS REFINE STRATA** - two `WF` states with the same class
 and the same rung vector (the kernel of the Position meet) lie in
 one stratum: the rungs pin the founds (`found_congr_of_rungs`,
-`Orig2/Fork/CeilingBridge.lean`), and the founds pin the twins'
+`Orig2/Fork/Class/CeilingBridge.lean`), and the founds pin the twins'
 membership profile.  The stratified quotient sees strictly coarser
 than the meet. -/
 theorem stratOrbit_of_class_rungs (x : Card) {s s' : WFState}

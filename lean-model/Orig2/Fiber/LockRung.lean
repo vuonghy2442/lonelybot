@@ -1,6 +1,6 @@
 import Orig2.Fiber.ArmFiber
-import Orig2.Fork.CeilingBridge
-import Orig2.Fork.ForkClass
+import Orig2.Fork.Class.CeilingBridge
+import Orig2.Fork.Class.ForkClass
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -8,7 +8,7 @@ set_option maxHeartbeats 2000000
 /-!
 # Orig2.LockRung — the mutual-lock invariant, discharged
 
-THE TWO RESIDUES OF `Orig2/Fork/ForkClass.lean` ARE PROVED HERE.
+THE TWO RESIDUES OF `Orig2/Fork/Class/ForkClass.lean` ARE PROVED HERE.
 
 * `cover_rung_frozen` — at a fork, the cover `d`'s suit rung never
   exceeds its value at the fork, and `d` is never founded.  The next-up

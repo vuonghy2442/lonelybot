@@ -2360,8 +2360,8 @@ theorem chop_mem {l : List Card} {x : Card} (h : x ∈ chop l) : x ∈ l := by
 /-- `chop` of an append-singleton: removing the last card is the
 identity on the rest.  HOISTED 2026-11-01 from the scratch arc's two
 forced copies (`CommuteStep.chop_append_singleton` at
-`Orig2/Fork/ForkCommuteSlide.lean:864` and `PairRungKit.chop_append_singleton`
-at `Orig2/Fork/ForkPairRung.lean:100` - the DAG direction blocked the direct
+`Orig2/Fork/Local/ForkCommuteSlide.lean:864` and `PairRungKit.chop_append_singleton`
+at `Orig2/Fork/Class/ForkPairRung.lean:100` - the DAG direction blocked the direct
 cite, one home here below both). -/
 theorem chop_append_singleton {l : List Card} {c : Card} :
     chop (l ++ [c]) = l := by

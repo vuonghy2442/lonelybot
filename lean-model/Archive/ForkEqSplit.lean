@@ -1,8 +1,8 @@
 import Orig2.ForkMateGate
-import Orig2.Fork.ForkSlideFwd
-import Orig2.Fork.ForkReadBracket
-import Orig2.Fork.ForkNonfork
-import Orig2.Fork.ForkMountainAccount
+import Orig2.Fork.Local.ForkSlideFwd
+import Orig2.Fork.Class.ForkReadBracket
+import Orig2.Fork.Third.ForkNonfork
+import Orig2.Fork.Split.ForkMountainAccount
 
 set_option autoImplicit false
 set_option maxHeartbeats 3000000
@@ -35,7 +35,7 @@ READ-ONLY scratch (no source edit, no commit).  Zero `sorry`, zero
 3. **The two slide clauses are exactly the residual.**  They are the two
    clauses of `R12.ReadOK` that no rung/ledger argument reaches, and they are
    the same obstruction as the campaign's own `SlideFwd.EmptyTailNoSelfSlide`
-   (`Orig2/Fork/ForkSlideFwd.lean:807`): a slide headed by `c` can never be bubbled
+   (`Orig2/Fork/Local/ForkSlideFwd.lean:807`): a slide headed by `c` can never be bubbled
    past `raise c` (`R12.no_slide_self_at`).
 
 4. **The reduction.**  `EqualRungInteriorSlideFree` (the named residual, §4)
@@ -339,11 +339,11 @@ theorem not_mountainSplit_of_post_nil_of_head
 /-! ## §6. The "lands on `c`" clause is free when `c.twin` is founded at the
 pull landing
 
-`Mech.mover_seat_twin_of_slide_into_card` (`Orig2/Fork/ForkMechanism.lean:50`) says
+`Mech.mover_seat_twin_of_slide_into_card` (`Orig2/Fork/Local/ForkMechanism.lean:50`) says
 a reversible slide landing on `c` has its mover seated directly on `c.twin`.
 Hence if `c.twin` is in a foundation at the pull's landing `B`, no slide of the
 (pull-free) window can land on `c` — `EmptyTail.twin_no_coverSlide`
-(`Orig2/Fork/ForkEmptyTail.lean:370`).  So in that regime only the *head* clause is
+(`Orig2/Fork/Split/ForkEmptyTail.lean:370`).  So in that regime only the *head* clause is
 owed. -/
 
 /-- **NO SLIDE LANDS ON `c` WHEN `c.twin` IS FOUNDED AT THE WINDOW'S START.** -/
@@ -419,7 +419,7 @@ theorem noEqualRungMountainSplit_of_headFree_of_twinFound
 
 /-! ## §7. Both slide clauses are *necessary* for the bubbling method
 
-`R12.no_slide_self_at` (`Orig2/Fork/ForkReadBracket.lean:766`) shows that a slide
+`R12.no_slide_self_at` (`Orig2/Fork/Class/ForkReadBracket.lean:766`) shows that a slide
 **headed by** `c` can never follow `raise c`, so no bubble certificate can open
 with it.  The dual fact is the "lands on `c`" clause: after `raise c` the card
 `c` is on the foundation, so it tops no pile and the slide onto it is illegal.

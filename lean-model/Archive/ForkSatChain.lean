@@ -15,7 +15,7 @@ Zero `sorry`, zero `Classical.choice`, zero `nativeDecide`, no `decide` on
 
 ## Verdict
 
-`Chain.CoverChainResidual` (`Orig2/Fork/ForkChain.lean:441`) — the "exact residual"
+`Chain.CoverChainResidual` (`Orig2/Fork/Local/ForkChain.lean:441`) — the "exact residual"
 of the cover chain, and the hypothesis of the campaign's only chain-to-corridor
 reduction `Chain.freeCorridor_of_coverChain` — is **FALSE**, and it is false at
 its *first* disjunct.
@@ -307,7 +307,7 @@ theorem chain_exists_corridor
 
 /-! ## §3. The twin branch with a pull-free tail: the tail MUST raise `d`
 
-`Direct.canRaiseS_end_or_bad_raise` (`Orig2/Fork/ForkDirect.lean:301`) is the
+`Direct.canRaiseS_end_or_bad_raise` (`Orig2/Fork/Local/ForkDirect.lean:301`) is the
 pull-free kill dichotomy: a pull-free leg can destroy `e`'s S-licence only by
 `raise e` or `raise e.twin`.  In the twin branch `d = c.twin`, so `d.twin = c` —
 and `c` is the corridor's *raised* card, hence a foundation top for the entire

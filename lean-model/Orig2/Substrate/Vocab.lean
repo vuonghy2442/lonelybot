@@ -53,7 +53,7 @@ chart's cover read, §9 beside `coverOf`) and `ArmDichotomy` (the
 arm-level residue, §8 beside `BareCargoEquiv`; strictly stronger than
 `SatDifferFork`, and the equal-rung `vcS/vcT` boundary is
 `Orig2/Boundary.lean`).  The local fork rows are
-`Orig2/Fork/ForkCriticalPair.lean`; the cargo-fiber machinery is
+`Orig2/Fork/Local/ForkCriticalPair.lean`; the cargo-fiber machinery is
 `Orig2/Fiber/ArmFiber.lean`.
 
 ## §1. PLAY-TAXONOMY COUNTERS (live, ported)
@@ -913,7 +913,7 @@ directly on `c` in the face-up tableau (`seatOf st d = some (.inr c)`).
 At a fork this is the blocked twin's exact obstruction: a covered card
 tops no pile, so it is not vanilla-raisable.  The local fork/cover
 equivalence is `forkWitness_iff_covered`
-(`Orig2/Fork/ForkCriticalPair.lean` §4). -/
+(`Orig2/Fork/Local/ForkCriticalPair.lean` §4). -/
 def CoveredAt (st : State) (c : Card) : Prop :=
   ∃ d, seatOf st d = some (Sum.inr c)
 

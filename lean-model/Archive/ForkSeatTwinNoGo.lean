@@ -32,7 +32,7 @@
   Battery at the tail; expected `[propext]` / `[propext, Quot.sound]`, no
   `sorryAx`, no `Classical.choice`, no `Lean.ofReduceBool`.
 -/
-import Orig2.Fork.ForkFace1
+import Orig2.Fork.Third.ForkFace1
 import Orig2.ForkOffWindow
 
 set_option autoImplicit false

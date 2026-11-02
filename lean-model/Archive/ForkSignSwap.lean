@@ -1,4 +1,4 @@
-import Orig2.Fork.ForkTwinJoin
+import Orig2.Fork.Class.ForkTwinJoin
 
 set_option autoImplicit false
 

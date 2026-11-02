@@ -1,8 +1,8 @@
 import Orig2.ForkSatChain
-import Orig2.Fork.ForkDirect
-import Orig2.Fork.ForkCommute
-import Orig2.Fork.ForkPullSwaps
-import Orig2.Fork.ForkCommuteSlide
+import Orig2.Fork.Local.ForkDirect
+import Orig2.Fork.Local.ForkCommute
+import Orig2.Fork.Local.ForkPullSwaps
+import Orig2.Fork.Local.ForkCommuteSlide
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
