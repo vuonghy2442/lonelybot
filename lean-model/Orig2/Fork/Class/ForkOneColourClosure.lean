@@ -4,13 +4,15 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 
 /-!
-# Orig2.ForkOneColourClosure — the one-colour closure law and its reduction
+# Orig2.Fork.Class.ForkOneColourClosure — the one-colour closure law and its reductions
 
-This card formalizes the forkless one-colour closure normal form and reduces
-it to the full overshoot join target.  The closure law is measured on every
-sampled forkless component: every bounded target has an upper-bound
-class-mate which is exact on one twin pair.  The reduction is choice-free;
-the fork/forkless split is an explicit hypothesis, not a classical choice.
+This card formalizes the forkless one-colour closure normal form and reduces it
+to the full overshoot join target.  The law is stated at **pair targets only**:
+the componentwise maximum of two class-mates.  The arbitrary-target form is
+FALSE (witnesses in the docstring of `ForklessOneColourClosure`), and every
+consumer below applies the law only to a pair target.  The reduction is
+choice-free; the fork/forkless split is an explicit hypothesis, not a
+classical choice.
 
 Definitions:
 
@@ -20,18 +22,29 @@ Definitions:
   hypothesis so the reduction stays choice-free).
 * `UpperTarget u z w` — `w` is a class-mate of `u` above the target `z`.
 * `OneColourExactTarget z w` — `w` matches `z` exactly on one twin pair.
-* `ForklessOneColourClosure` — every bounded target has a one-colour-exact
+* `ForklessOneColourClosure` — every pair target has a one-colour-exact
   upper bound.
 * `ForklessHasTop` — a forkless class has a rung top.
+* `IsLUBTarget`, `MinimalFullJoin` — the least class-mate above a target.
+* `OneColourExactUpper`, `SliceLUB`, `ForklessSliceLUB` — the 2D slice LUB on
+  an exact colour.
+* `RungLe`, `ForklessSliceMeet`, `SliceFinite` — the 2D meet form and the
+  finite enumeration that turn it back into the slice LUB.
+* `ForklessSliceDominatesUpper` — the slice LUB dominates every upper bound.
 
-The reduction proves:
+Reductions proved here:
 
-`ForklessHasTop + ForklessOneColourClosure + ForklessOrFork`
-  `⇒ FullJoinAtLeastOneColourOrFork`
-  `⇒ FullJoinAtLeastOrFork`.
+* `ForklessHasTop + ForklessOneColourClosure + ForklessOrFork`
+  `⇒ FullJoinAtLeastOneColourOrFork ⇒ FullJoinAtLeastOrFork`.
+* the minimal full join is exact on one twin pair, and all strict overshoot
+  lies in the other colour;
+* `ForklessSliceLUB + ForklessOneColourClosure`: the minimal full join is the
+  slice LUB on an exact colour (the exact numeric height);
+* `ForklessSliceLUB ⇔ ForklessSliceMeet` modulo a finite enumeration;
+* `Top + closure + SliceLUB + DominatesUpper ⇒ ∃ w, MinimalFullJoin s s' w`.
 
-The closure/top hypotheses remain the structural residual; this card only
-compiles the reduction.  No `sorry`, no `Classical.choice`.
+The closure/top/slice hypotheses remain the structural residual; this card
+only compiles the reductions.  No `sorry`, no `Classical.choice`.
 -/
 
 namespace OneColourClosure

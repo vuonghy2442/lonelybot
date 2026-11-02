@@ -32,7 +32,6 @@ import Orig2.Fork.Split.ForkPin
 import Orig2.Fork.Third.ForkMate
 import Orig2.Fork.Local.ForkRaiseLeft
 import Orig2.Fork.Class.ForkRungGe
-import Orig2.Fork.Class.ForkRungGePair
 import Orig2.Fork.Class.ForkRungGeGadget
 import Orig2.Fork.Local.ForkNormalizeTail
 import Orig2.Fiber
@@ -54,10 +53,8 @@ import Orig2.Fork.Split.ForkPinRight
 import Orig2.Fork.Local.ForkRelocate
 import Orig2.Fork.Local.ForkStraddle
 import Orig2.Fork.Local.ForkPullSwaps
-import Orig2.Fork.Split.ForkMountainGate
 import Orig2.Fork.Split.ForkGatedTower
 import Orig2.Fork.Split.ForkBaseEnabling
-import Orig2.Fork.Split.ForkLandResReduction
 import Orig2.Fork.Split.ForkMtnExists
 import Orig2.Fork.Split.ForkTailHead
 import Orig2.Fork.CrossSuit.ForkCrossSuit
@@ -97,12 +94,12 @@ On disk the same four umbrellas group the cards (2026-11-02 layout):
 
 ```text
 Orig2/Substrate/   12 cards  (game core, kits, Position, Classification)
-Orig2/Fork/Class/  25 cards  (fork class theory, rung/non-comparability, join/slice)
+Orig2/Fork/Class/  24 cards  (fork class theory, rung/non-comparability, join/slice)
 Orig2/Fork/Local/  23 cards  (letter commutation, normalization, relocation)
-Orig2/Fork/Split/  28 cards  (split/tail/landing/pin/mountain/drain/frontier)
+Orig2/Fork/Split/  26 cards  (split/tail/landing/pin/mountain/drain/frontier)
 Orig2/Fork/Third/  11 cards  (third-suit, survivor, mate, elimination)
 Orig2/Fork/CrossSuit/ 3 cards (cross-suit corridor)
-Orig2/Fiber/       28 cards  (fiber, orbit, king, twin machinery)
+Orig2/Fiber/       26 cards  (fiber, orbit, king, twin machinery)
 Orig2/Boundary/     2 cards  (BoundaryForkFree, BoundaryMinPath)
 Orig2/Claims/       3 cards  (Claims, ClaimsScrutiny, Chart)
 ```

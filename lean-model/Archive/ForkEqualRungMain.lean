@@ -1,7 +1,5 @@
 import Orig2.ForkEqualRungMin
 import Orig2.ForkEqualRungDist
-import Orig2.Fork.Split.ForkMountainGate
-
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
 set_option linter.unusedVariables false
