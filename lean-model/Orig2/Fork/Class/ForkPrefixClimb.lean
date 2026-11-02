@@ -727,6 +727,60 @@ theorem lone_hidden_blocks {st w0 : State} {a : Anchor} {z : Card} {s : Suit}
 
 #print axioms lone_hidden_blocks
 
+/-- The licence for climbable states: if the climb advances suit `s` past `z`,
+then `z` was not a lone-over-hidden card. -/
+theorem licence_of_climbable {st w0 : State} {a : Anchor} {z : Card} {s : Suit}
+    (hwf : st.WF) (hpod : st.pileOfTop z = some a)
+    (hface : (st.piles a).faceUp = [z]) (hhid : (st.piles a).hidden ≠ [])
+    (hzs : z.suit = s) (hzr : z.rank.toIdx = rungAt st s)
+    (hreach : RaiseReach st w0) (hgt : z.rank.toIdx < rungAt w0 s) : False := by
+  have h := lone_hidden_blocks hwf hpod hface hhid hzs hzr hreach
+  rw [h, ← hzr] at hgt
+  exact Nat.lt_irrefl _ hgt
+
+/-- The climbable form of the residual: a PREFIX witness from which the cap is
+raise-reachable.  (Measured: M1, 100%.) -/
+def ClimbablePrefixWitness : Prop :=
+  forall (u s s' : State) (cap : Suit -> Nat),
+    u.WF -> OneColourClosure.Forkless u ->
+    sameOrbitSetoid.r u s -> sameOrbitSetoid.r u s' ->
+    (forall σ, cap σ <= 13) ->
+    (forall σ, rungAt s σ <= cap σ) -> (forall σ, rungAt s' σ <= cap σ) ->
+    exists w, sameOrbitSetoid.r u w /\ w.WF /\ Under w cap /\ PrefixOK w cap /\
+      exists c, RaiseReach w c /\ forall σ, rungAt c σ = cap σ
+
+/-- The consumer from the climbable residual: no `StepExists` argument. -/
+theorem minimalFullJoin_of_climbable {u s s' : State} {cap : Suit -> Nat}
+    (hW : ClimbablePrefixWitness)
+    (hwf : u.WF) (hfl : OneColourClosure.Forkless u)
+    (hcls : sameOrbitSetoid.r u s) (hcls' : sameOrbitSetoid.r u s')
+    (hcap13 : forall σ, cap σ <= 13)
+    (hup : forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= cap σ)
+    (hmin : forall v, sameOrbitSetoid.r s v ->
+        (forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= rungAt v σ) ->
+        forall σ, cap σ <= rungAt v σ) :
+    exists w, OneColourClosure.MinimalFullJoin s s' w := by
+  have hs : forall σ, rungAt s σ <= cap σ :=
+    fun σ => Nat.le_trans (Nat.le_max_left _ _) (hup σ)
+  have hs' : forall σ, rungAt s' σ <= cap σ :=
+    fun σ => Nat.le_trans (Nat.le_max_right _ _) (hup σ)
+  obtain ⟨w0, hw0cls, hw0wf, -, -, c, hreach, hrungs⟩ :=
+    hW u s s' cap hwf hfl hcls hcls' hcap13 hs hs'
+  obtain ⟨-, horb⟩ := RaiseReach.wf_and_orbit hreach hw0wf
+  have hwcls : sameOrbitSetoid.r u c := sameOrbitSetoid.iseqv.trans hw0cls horb
+  refine ⟨c, ?_, ?_⟩
+  · refine ⟨?_, ?_⟩
+    · exact sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hcls) hwcls
+    · intro σ
+      rw [hrungs σ]
+      exact hup σ
+  · intro v hv σ
+    rw [hrungs σ]
+    exact hmin v hv.1 hv.2 σ
+
+#print axioms licence_of_climbable
+#print axioms minimalFullJoin_of_climbable
+
 end PrefixClimb
 
 
