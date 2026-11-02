@@ -615,6 +615,26 @@ theorem sliceMeet_of_gapDescent {u : State} {z : Suit → Nat} {t : Suit}
   exact ⟨v, hv, (rungLe_of_sliceGap_zero hv h1 h2 hg0).1,
     (rungLe_of_sliceGap_zero hv h1 h2 hg0).2⟩
 
+/-- A SINGLE-PULL gap step: the sufficient form measured by the step-length
+probe (1 letter at every gap>0 state, random8).  This is a proof route only —
+`SliceGapDescent` itself is stated with general pull/slide paths, so no letter
+bound is baked into the theorem. -/
+def SinglePullGapStep (u : State) (z : Suit → Nat) (t : Suit)
+    (m : Suit → Nat) (v v' : State) : Prop :=
+  InSlice u z t v' ∧ SliceGap t m v' < SliceGap t m v ∧
+    ∃ (c : Card) (b : Base), State.step v (Move.foundToTab c b) = some v'
+
+/-- **SUFFICIENT STEP.**  A single-pull gap step at every positive-gap state
+implies the path-form step lemma. -/
+theorem sliceGapDescent_of_singlePull {u : State} {z : Suit → Nat} {t : Suit}
+    {v1 v2 : State}
+    (h : ∀ v, InSlice u z t v → 0 < SliceGap t (SliceMin v1 v2) v →
+      ∃ v', SinglePullGapStep u z t (SliceMin v1 v2) v v') :
+    SliceGapDescent u z t v1 v2 := by
+  intro v hv hpos
+  obtain ⟨v', hv', hlt, c, b, hstep⟩ := h v hv hpos
+  exact ⟨v', hv', hlt, PullSlideReach.pull PullSlideReach.refl hstep⟩
+
 /-- The step law packaged over the campaign quantifiers. -/
 def ForklessSliceGapDescent : Prop :=
   ∀ u, u.WF → Forkless u →
@@ -667,3 +687,4 @@ end OneColourClosure
 #print axioms OneColourClosure.sliceMeet_of_gapDescent
 #print axioms OneColourClosure.forklessSliceMeet_of_gapDescent
 #print axioms OneColourClosure.minimalFullJoin_of_gapDescent
+#print axioms OneColourClosure.sliceGapDescent_of_singlePull
