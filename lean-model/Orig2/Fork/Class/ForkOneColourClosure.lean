@@ -483,6 +483,154 @@ theorem fullJoinAtLeastOrFork_of_top_and_closure
     exact Or.inl ⟨w, hw⟩
   · exact Or.inr hfork
 
+/-! ## The gap descent (the local form)
+
+`ForklessSliceMeet` asks for a global common lower bound.  The probe shows the
+witness is reached by lowering the blue rungs along a pull/slide path.  The
+statement is existential over paths: NO letter bound is assumed (the observed
+1-2 pull cases only bound the proof's case analysis, not the theorem).
+
+The right measure is the **gap** to the componentwise minimum of the two
+candidates:
+
+    m   := componentwise min of the rung vectors of v1, v2
+    gap := (rung v o1 - m o1) + (rung v o2 - m o2),   the two blue suits
+
+For a slice member, `gap v = 0` is exactly `RungLe v v1 AND RungLe v v2` (the
+"comparable" case), so comparability is the induction BASE, not an assumption.
+The only obligation is the step lemma `SliceGapDescent`. -/
+
+/-- First suit of the colour other than `t`'s. -/
+def other1 : Suit → Suit
+  | .spade => .heart
+  | .club => .heart
+  | .heart => .spade
+  | .diamond => .spade
+
+/-- Second suit of the colour other than `t`'s. -/
+def other2 : Suit → Suit
+  | .spade => .diamond
+  | .club => .diamond
+  | .heart => .club
+  | .diamond => .club
+
+/-- Componentwise minimum of two rung vectors. -/
+def SliceMin (v1 v2 : State) : Suit → Nat :=
+  fun σ => Nat.min (rungAt v1 σ) (rungAt v2 σ)
+
+/-- Sum of the two blue deficits above the componentwise minimum. -/
+def SliceGap (t : Suit) (m : Suit → Nat) (v : State) : Nat :=
+  (rungAt v (other1 t) - m (other1 t)) +
+    (rungAt v (other2 t) - m (other2 t))
+
+/-- Reachability by pulls and slides only (the descent alphabet).  ANY finite
+word, in any order — no letter bound is assumed. -/
+inductive PullSlideReach (u : State) : State → Prop
+  | refl : PullSlideReach u u
+  | pull {v w : State} {c : Card} {b : Base} :
+      PullSlideReach u v → State.step v (Move.foundToTab c b) = some w →
+      PullSlideReach u w
+  | slide {v w : State} {c : Card} {b : Base} :
+      PullSlideReach u v → State.step v (Move.tabToTab c b) = some w →
+      PullSlideReach u w
+
+/-- **THE STEP LEMMA (the only obligation).**  Every slice member with positive
+gap has a pull/slide path (any length, any order) to a slice member with
+strictly smaller gap.  The induction on `Nat` needs only the existence of the
+smaller state; the word length is invisible to it. -/
+def SliceGapDescent (u : State) (z : Suit → Nat) (t : Suit)
+    (v1 v2 : State) : Prop :=
+  ∀ v, InSlice u z t v → 0 < SliceGap t (SliceMin v1 v2) v →
+    ∃ v', InSlice u z t v' ∧
+      SliceGap t (SliceMin v1 v2) v' < SliceGap t (SliceMin v1 v2) v ∧
+      PullSlideReach v v'
+
+theorem eq_other_of_ne {t σ : Suit} (h1 : σ ≠ t) (h2 : σ ≠ t.twin) :
+    σ = other1 t ∨ σ = other2 t := by
+  cases t <;> cases σ <;> simp_all [other1, other2, Suit.twin]
+
+/-- **BASE CASE.**  A slice member at gap zero is below both candidates. -/
+theorem rungLe_of_sliceGap_zero {u : State} {z : Suit → Nat} {t : Suit}
+    {v v1 v2 : State}
+    (hv : InSlice u z t v) (h1 : InSlice u z t v1) (h2 : InSlice u z t v2)
+    (hg : SliceGap t (SliceMin v1 v2) v = 0) :
+    RungLe v v1 ∧ RungLe v v2 := by
+  obtain ⟨-, hvt, hvtw⟩ := hv
+  obtain ⟨-, h1t, h1tw⟩ := h1
+  obtain ⟨-, h2t, h2tw⟩ := h2
+  have hzero : rungAt v (other1 t) - SliceMin v1 v2 (other1 t) = 0 ∧
+      rungAt v (other2 t) - SliceMin v1 v2 (other2 t) = 0 := by
+    have h := hg
+    unfold SliceGap at h
+    exact Nat.add_eq_zero_iff.mp h
+  have h1o : rungAt v (other1 t) ≤ rungAt v1 (other1 t) :=
+    Nat.le_trans (Nat.sub_eq_zero_iff_le.mp hzero.1) (Nat.min_le_left _ _)
+  have h2o : rungAt v (other2 t) ≤ rungAt v1 (other2 t) :=
+    Nat.le_trans (Nat.sub_eq_zero_iff_le.mp hzero.2) (Nat.min_le_left _ _)
+  have h1o' : rungAt v (other1 t) ≤ rungAt v2 (other1 t) :=
+    Nat.le_trans (Nat.sub_eq_zero_iff_le.mp hzero.1) (Nat.min_le_right _ _)
+  have h2o' : rungAt v (other2 t) ≤ rungAt v2 (other2 t) :=
+    Nat.le_trans (Nat.sub_eq_zero_iff_le.mp hzero.2) (Nat.min_le_right _ _)
+  constructor
+  · intro σ
+    by_cases hσ : σ = t
+    · subst hσ; simp [hvt, h1t]
+    · by_cases hσ' : σ = t.twin
+      · subst hσ'; simp [hvtw, h1tw]
+      · rcases eq_other_of_ne hσ hσ' with rfl | rfl
+        · exact h1o
+        · exact h2o
+  · intro σ
+    by_cases hσ : σ = t
+    · subst hσ; simp [hvt, h2t]
+    · by_cases hσ' : σ = t.twin
+      · subst hσ'; simp [hvtw, h2tw]
+      · rcases eq_other_of_ne hσ hσ' with rfl | rfl
+        · exact h1o'
+        · exact h2o'
+
+/-- **THE REDUCTION.**  The step lemma gives the meet, by well-founded
+induction on the gap.  No choice, no decidability, no EM. -/
+theorem sliceMeet_of_gapDescent {u : State} {z : Suit → Nat} {t : Suit}
+    {v1 v2 : State}
+    (h1 : InSlice u z t v1) (h2 : InSlice u z t v2)
+    (hd : SliceGapDescent u z t v1 v2) :
+    ∃ v, InSlice u z t v ∧ RungLe v v1 ∧ RungLe v v2 := by
+  have key : ∀ n, ∀ w : State,
+      InSlice u z t w → SliceGap t (SliceMin v1 v2) w = n →
+      ∃ v, InSlice u z t v ∧ SliceGap t (SliceMin v1 v2) v = 0 :=
+    fun n => Nat.strongRecOn n
+      (motive := fun n => ∀ w : State,
+        InSlice u z t w → SliceGap t (SliceMin v1 v2) w = n →
+        ∃ v, InSlice u z t v ∧ SliceGap t (SliceMin v1 v2) v = 0)
+      (fun n ih w hw hsum => by
+        by_cases hgz : SliceGap t (SliceMin v1 v2) w = 0
+        · exact ⟨w, hw, hgz⟩
+        · have hpos : 0 < SliceGap t (SliceMin v1 v2) w := Nat.pos_of_ne_zero hgz
+          obtain ⟨v', hv', hlt, -⟩ := hd w hw hpos
+          have hltn : SliceGap t (SliceMin v1 v2) v' < n := by
+            rw [← hsum]; exact hlt
+          exact ih (SliceGap t (SliceMin v1 v2) v') hltn v' hv' rfl)
+  obtain ⟨v, hv, hg0⟩ := key (SliceGap t (SliceMin v1 v2) v1) v1 h1 rfl
+  exact ⟨v, hv, (rungLe_of_sliceGap_zero hv h1 h2 hg0).1,
+    (rungLe_of_sliceGap_zero hv h1 h2 hg0).2⟩
+
+/-- The step law packaged over the campaign quantifiers. -/
+def ForklessSliceGapDescent : Prop :=
+  ∀ u, u.WF → Forkless u →
+    ∀ s s', sameOrbitSetoid.r u s → sameOrbitSetoid.r u s' →
+      ∀ t v1 v2,
+        InSlice u (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v1 →
+        InSlice u (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v2 →
+        SliceGapDescent u (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v1 v2
+
+/-- **THE MEET FOLLOWS FROM THE GAP DESCENT.**  Combined with the earlier
+equivalence this gives `ForklessSliceLUB` (with `SliceFinite`). -/
+theorem forklessSliceMeet_of_gapDescent (h : ForklessSliceGapDescent) :
+    ForklessSliceMeet := by
+  intro u hu hfl s s' hs hs' t v1 v2 h1 h2
+  exact sliceMeet_of_gapDescent h1 h2 (h u hu hfl s s' hs hs' t v1 v2 h1 h2)
+
 end OneColourClosure
 
 #print axioms OneColourClosure.fullJoinAtLeastOneColourOrFork_of_top_and_closure
@@ -495,4 +643,7 @@ end OneColourClosure
 #print axioms OneColourClosure.forklessSliceLUB_of_meet_and_finite
 #print axioms OneColourClosure.minimalFullJoin_is_sliceLUB_of_meet
 #print axioms OneColourClosure.minimalFullJoin_of_sliceLUB_and_dominates
-
+#print axioms OneColourClosure.eq_other_of_ne
+#print axioms OneColourClosure.rungLe_of_sliceGap_zero
+#print axioms OneColourClosure.sliceMeet_of_gapDescent
+#print axioms OneColourClosure.forklessSliceMeet_of_gapDescent
