@@ -781,7 +781,34 @@ theorem minimalFullJoin_of_climbable {u s s' : State} {cap : Suit -> Nat}
 #print axioms licence_of_climbable
 #print axioms minimalFullJoin_of_climbable
 
+/-- The campaign-facing assembly: the one-colour-exact join from the three
+measured inputs (climbable witness, closure law, cap certificate). -/
+theorem fullJoinAtLeastOneColour_of_climbable {u s s' : State} {cap : Suit -> Nat}
+    (hW : ClimbablePrefixWitness)
+    (hcl : OneColourClosure.ForklessOneColourClosure)
+    (hwf : u.WF) (hfl : OneColourClosure.Forkless u)
+    (hcls : sameOrbitSetoid.r u s) (hcls' : sameOrbitSetoid.r u s')
+    (hws : s.WF)
+    (hcap13 : forall σ, cap σ <= 13)
+    (hup : forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= cap σ)
+    (hmin : forall v, sameOrbitSetoid.r s v ->
+        (forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= rungAt v σ) ->
+        forall σ, cap σ <= rungAt v σ) :
+    exists w, OneColourClosure.FullJoinAtLeastOneColour s s' w := by
+  obtain ⟨w, hminjoin⟩ :=
+    minimalFullJoin_of_climbable hW hwf hfl hcls hcls' hcap13 hup hmin
+  have hfls : OneColourClosure.Forkless s := by
+    intro F hsF
+    exact hfl F (sameOrbitSetoid.iseqv.trans hcls hsF)
+  have hss' : sameOrbitSetoid.r s s' :=
+    sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hcls) hcls'
+  exact ⟨w, hminjoin.1,
+    OneColourClosure.minimalFullJoin_oneColourExact hcl hws hfls hss' hminjoin⟩
+
+#print axioms fullJoinAtLeastOneColour_of_climbable
+
 end PrefixClimb
+
 
 
 
