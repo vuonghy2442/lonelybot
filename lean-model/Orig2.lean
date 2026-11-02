@@ -32,6 +32,7 @@ import Orig2.Fork.Class.ForkTwinJoin
 import Orig2.Fork.Class.ForkOneColourClosure
 import Orig2.Fork.Class.ForkMin
 import Orig2.Fork.Class.ForkDecide
+import Orig2.Fork.Class.ForkPrefixClimb
 
 /-!
 # Orig2 — the proof root
