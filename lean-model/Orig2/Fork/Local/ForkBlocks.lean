@@ -1,6 +1,5 @@
 import Orig2.Fork.Class.ForkCanon
 import Orig2.Fork.Local.ForkChain
-import Orig2.Fork.CrossSuit.ForkFibreCorridor
 import Orig2.Fork.Split.ForkBridge
 import Orig2.Fork.Split.ForkTailHead
 

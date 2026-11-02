@@ -1,9 +1,79 @@
 import Orig2.Fork.Local.ForkBlocks
+import Orig2.Fork.Local.ForkSafeTransport
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
+
+namespace CrossSuit
+
+/-- **`AvoidsSuit σ m`** — the letter `m` does not touch suit `σ`: it is a
+`draw`/`tabToTab` (`FreeMove`, rung-preserving) or a raise/pull of another suit.
+(The waste letters are never witness letters; they are deliberately `True` here
+so the predicate is total.) -/
+def AvoidsSuit (σ : Suit) : Move → Prop
+  | Move.tabToFound c => c.suit ≠ σ
+  | Move.foundToTab c _ => c.suit ≠ σ
+  | _ => True
+
+theorem avoidsSuit_raise {σ : Suit} {c : Card} (h : c.suit ≠ σ) :
+    AvoidsSuit σ (Move.tabToFound c) := h
+
+theorem avoidsSuit_pull {σ : Suit} {c : Card} {b : Base} (h : c.suit ≠ σ) :
+    AvoidsSuit σ (Move.foundToTab c b) := h
+
+/-- A slide moves only piles: the whole foundation is fixed. -/
+theorem found_tabToTab_eq {st w : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.tabToTab c b) = some w) : w.found = st.found := by
+  obtain ⟨a, -, -, -, hw⟩ := step_tabToTab_inv hstep
+  rw [hw, putRun_found, setPile_found]
+
+/-- A pull of another suit leaves the `σ`-column alone. -/
+theorem found_foundToTab_ne {st w : State} {c : Card} {b : Base}
+    (hstep : State.step st (Move.foundToTab c b) = some w) {s : Suit} (hs : s ≠ c.suit) :
+    w.found s = st.found s := by
+  obtain ⟨c', -, hc', -, hw⟩ := step_foundToTab_inv hstep
+  rw [hw, putCard_found]
+  exact setFound_found_ne hs
+
+/-- **A `σ`-free witness letter leaves the `σ`-column alone.** -/
+theorem found_step_of_avoids {st w : State} {m : Move} {σ : Suit}
+    (hstep : State.step st m = some w) (hrev : reversibleAtW st m)
+    (h : AvoidsSuit σ m) : w.found σ = st.found σ := by
+  cases m with
+  | draw => rw [stepDraw_found hstep]
+  | tabToTab c b => rw [found_tabToTab_eq hstep]
+  | tabToFound c =>
+      exact SafeTransport.found_tabToFound_ne hstep (fun hh => h hh.symm)
+  | foundToTab c b =>
+      exact found_foundToTab_ne hstep (fun hh => h hh.symm)
+  | wasteToFound c => exact absurd hrev (wasteToFound_not_reversibleAtW st c)
+  | wasteToTab c b => exact absurd hrev (wasteToTab_not_reversibleAtW st c b)
+
+/-- **THE COLUMN-TRANSPORT.**  Along a witness play whose every letter avoids
+`σ`, the `σ`-column of the foundation is unchanged. -/
+theorem found_eq_of_avoids {u v : State} {ρ : List Move} {σ : Suit}
+    (hplay : ShufflePlayW u ρ v) (h : ∀ m ∈ ρ, AvoidsSuit σ m) :
+    v.found σ = u.found σ := by
+  induction hplay with
+  | nil st => rfl
+  | @cons st s₁ W m ρ' hrev hstep hrest ih =>
+      have hm : AvoidsSuit σ m := h m (List.mem_cons_self ..)
+      have ht : ∀ m' ∈ ρ', AvoidsSuit σ m' :=
+        fun m' hm' => h m' (List.mem_cons_of_mem m hm')
+      rw [ih ht]
+      exact found_step_of_avoids hstep hrev hm
+
+/-- **THE TOP-TRANSPORT.**  Along a `σ`-free witness play the `σ`-foundation top
+is unchanged. -/
+theorem foundTop_eq_of_avoids {u v : State} {ρ : List Move} {σ : Suit}
+    (hplay : ShufflePlayW u ρ v) (h : ∀ m ∈ ρ, AvoidsSuit σ m) :
+    v.foundTop σ = u.foundTop σ := by
+  unfold State.foundTop
+  rw [found_eq_of_avoids hplay h]
+
+end CrossSuit
 
 /-!
 # CrossSuit_Face1 — the geometry of the prepared-seat face

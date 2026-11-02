@@ -1,3 +1,10 @@
+# 2026-11-02: the cross-suit lane was archived after the refuted-premise
+# cleanup (Orig2/Fork/CrossSuit/ no longer exists; the true column-transport
+# lemmas now live at the top of Orig2/Fork/Third/ForkFace1.lean).  This
+# certificate imports Orig2.Fork.CrossSuit.ForkCrossSuit, so restore the lane
+# first: git mv Archive/ForkCrossSuit.lean Archive/ForkCrossSuitPure.lean
+# Archive/ForkFibreCorridor.lean Orig2/Fork/Third/
+
 # build_crosssuit_cert.ps1 -- build the kernel certificate for the cross-suit refutation.
 #
 #   ForkCertBoard  (board + 17-letter play + corridor + refutations from minimality)
@@ -63,3 +70,4 @@ Write-Host ("{0,-30} {1,5}s" -f 'ForkCertPart0..7 (parallel)', [int]((Get-Date) 
 Step 'ForkCertMain.lean' 'ForkCertMain'
 Check 'ForkCertInv.lean'
 Write-Host ("TOTAL WALL: {0} s" -f [int]((Get-Date) - $t0).TotalSeconds)
+

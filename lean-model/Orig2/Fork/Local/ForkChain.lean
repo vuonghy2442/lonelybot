@@ -1,7 +1,7 @@
-import Orig2.Fork.CrossSuit.ForkCrossSuitPure
 import Orig2.Fork.Class.ForkReadBracket
 import Orig2.Fork.Split.ForkEmptyTail
 import Orig2.Fork.Split.ForkPinAt
+import Orig2.Fork.Local.ForkSlideFwd
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
@@ -89,7 +89,6 @@ avoided by rank counting alone.
 
 namespace Chain
 
-open CrossSuit
 
 /-- **`CanRaise` IS DECIDABLE** (through the campaign's Bool probe
 `PinAt.canRaiseBL`, `Orig2/Fork/Split/ForkPinAt.lean:278`).  This keeps every `by_cases` on
@@ -497,20 +496,6 @@ theorem coverChainResidual_iff :
       exact h2 B v tail d hB hv hcan hplay z' x s1 s2 A Z hle
         (hm ▸ heq) hp hcanA hstep' hblk hx
 
-/-- **VACUOUS.**  `CoverChainResidual` is FALSE (`Sat.not_coverChainResidual`,
-`Orig2/ForkSatChain.lean`), so this is a kernel-checked implication from a false
-premise.  Kept for lineage; do not cite. -/
-theorem freeCorridor_of_coverChain (h : CoverChainResidual) :
-    CrossSuitFreeCorridorResidual := by
-  intro u v ρ pre γ tail c d b huwf hu hv hplay hmin heq hne hfree
-  subst heq
-  obtain ⟨B, -, -, -, -, -, htail, hB, hcanB, -, -, -, -, -, -, -⟩ :=
-    corridor_tail_blocker hplay huwf hv
-  obtain ⟨z', s1', s2', A', Z', m', hle, heq', hp1', hcanA', hstepA', hblockA',
-    hshape'⟩ := chain_exists hB hv hcanB htail
-  exact h B v tail d hB hv hcanB htail z' s1' s2' A' Z' m' hle heq' hp1'
-    hcanA' hstepA' hblockA' hshape'
-
 end Chain
 
 /-! ## §8. Axiom battery -/
@@ -532,7 +517,6 @@ end Chain
 #print axioms Chain.chain_exists
 #print axioms Chain.chain_rank_lt_thirteen
 #print axioms Chain.coverChainResidual_iff
-#print axioms Chain.freeCorridor_of_coverChain
 
 #check @Chain.CoverChainResidual
 #check @Chain.NoChainRaise

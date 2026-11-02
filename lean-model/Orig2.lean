@@ -57,10 +57,7 @@ import Orig2.Fork.Split.ForkGatedTower
 import Orig2.Fork.Split.ForkBaseEnabling
 import Orig2.Fork.Split.ForkMtnExists
 import Orig2.Fork.Split.ForkTailHead
-import Orig2.Fork.CrossSuit.ForkCrossSuit
-import Orig2.Fork.CrossSuit.ForkCrossSuitPure
 import Orig2.Fork.Local.ForkChain
-import Orig2.Fork.CrossSuit.ForkFibreCorridor
 import Orig2.Fork.Class.ForkCanon
 import Orig2.Fork.Local.ForkBlocks
 import Orig2.Fork.Third.ForkFace1
@@ -98,7 +95,6 @@ Orig2/Fork/Class/  24 cards  (fork class theory, rung/non-comparability, join/sl
 Orig2/Fork/Local/  23 cards  (letter commutation, normalization, relocation)
 Orig2/Fork/Split/  26 cards  (split/tail/landing/pin/mountain/drain/frontier)
 Orig2/Fork/Third/  11 cards  (third-suit, survivor, mate, elimination)
-Orig2/Fork/CrossSuit/ 3 cards (cross-suit corridor)
 Orig2/Fiber/       26 cards  (fiber, orbit, king, twin machinery)
 Orig2/Boundary/     2 cards  (BoundaryForkFree, BoundaryMinPath)
 Orig2/Claims/       3 cards  (Claims, ClaimsScrutiny, Chart)

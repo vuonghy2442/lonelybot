@@ -211,3 +211,37 @@ source card.  Note: the archived certificate/refutation card `ForkInrExpRefute`
 names `InrExposeResidual`, so restoring that card also requires restoring the
 definition (or retargeting its statement).
 
+
+## The cross-suit lane (2026-11-02, refuted-premise cleanup)
+
+The whole cross-suit lane was **refuted by the archived certificate**
+(`Archive/Cert/ForkCertMain.lean`: `Cert.not_crossSuitCorridorResidual`,
+`not_crossSuitPureCorridorResidual`, `not_crossSuitVacuityTarget`) and had
+already been reduced to a dead end.  The three cards were archived:
+
+| card | status |
+|---|---|
+| `ForkCrossSuit` | central premise `CrossSuitCorridorResidual` / `crossSuitVacuity` FALSE; rest of the card is corridor bookkeeping |
+| `ForkCrossSuitPure` | `CrossSuitPureCorridorResidual` / `CrossSuitInnerRaiseResidual` FALSE |
+| `ForkFibreCorridor` | the fibre-corridor identity for the refuted residual |
+
+**Revision, not just archival.**  Two declarations from the lane were real
+and used by a live card, so they were kept (inlined, verbatim) at the top of
+`Orig2/Fork/Third/ForkFace1.lean` under `namespace CrossSuit`:
+`AvoidsSuit`, `avoidsSuit_raise`, `avoidsSuit_pull`, `found_tabToTab_eq`,
+`found_foundToTab_ne`, `found_step_of_avoids`, `found_eq_of_avoids`,
+`foundTop_eq_of_avoids` (the column-transport lemmas).  Everything else in the
+lane was false or bookkeeping for a false premise.
+
+Also removed: the vacuous wrapper `Chain.freeCorridor_of_coverChain`
+(`Orig2/Fork/Local/ForkChain.lean`; its premise `CoverChainResidual` is FALSE,
+refuted in the archived `ForkSatChain`), the imports that existed only for it,
+and the dead `ForkBlocks -> ForkFibreCorridor` import.
+
+`Fork/CrossSuit/` no longer exists; `Orig2` is 131 cards / 137 jobs.
+
+NOTE for the certificate: `Archive/Cert/ForkCertBoard.lean` imports
+`Orig2.Fork.CrossSuit.ForkCrossSuit`, so rebuilding the certificate requires
+restoring the cross-suit lane first (`git mv Archive/ForkCrossSuit*.lean
+Archive/ForkFibreCorridor.lean Orig2/Fork/Third/`), or repointing that import.
+
