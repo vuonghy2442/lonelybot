@@ -15,6 +15,19 @@ New-Item -ItemType Directory -Force -Path $out | Out-Null
 $log = 'Temp/Cert_axioms_orig2.txt'
 if (Test-Path $log) { Remove-Item $log }
 
+# 2026-11-02: the certificate cluster (ForkCert* + ForkEqualRung{Ball,Board,Min})
+# was archived to Archive/Cert/ because it is deliberately outside
+# `lake build Orig2`.  Restore it first, then rerun this script unchanged:
+#   foreach ($f in 'ForkCertBase','ForkCertBoard','ForkCertInv','ForkCertMain',
+#                  'ForkCertPart0','ForkCertPart1','ForkCertPart2','ForkCertPart3',
+#                  'ForkCertPart4','ForkCertPart5','ForkCertPart6','ForkCertPart7',
+#                  'ForkEqualRungBall','ForkEqualRungBoard','ForkEqualRungMin') {
+#     git mv "Archive/Cert/$f.lean" "Orig2/$f.lean" }
+if (-not (Test-Path 'Orig2/ForkCertBoard.lean')) {
+  Write-Host 'Certificate cluster lives in Archive/Cert; restore it first (recipe above).'
+  exit 1
+}
+
 function Step([string]$file, [string]$mod) {
   $t0 = Get-Date
   & lake env lean -o "$out/$mod.olean" "Orig2/$file"

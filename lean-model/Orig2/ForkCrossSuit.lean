@@ -13,7 +13,7 @@ set_option linter.unusedSimpArgs false
 # CrossSuit_Vacuity - the cross-suit raise-before-pull reduction
 
 **THE CENTRAL PREMISE IS FALSE — KERNEL-CERTIFIED.**  The certificate is
-`Orig2/ForkCertMain.lean` / `Orig2/ForkCertInv.lean` (leaf chain; build with
+`Archive/Cert/ForkCertMain.lean` / `Archive/Cert/ForkCertInv.lean` (leaf chain; build with
 `Tools/build_crosssuit_cert.ps1`, ~406 s parallel): a 17-letter shortest
 `SSaturated → SSaturated` witness play (`Cert.play`, `Cert.play_shortest`,
 `d(u,v) = 17` from a 2308-state distance table) with `Cert.inv_rho : inv = 8`,
@@ -493,7 +493,7 @@ theorem corridor_pull_is_c {u v : State} {pre γ tail : List Move} {c d : Card} 
 /-- **REFUTED — KERNEL-CERTIFIED; DO NOT CITE AS A RESIDUAL.**  A minimal
 witness play between `SSaturated` `WF` endpoints never carries a raise of `c`,
 a corridor clean at `(c, d)`, and then a pull of `d` - for two different suits.
-`Cert.not_crossSuitCorridorResidual` (`Orig2/ForkCertMain.lean`) proves this is
+`Cert.not_crossSuitCorridorResidual` (`Archive/Cert/ForkCertMain.lean`) proves this is
 FALSE, with a 17-letter shortest play whose clean corridor is
 `raise QD ; raise KS ; slide KH→empty ; pull KS (inl 5)`. -/
 def CrossSuitCorridorResidual : Prop :=
@@ -645,7 +645,7 @@ theorem pureResidual_of_sameCard (hpur : CrossSuitPureCorridorResidual)
 
 /-- **CROSS-SUIT VACUITY** - the brief's target, from the named corridor
 residual.  **REFUTED — KERNEL-CERTIFIED** (`Cert.not_crossSuitVacuityTarget`,
-`Orig2/ForkCertMain.lean`): the counterexample play has `inv = 8`, so the
+`Archive/Cert/ForkCertMain.lean`): the counterexample play has `inv = 8`, so the
 target proposition is false. -/
 theorem crossSuitVacuity (hres : CrossSuitCorridorResidual)
     {u v : State} (huwf : u.WF) (hu : SSaturated u) (hv : SSaturated v)

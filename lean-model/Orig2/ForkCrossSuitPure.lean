@@ -10,7 +10,7 @@ set_option linter.unusedSimpArgs false
 # Orig2/ForkCrossSuitPure - the pull-free (pure) cross-suit corridor
 
 **REFUTED — KERNEL-CERTIFIED.**  `Cert.not_crossSuitPureCorridorResidual`
-(`Orig2/ForkCertMain.lean`, leaf chain, build `Tools/build_crosssuit_cert.ps1`)
+(`Archive/Cert/ForkCertMain.lean`, leaf chain, build `Tools/build_crosssuit_cert.ps1`)
 gives a shortest saturated→saturated play with `inv = 8`; its corridors are
 clean but have a non-free window, so this card's residual and
 `CrossSuitInnerRaiseResidual` do not cover it — the cross-suit case is REAL.

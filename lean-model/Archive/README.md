@@ -169,3 +169,31 @@ for these lanes (the base-clause probes, `InrExp2_*`, `EqSplit_*`,
 need the card restored (or the import repointed at `Archive/`) before
 re-running.
 
+
+## Certificate cluster archived (2026-11-02, same pass)
+
+The cross-suit kernel certificate and its equal-rung support moved here to
+`Archive/Cert/`: the 12 `ForkCert*` cards plus `ForkEqualRungBall`,
+`ForkEqualRungBoard`, `ForkEqualRungMin` - 15 cards, 7 880 lines.  None of
+them was in `lake build Orig2`: the certificate is an explicit leaf build
+(`Tools/build_crosssuit_cert.ps1`, ~400 s) that the root never imports.
+The oleans on disk are the Nov-1 artifacts; the source is preserved here.
+
+`Tools/build_crosssuit_cert.ps1` now fails fast with the restore recipe when
+the cluster is absent.  To rebuild the certificate, restore it first:
+
+```powershell
+foreach ($f in 'ForkCertBase','ForkCertBoard','ForkCertInv','ForkCertMain',
+               'ForkCertPart0','ForkCertPart1','ForkCertPart2','ForkCertPart3',
+               'ForkCertPart4','ForkCertPart5','ForkCertPart6','ForkCertPart7',
+               'ForkEqualRungBall','ForkEqualRungBoard','ForkEqualRungMin') {
+  git mv "Archive/Cert/$f.lean" "Orig2/$f.lean" }
+```
+
+With this move `Orig2/` is 139 cards, and every one of them is now reachable
+from the root build (verified: 139/139), split as 132 campaign-closure cards
+plus 7 deliberate non-campaign umbrellas/ledger/boundary cards
+(`Substrate`, `Fiber`, `FiberHierarchy`, `Claims`, `ClaimsScrutiny`,
+`BoundaryForkFree`, `BoundaryMinPath`).  There is no unbuilt dead weight
+left in `Orig2/`.
+
