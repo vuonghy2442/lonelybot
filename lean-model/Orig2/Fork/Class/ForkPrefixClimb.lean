@@ -586,60 +586,7 @@ theorem RaiseReach.wf_and_orbit {u v : State} (h : RaiseReach u v) (hu : u.WF) :
       have hso := Drain.sameOrbit_of_step hrev hstep
       exact ⟨step_wf hwf hstep, sameOrbitSetoid.iseqv.trans horb hso⟩
 
-/-- THE FIBRE-PREFIX RESIDUAL, as a Prop: the endpoint's rung class contains a
-PREFIX state under the cap.  (Measured 0 / 32.8M requirements.) -/
-def PrefixWitnessExists : Prop :=
-  forall (u s s' : State) (cap : Suit -> Nat),
-    u.WF -> OneColourClosure.Forkless u ->
-    sameOrbitSetoid.r u s -> sameOrbitSetoid.r u s' ->
-    (forall σ, cap σ <= 13) ->
-    (forall σ, rungAt s σ <= cap σ) -> (forall σ, rungAt s' σ <= cap σ) ->
-    exists w, sameOrbitSetoid.r u w /\ w.WF /\ Under w cap /\ PrefixOK w cap
-
-/-- The cap is realised: the climb applied at the PREFIX witness. -/
-theorem capRealised {u s s' : State} {cap : Suit -> Nat}
-    (hW : PrefixWitnessExists) (hE : StepExists cap)
-    (hwf : u.WF) (hfl : OneColourClosure.Forkless u)
-    (hcls : sameOrbitSetoid.r u s) (hcls' : sameOrbitSetoid.r u s')
-    (hcap13 : forall σ, cap σ <= 13)
-    (hs : forall σ, rungAt s σ <= cap σ) (hs' : forall σ, rungAt s' σ <= cap σ) :
-    exists w, sameOrbitSetoid.r u w /\ forall σ, rungAt w σ = cap σ := by
-  obtain ⟨w0, hw0cls, hw0wf, hw0und, hw0pre⟩ :=
-    hW u s s' cap hwf hfl hcls hcls' hcap13 hs hs'
-  obtain ⟨w, hreach, hrungs⟩ := prefixClimb hE (stepPreserves_proved cap) hw0wf hw0und hw0pre
-  obtain ⟨-, horb⟩ := RaiseReach.wf_and_orbit hreach hw0wf
-  exact ⟨w, sameOrbitSetoid.iseqv.trans hw0cls horb, hrungs⟩
-
-/-- THE CONSUMER: the realised minimal full join, from the two residuals plus
-the cap certificate (cap is the componentwise min of the upper bounds). -/
-theorem minimalFullJoin_of_prefixWitness {u s s' : State} {cap : Suit -> Nat}
-    (hW : PrefixWitnessExists) (hE : StepExists cap)
-    (hwf : u.WF) (hfl : OneColourClosure.Forkless u)
-    (hcls : sameOrbitSetoid.r u s) (hcls' : sameOrbitSetoid.r u s')
-    (hcap13 : forall σ, cap σ <= 13)
-    (hup : forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= cap σ)
-    (hmin : forall v, sameOrbitSetoid.r s v ->
-        (forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= rungAt v σ) ->
-        forall σ, cap σ <= rungAt v σ) :
-    exists w, OneColourClosure.MinimalFullJoin s s' w := by
-  have hs : forall σ, rungAt s σ <= cap σ :=
-    fun σ => Nat.le_trans (Nat.le_max_left _ _) (hup σ)
-  have hs' : forall σ, rungAt s' σ <= cap σ :=
-    fun σ => Nat.le_trans (Nat.le_max_right _ _) (hup σ)
-  obtain ⟨w, hwcls, hrungs⟩ := capRealised hW hE hwf hfl hcls hcls' hcap13 hs hs'
-  refine ⟨w, ?_, ?_⟩
-  · refine ⟨?_, ?_⟩
-    · exact sameOrbitSetoid.iseqv.trans (sameOrbitSetoid.iseqv.symm hcls) hwcls
-    · intro σ
-      rw [hrungs σ]
-      exact hup σ
-  · intro v hv σ
-    rw [hrungs σ]
-    exact hmin v hv.1 hv.2 σ
-
 #print axioms RaiseReach.wf_and_orbit
-#print axioms capRealised
-#print axioms minimalFullJoin_of_prefixWitness
 
 
 
