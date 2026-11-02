@@ -26,7 +26,7 @@ Definitions:
   upper bound.
 * `ForklessHasTop` — a forkless class has a rung top.
 * `IsLUBTarget`, `MinimalFullJoin` — the least class-mate above a target.
-* `OneColourExactUpper`, `SliceLUB`, `ForklessSliceLUB` — the 2D slice LUB on
+* `InSlice`, `SliceLUB`, `ForklessSliceLUB` — the 2D slice LUB on
   an exact colour.
 * `RungLe`, `ForklessSliceMeet`, `SliceFinite` — the 2D meet form and the
   finite enumeration that turn it back into the slice LUB.
@@ -175,7 +175,7 @@ theorem minimalFullJoin_oneColourExact
     exact Nat.le_antisymm hle hge
 
 /-- An upper bound exact on the twin pair of `t`. -/
-def OneColourExactUpper (u : State) (z : Suit → Nat) (t : Suit)
+def InSlice (u : State) (z : Suit → Nat) (t : Suit)
     (w : State) : Prop :=
   UpperTarget u z w ∧
     rungAt w t = z t ∧ rungAt w t.twin = z t.twin
@@ -183,8 +183,8 @@ def OneColourExactUpper (u : State) (z : Suit → Nat) (t : Suit)
 /-- The least exact-`t` upper bound: a purely one-colour (2D) LUB. -/
 def SliceLUB (u : State) (z : Suit → Nat) (t : Suit)
     (w : State) : Prop :=
-  OneColourExactUpper u z t w ∧
-    ∀ v, OneColourExactUpper u z t v →
+  InSlice u z t w ∧
+    ∀ v, InSlice u z t v →
       ∀ σ : Suit, rungAt w σ ≤ rungAt v σ
 
 /-- **THE ONE-COLOUR SLICE THEOREM (PAIR TARGETS).**  If the componentwise
@@ -198,7 +198,7 @@ def ForklessSliceLUB : Prop :=
   ∀ u, u.WF → Forkless u →
     ∀ s s', sameOrbitSetoid.r u s → sameOrbitSetoid.r u s' →
       ∀ t : Suit,
-        (∃ w, OneColourExactUpper u
+        (∃ w, InSlice u
           (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t w) →
         ∃ w, SliceLUB u
           (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t w
@@ -218,7 +218,7 @@ theorem minimalFullJoin_is_sliceLUB
   let z : Suit → Nat := fun σ => Nat.max (rungAt s σ) (rungAt s' σ)
   obtain ⟨t, ht, htt⟩ :=
     minimalFullJoin_oneColourExact hcl hs hfl hcls hmin
-  have hex : ∃ v, OneColourExactUpper s z t v :=
+  have hex : ∃ v, InSlice s z t v :=
     ⟨w, hmin.1, ht, htt⟩
   obtain ⟨wt, hwt⟩ := hslice s hs hfl s s' (RevEqW_refl s) hcls t hex
   have hwt_upper : UpperTarget s z wt := hwt.1.1
@@ -299,20 +299,20 @@ def ForklessSliceMeet : Prop :=
   ∀ u, u.WF → Forkless u →
     ∀ s s', sameOrbitSetoid.r u s → sameOrbitSetoid.r u s' →
       ∀ t : Suit, ∀ v1 v2,
-        OneColourExactUpper u
+        InSlice u
           (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v1 →
-        OneColourExactUpper u
+        InSlice u
           (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v2 →
-        ∃ v, OneColourExactUpper u
+        ∃ v, InSlice u
             (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v ∧
           RungLe v v1 ∧ RungLe v v2
 
 /-- A slice LUB is a meet witness: it lies below both exact upper bounds. -/
 theorem sliceLUB_meet {u : State} {z : Suit → Nat} {t : Suit} {w v1 v2 : State}
     (hw : SliceLUB u z t w)
-    (h1 : OneColourExactUpper u z t v1)
-    (h2 : OneColourExactUpper u z t v2) :
-    ∃ v, OneColourExactUpper u z t v ∧ RungLe v v1 ∧ RungLe v v2 :=
+    (h1 : InSlice u z t v1)
+    (h2 : InSlice u z t v2) :
+    ∃ v, InSlice u z t v ∧ RungLe v v1 ∧ RungLe v v2 :=
   ⟨w, hw.1, hw.2 v1 h1, hw.2 v2 h2⟩
 
 /-- **THE FIRST HALF OF THE EQUIVALENCE.**  The slice LUB law implies the
@@ -350,7 +350,7 @@ theorem fold_lower_bound (S : State → Prop)
 /-- A finite enumeration of the slice.  In the real game this is just the
 finiteness of the state space: finitely many cards, finitely many seats. -/
 def SliceFinite (u : State) (z : Suit → Nat) (t : Suit) : Prop :=
-  ∃ L : List State, ∀ w, OneColourExactUpper u z t w ↔ w ∈ L
+  ∃ L : List State, ∀ w, InSlice u z t w ↔ w ∈ L
 
 /-- **THE SECOND HALF OF THE EQUIVALENCE.**  Meet + a finite enumeration of
 the slice gives the slice LUB.  The least element is the fold's common lower
@@ -360,11 +360,11 @@ theorem forklessSliceLUB_of_meet_and_finite
     (hfin : ∀ u z t, SliceFinite u z t) : ForklessSliceLUB := by
   intro u hu hfl s s' hs hs' t hex
   have hdd : ∀ v1 v2,
-      OneColourExactUpper u
+      InSlice u
         (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v1 →
-      OneColourExactUpper u
+      InSlice u
         (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v2 →
-      ∃ v, OneColourExactUpper u
+      ∃ v, InSlice u
           (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v ∧
         RungLe v v1 ∧ RungLe v v2 :=
     hmeet u hu hfl s s' hs hs' t
@@ -436,7 +436,7 @@ theorem minimalFullJoin_of_sliceLUB_and_dominates
       ⟨htopr.2 s (RevEqW_refl s) σ, htopr.2 s' hcls σ⟩
   obtain ⟨e, he_upper, he_exact⟩ := hcl s hs hfl s s' (RevEqW_refl s) hcls
   obtain ⟨t, ht, htt⟩ := he_exact
-  have hex : ∃ v, OneColourExactUpper s z t v := ⟨e, he_upper, ht, htt⟩
+  have hex : ∃ v, InSlice s z t v := ⟨e, he_upper, ht, htt⟩
   obtain ⟨w, hw⟩ := hslice s hs hfl s s' (RevEqW_refl s) hcls t hex
   refine ⟨w, hw.1.1, ?_⟩
   intro v hv σ
@@ -495,3 +495,4 @@ end OneColourClosure
 #print axioms OneColourClosure.forklessSliceLUB_of_meet_and_finite
 #print axioms OneColourClosure.minimalFullJoin_is_sliceLUB_of_meet
 #print axioms OneColourClosure.minimalFullJoin_of_sliceLUB_and_dominates
+
