@@ -670,4 +670,64 @@ theorem canRaise_false_of_lone {st : State} {a : Anchor} {z : Card}
 
 #print axioms canRaise_false_of_lone
 
+/-- A lone-over-hidden next-up card blocks all raise-only progress in its suit. -/
+theorem lone_hidden_blocks {st w0 : State} {a : Anchor} {z : Card} {s : Suit}
+    (hwf : st.WF)
+    (hpod : st.pileOfTop z = some a)
+    (hface : (st.piles a).faceUp = [z])
+    (hhid : (st.piles a).hidden ≠ [])
+    (hzs : z.suit = s)
+    (hzr : z.rank.toIdx = rungAt st s)
+    (hreach : RaiseReach st w0) :
+    rungAt w0 s = rungAt st s := by
+  have H : forall u, RaiseReach st u ->
+      u.WF /\ u.pileOfTop z = some a /\ (u.piles a).faceUp = [z] /\
+      (u.piles a).hidden = (st.piles a).hidden /\ rungAt u s = rungAt st s := by
+    intro u hru
+    induction hru with
+    | refl => exact ⟨hwf, hpod, hface, rfl, rfl⟩
+    | step hrv hcan hstep ih =>
+        rename_i v w c
+        obtain ⟨hwu, hpodu, hfaceu, hhidu, hrungu⟩ := ih
+        obtain ⟨-, a', hpodc, hw⟩ := step_tabToFound_inv hstep
+        by_cases hane : a' = a
+        · exfalso
+          have hpodc' : v.pileOfTop c = some a := by rw [hane] at hpodc; exact hpodc
+          have htopc : (v.piles a).top = some c := (pileOfTop_eq_some_iff hwu).mp hpodc'
+          have htopz : (v.piles a).top = some z := (pileOfTop_eq_some_iff hwu).mp hpodu
+          have hcz : c = z := Option.some.inj (htopc.symm.trans htopz)
+          have hhidv : (v.piles a).hidden ≠ [] := by rw [hhidu]; exact hhid
+          exact canRaise_false_of_lone hpodu hfaceu hhidv (hcz ▸ hcan)
+        · have hpile : w.piles a = v.piles a := by
+            rw [hw]
+            simp [Ne.symm hane]
+          have hfacew : (w.piles a).faceUp = [z] := by rw [hpile]; exact hfaceu
+          have hhidw : (w.piles a).hidden = (st.piles a).hidden := by
+            rw [hpile]; exact hhidu
+          have hpodu' : w.pileOfTop z = some a :=
+            (pileOfTop_eq_some_iff (step_wf hwu hstep)).mpr (by
+              rw [hpile]
+              exact (pileOfTop_eq_some_iff hwu).mp hpodu)
+          have hrungw : rungAt w s = rungAt st s := by
+            rw [rungAt_tabToFound hstep s]
+            by_cases hcs : s = c.suit
+            · exfalso
+              have hnext : rungAt v c.suit = c.rank.toIdx :=
+                TwinKit.nextUp_true_iff.mp hcan.1
+              have hcsz : c.suit = z.suit := by rw [← hcs, hzs]
+              have hrk : c.rank = z.rank := Rank.toIdx_inj (by
+                rw [← hnext, ← hcs, hrungu, hzr])
+              have hcz : c = z := by
+                rw [show c = Card.mk c.suit c.rank from rfl,
+                    show z = Card.mk z.suit z.rank from rfl, hcsz, hrk]
+              exact hane (pileOfTop_inj (hcz ▸ hpodc) hpodu)
+            · rw [if_neg hcs]; exact hrungu
+          exact ⟨step_wf hwu hstep, hpodu', hfacew, hhidw, hrungw⟩
+  exact (H w0 hreach).2.2.2.2
+
+#print axioms lone_hidden_blocks
+
 end PrefixClimb
+
+
+
