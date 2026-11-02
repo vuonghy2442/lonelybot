@@ -90,4 +90,13 @@ The old conditional route (`SplitLivePair`, `SameCardRelocation`,
 refuted and retired to `Archive/` on 2026-11-02: the residuals are false,
 so the route is vacuous.  It stays restorable and greppable there.
 
+INDEPENDENT OF THAT ROUTE, the fork-Position rigidity results are
+**unconditional and retained** in `Fork/Third/ForkThirdHigh.lean`:
+`forkThirdRigid_unconditional : ForkThirdRigid`,
+`forkPositionRigid_unconditional : ForkPositionRigid`,
+`forkFoundRigid_unconditional : ForkFoundRigid`, and "a fork class carries
+at most one fork `Position`" (`fork_one_position_of_rigid`), all with axioms
+`[propext, Quot.sound]`.  The archived route was only the conditional
+`SatDifferForkWF` reduction, never the Position-rigidity proof.
+
 -/
