@@ -125,3 +125,47 @@ the OPEN original fiber_transfer_corrected (the .inl corners):
 KingOrbitFull, KingTrace, KingSwapStrict, KingSwapAssembly,
 AnchorRelabel, FloatOrbit, OrbitFactor.  They build green
 standalone; the root stays minimal (import Orig2.FiberTransfer only).
+
+## Route-backlog pass (2026-11-02, owner request)
+
+The `Fork*.lean` tree had grown to 142 cards in one 2026-11-01 landing,
+almost all densely interlinked (only 22 had no importer at all), so
+"dead file" had to be defined structurally: the **complement of the
+import closure of the current campaign**.  Seeds: `ForkOneColourClosure`,
+`ForkTwinJoin`, `ForkRaiseOnly`, `ForkNonComp`, `ForkClass`, `ForkDipPin`,
+`ForkBridge`, `SWDichotomy`, `ForkSplit`, `ForkPosition`, `ForkDecide`,
+`ForkFrontier`, `ForkMin`, `ForkMinCross`, `ForkSplitResidual`,
+`ForkMeetCover`, `ForkFibMeet`, `ForkExist`, `ForkNonfork`, `ForkElim`,
+`ForkLivePair`.
+
+The 39 cards below are that complement (16 294 lines).  The set is
+**closed under importers**: no remaining `Orig2/` card imports any of
+them, so they were moved and their `Orig2.lean` import lines dropped with
+no other edits.  `lake build Orig2` re-verified green at **145 jobs**
+(was 187); `Orig2/` is now 154 cards, `Fork*` 103.
+
+| lane | cards |
+|---|---|
+| base clause | `ForkBaseAdjoint`, `ForkBaseMain`, `ForkBasePile`, `ForkBaseRaise`, `ForkBaseSeat` |
+| landing residual | `ForkLandResNetZero`, `ForkLandResSeat` |
+| equal-rung / eq-split | `ForkEqSplit`, `ForkEqSplitSlide`, `ForkEqSplitWitness`, `ForkEqualRungDist`, `ForkEqualRungMain` |
+| extract / S-grade chain | `ForkExtract`, `ForkFace2`, `ForkGap`, `ForkSatChain`, `ForkSeat`, `ForkTwinBarrier` |
+| inr / perm refutations | `ForkInrExp`, `ForkInrExpRefute`, `ForkPermRefute`, `ForkReplay` |
+| cross-suit read / off-window | `ForkCrossSuitPartition`, `ForkOffWindow`, `ForkReadSafeFace` |
+| gadgets and one-off refutations | `ForkKingGadget`, `ForkRelocGadget`, `ForkMountainRefute`, `ForkLocatorRefute`, `ForkSeatTwinNoGo`, `ForkMateGate` |
+| route utilities | `ForkBoth`, `ForkChoiceFree`, `ForkFloor`, `ForkLeftRaise`, `ForkLedgerResidual`, `ForkPullOrigin`, `ForkReveal`, `ForkSignSwap` |
+
+These are RETIRED, not refuted: most carry live negative results or
+unfinished residuals, and the journal still cites them.  Restore recipe:
+`git mv` the card back to `Orig2/`, re-add `import Orig2.<Card>` to
+`Orig2.lean`, rebuild.
+
+Caveat: about twenty `Temp/*.lean` probe scripts still `import Orig2.<card>`
+for these lanes (the base-clause probes, `InrExp2_*`, `EqSplit_*`,
+`Slide_Core`, `Gap_KingBranch`, `PinFork_Core`, `Twin_PinLink`,
+`Extract_MultiSlide`, `CrossSuit_ReadSafe`, `Off_WindowSlide`,
+`Rev_Reveal`, `Search_SeatTwin_NoGo`, `Sat_ChainRefute`, `SC_*`, `BP_test`,
+`ArgminEq_Flash`, `TwinFoundedDip`, `Probe0`).  They are scratch and will
+need the card restored (or the import repointed at `Archive/`) before
+re-running.
+
