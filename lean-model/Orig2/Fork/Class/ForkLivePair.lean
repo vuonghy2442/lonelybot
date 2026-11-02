@@ -5,69 +5,30 @@ set_option maxHeartbeats 2000000
 set_option linter.unusedVariables false
 
 /-!
-# Orig2/ForkLivePair — proving `SplitKit.SplitLivePair`
+# Orig2/ForkLivePair - live-set geometry and the shortened split
 
 READ-ONLY scratch card: no source edits, no commits.  Zero `sorry`, zero
 `Classical.choice`, zero `native_decide`; the axiom battery is at the tail.
 
-## What is proved here
+## Status (2026-11-02)
 
-The redirected target is `SplitKit.SplitLivePair`:
+The `SplitLivePair` residual is **FALSE** (`TwinAt.not_splitLivePair_of_corner`,
+`Orig2/Fork/Class/ForkTwinAt.lean`).  The constructors
+`splitLivePair_of_landing_ne/_block/_forkAtRaise/_valleyElim` and the
+`splitResidualData_of_valleyElim_*` capstones were therefore **removed**
+(archived in `Archive/WITHDRAWN_DEFS.md`).  The residual definition and its
+live kernel refutation are kept as evidence anchors.
 
-```
-SplitLivePair := ∀ …, SplitHyp u v ρ F left right c d b pre post tail →
-                  TwinLivePair F d
-```
+## What remains (all kernel-checked)
 
-## Reductions proved kernel-checked
-
-1. **`SplitLivePair` from `ValleyElim.ValleyElimNonfork` (no extra input).**
-   `ValleyElimNonfork` (`Orig2/Fork/Split/ForkSplit.lean:864`) is the campaign's
-   existing valley-elimination residual: at every valley split either a
-   `ForkWitness` already sits at the bottom, or the play strictly shortens.
-   The shortest-play conjunct of `SplitHyp` kills the shortening branch, and
-   the fork branch pins the raise card `d` to the fork's raisable card `x`
-   (`d ≠ x.twin` because the fork blocks `x.twin`), so the live set at `F`
-   is exactly `{d, d.twin}`.  This is `splitLivePair_of_valleyElim`.
-
-2. **`SplitLivePair` from a local live-set residual**
-   `SplitLiveAtLanding` (the task's suggested missing lemma: *the live set
-   at the pull's landing is contained in `{c, c.twin}`*), plus the `SplitNe`
-   pin.  This is `splitLivePair_of_landing_ne`, with
-   `splitLivePair_of_landing_block` as the `SplitBlock`-fed form.
-
-3. **The complete local identity rule (W3, `Temp/FullCancel_Report.md`).**
-   `identity_pair_delete` deletes any adjacent pair `m1 ; m2` with
-   `step (step A m1) m2 = A`; it covers the old `pull ; raise` family
-   (`pull_raise_identity_pair`), the 2-move slide/slide loops
-   (`slide_slide_identity_pair`, smallest witness `S4C>5H ; S4C>5D`), and
-   raise-then-pull-back.  `shortest_no_identity_pair` /
-   `splitHyp_no_identity_pair` read it contrapositively at a shortest split,
-   and `post_nil_turn_ne` is the `post = []` split-bottom application.
-
-4. **`SplitNe` and `SplitBlock` from the commutation that feeds W3.**
-   If `c = d`, commuting the raise left across the free tail makes
-   `pull c ; raise c` adjacent, and W3 shortens the play.  The commutation is
-   the named premise `PostCommutesRaise`; `splitNe_of_postCommutesRaise` is
-   the kernel-checked deletion, and
-   `splitBlock_of_valleyElim_ne` / `splitBlock_of_valleyElim_postCommutes`
-   combine it with the pinned fork.
-
-The geometric half of the twin mechanism is also proved unconditionally
-(`eq_twin_of_cover_seat`): if the cover card `x` of `c` at the bottom was
-seated on `d` at an earlier state of the play, then `d = c.twin`.  This is
-the probe's "one free slide moves `x` off `c.twin` onto `c`", reduced to
-pure `canSitOn` arithmetic (`tfc_fitting_parent`).
-
-## Consequence
-
-`ValleyElimNonfork ∧ SplitBlock ⇒ SplitResidualData` and hence the bridge
-chain (`bottomDip_of_valleyElim_block`,
-`satDifferForkWF_of_valleyElim_block_drainClosed`).  The sharper capstone is
-`splitResidualData_of_valleyElim_postCommutes`:
-`ValleyElimNonfork ∧ PostCommutesRaise ⇒ SplitResidualData`, i.e. the
-corrected residual reduces to the existing valley-elimination residual plus
-the one explicit commutation premise consumed by W3.
+* section 1 - the geometric core: two seats of one card pin the twin;
+* section 2 - the live set at the bottom is the live set at the pull landing;
+* section 3 - the local landing residual `SplitLiveAtLanding` (route withdrawn);
+* section 4 - `ValleyElimForkAtRaise` and its pinning step from
+  `ValleyElimNonfork`;
+* section 5 - the complete local identity rule (`FullCancel` W3) and the
+  minimality discriminator;
+* section 5b - `SplitNe` / `SplitBlock` from the commutation premise.
 -/
 
 namespace LiveKit
@@ -148,7 +109,7 @@ theorem contained_at_F_of_landing
       intro e he
       exact hcont A' B hpre hstep e (live_iff_of_free_tail hpost hfree hBwf e |>.mp he)
 
-/-! ## §3. `SplitLivePair` from the local landing residual -/
+/-! ## §3. The local landing residual (route withdrawn) -/
 
 /-- **THE LOCAL LIVE-SET RESIDUAL** (the task's suggested missing lemma): at
 the pull's landing, every S-live card is the pull card or its twin. -/
@@ -161,46 +122,7 @@ def SplitLiveAtLanding : Prop :=
     State.step A' (Move.foundToTab c b) = some B →
     ∀ e, CanRaiseS B e → e = c ∨ e = c.twin
 
-/-- **`SplitLivePair` FROM THE LANDING CONTAINMENT PLUS `c ≠ d`.**  At `F`,
-`d` is live, so containment puts it in `{c, c.twin}`; `c ≠ d` excludes
-`d = c`, so `d = c.twin` and the live set is the twin pair of `d`. -/
-theorem splitLivePair_of_landing_ne
-    (hland : SplitLiveAtLanding) (hne : SplitNe) : SplitLivePair := by
-  intro u v ρ F left right c d b pre post tail h
-  have hcontF := contained_at_F_of_landing h
-    (fun A' B hpre hstep =>
-      hland u v ρ F left right c d b pre post tail A' B h hpre hstep)
-  have hcd : c ≠ d := hne u v ρ F left right c d b pre post tail h
-  obtain ⟨-, hSFc, hcanD, hSFd⟩ := splitHyp_green h
-  have hdt : d = c.twin := by
-    rcases hcontF d hSFd with h' | h'
-    · exact absurd h' (Ne.symm hcd)
-    · exact h'
-  have hdtc : d.twin = c := by rw [hdt, card_twin_twin]
-  have hSFdt : CanRaiseS F d.twin := by
-    rw [hdtc]; exact hSFc
-  intro e
-  constructor
-  · intro he
-    rcases hcontF e he with h' | h'
-    · exact Or.inr (h'.trans hdtc.symm)
-    · exact Or.inl (h'.trans hdt.symm)
-  · rintro (h' | h')
-    · rw [h']; exact hSFd
-    · rw [h']; exact hSFdt
-
-/-- **`SplitLivePair` FROM THE LANDING CONTAINMENT PLUS `SplitBlock`.**  The
-block gives `¬ CanRaise F c`, and `d` is vanilla-raisable at `F`, so `c ≠ d`. -/
-theorem splitLivePair_of_landing_block
-    (hland : SplitLiveAtLanding) (hblock : SplitBlock) : SplitLivePair := by
-  refine splitLivePair_of_landing_ne hland ?_
-  intro u v ρ F left right c d b pre post tail h
-  obtain ⟨-, -, hcanD, -⟩ := splitHyp_green h
-  intro hcd
-  exact hblock u v ρ F left right c d b pre post tail h
-    (by rw [hcd]; exact hcanD)
-
-/-! ## §4. `SplitLivePair` from the campaign's valley-elimination residual -/
+/-! ## §4. `ValleyElimForkAtRaise` and the pinning step -/
 
 /-- **THE EXACT CONSUMED RESIDUAL** — the disjunctive valley-elimination form
 with the fork *pinned to the split's raise card* `d`: at the bottom, either
@@ -214,20 +136,6 @@ def ValleyElimForkAtRaise : Prop :=
     SplitHyp u v ρ F left right c d b pre post tail →
     ForkWitness F d ∨
       (∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length < ρ.length)
-
-/-- **`SplitLivePair` FROM THE PINNED RESIDUAL.**  The fork branch *is* the
-live-pair clause; the shortening branch contradicts the shortest-play
-conjunct of `SplitHyp`. -/
-theorem splitLivePair_of_forkAtRaise
-    (hf : ValleyElimForkAtRaise) : SplitLivePair := by
-  intro u v ρ F left right c d b pre post tail h
-  obtain ⟨huwf, hsu, hsv, hplay, hsplitAt, hmin, hρ, hleft, hright, hshape,
-    hfree, hrightShape⟩ := h
-  rcases hf u v ρ F left right c d b pre post tail
-      ⟨huwf, hsu, hsv, hplay, hsplitAt, hmin, hρ, hleft, hright, hshape,
-        hfree, hrightShape⟩ with hx | ⟨ρ', hρ', hlen⟩
-  · exact ((forkWitness_iff F d).mp hx).1
-  · exact absurd hlen (Nat.not_lt.mpr (hmin ρ' hρ'))
 
 /-- **THE PINNING STEP.**  `ValleyElim.ValleyElimNonfork`'s fork is on *some*
 card `x`; at the split's raise card it is on `d`.  Indeed `d` is S-live
@@ -252,22 +160,6 @@ theorem valleyElimForkAtRaise_of_valleyElim
     rw [hdx]
     exact hx
   · exact Or.inr ⟨ρ', hρ', hlen⟩
-
-/-- **THE MAIN REDUCTION.**  `ValleyElim.ValleyElimNonfork` alone gives
-`SplitLivePair`: minimality kills the elimination branch, and at the fork the
-raise card `d` is the fork's raisable card `x` (it cannot be the blocked
-`x.twin`), so the live set at `F` is exactly `{d, d.twin}`.
-
-No `SplitBlock`, no `SplitNe`, no extra geometric input. -/
-theorem splitLivePair_of_valleyElim
-    (helim : ValleyElim.ValleyElimNonfork) : SplitLivePair :=
-  splitLivePair_of_forkAtRaise (valleyElimForkAtRaise_of_valleyElim helim)
-
-/-- **The same reduction for the twin clause**, routed through
-`splitTwin_of_livePair_block`. -/
-theorem splitTwin_of_valleyElim_block
-    (helim : ValleyElim.ValleyElimNonfork) (hblock : SplitBlock) : SplitTwin :=
-  splitTwin_of_livePair_block (splitLivePair_of_valleyElim helim) hblock
 
 /-! ## §5. The complete local identity rule (`FullCancel` W3)
 
@@ -507,71 +399,6 @@ theorem splitBlock_of_valleyElim_postCommutes
     SplitBlock :=
   splitBlock_of_valleyElim_ne helim (splitNe_of_postCommutesRaise hc)
 
-/-! ## §6. Consequence: the corrected residual from the named inputs -/
-
-/-- **`SplitResidualData` FROM `ValleyElimNonfork` + `SplitBlock`.** -/
-theorem splitResidualData_of_valleyElim_block
-    (helim : ValleyElim.ValleyElimNonfork) (hblock : SplitBlock) :
-    SplitResidualData :=
-  splitResidualData_of_livePair_block (splitLivePair_of_valleyElim helim) hblock
-
-/-- **`SplitResidualData` FROM THE LOCAL LANDING RESIDUAL + `SplitBlock`.** -/
-theorem splitResidualData_of_landing_block
-    (hland : SplitLiveAtLanding) (hblock : SplitBlock) : SplitResidualData :=
-  splitResidualData_of_livePair_block
-    (splitLivePair_of_landing_block hland hblock) hblock
-
-/-- **`SplitResidualData` FROM `ValleyElimNonfork` + THE COMMUTATION.**  This
-is the sharpest capstone here: the live-pair clause needs only the existing
-valley-elimination residual, and the block clause needs the single explicit
-commutation premise that lets W3 cancel the same-card bracket. -/
-theorem splitResidualData_of_valleyElim_postCommutes
-    (helim : ValleyElim.ValleyElimNonfork) (hc : PostCommutesRaise) :
-    SplitResidualData :=
-  splitResidualData_of_livePair_block
-    (splitLivePair_of_valleyElim helim)
-    (splitBlock_of_valleyElim_postCommutes helim hc)
-
-/-- The bridge residual from the valley-elimination reduction. -/
-theorem bottomDip_of_valleyElim_block
-    (helim : ValleyElim.ValleyElimNonfork) (hblock : SplitBlock) :
-    Bridge.BottomDip :=
-  bottomDip_of_splitResidualData (splitResidualData_of_valleyElim_block helim hblock)
-
-/-- The bridge residual from the landing-containment reduction. -/
-theorem bottomDip_of_landing_block
-    (hland : SplitLiveAtLanding) (hblock : SplitBlock) : Bridge.BottomDip :=
-  bottomDip_of_splitResidualData (splitResidualData_of_landing_block hland hblock)
-
-/-- **THE FULL CHAIN from `ValleyElimNonfork` + `SplitBlock`** (the drain is
-discharged by `Bridge.forkExistenceFromAsymmetry_drainClosed`). -/
-theorem satDifferForkWF_of_valleyElim_block_drainClosed
-    (helim : ValleyElim.ValleyElimNonfork) (hblock : SplitBlock)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  satDifferForkWF_of_splitResidualData_drainClosed
-    (splitResidualData_of_valleyElim_block helim hblock) hmin
-
-/-- **THE FULL CHAIN from the local landing residual + `SplitBlock`.** -/
-theorem satDifferForkWF_of_landing_block_drainClosed
-    (hland : SplitLiveAtLanding) (hblock : SplitBlock)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  satDifferForkWF_of_splitResidualData_drainClosed
-    (splitResidualData_of_landing_block hland hblock) hmin
-
-/-- The bridge residual from `ValleyElimNonfork` + the commutation. -/
-theorem bottomDip_of_valleyElim_postCommutes
-    (helim : ValleyElim.ValleyElimNonfork) (hc : PostCommutesRaise) :
-    Bridge.BottomDip :=
-  bottomDip_of_splitResidualData
-    (splitResidualData_of_valleyElim_postCommutes helim hc)
-
-/-- **THE FULL CHAIN from `ValleyElimNonfork` + the commutation.** -/
-theorem satDifferForkWF_of_valleyElim_postCommutes_drainClosed
-    (helim : ValleyElim.ValleyElimNonfork) (hc : PostCommutesRaise)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  satDifferForkWF_of_splitResidualData_drainClosed
-    (splitResidualData_of_valleyElim_postCommutes helim hc) hmin
-
 /-! ## §7. Axiom battery -/
 
 #print axioms parent_eq_or_twin
@@ -580,12 +407,7 @@ theorem satDifferForkWF_of_valleyElim_postCommutes_drainClosed
 #print axioms eq_twin_of_cover_seat
 #print axioms live_iff_of_free_tail
 #print axioms contained_at_F_of_landing
-#print axioms splitLivePair_of_landing_ne
-#print axioms splitLivePair_of_landing_block
-#print axioms splitLivePair_of_forkAtRaise
 #print axioms valleyElimForkAtRaise_of_valleyElim
-#print axioms splitLivePair_of_valleyElim
-#print axioms splitTwin_of_valleyElim_block
 #print axioms identity_pair_delete
 #print axioms pull_raise_identity_pair
 #print axioms slide_slide_identity_pair
@@ -597,14 +419,5 @@ theorem satDifferForkWF_of_valleyElim_postCommutes_drainClosed
 #print axioms splitNe_of_postCommutesRaise
 #print axioms splitBlock_of_valleyElim_ne
 #print axioms splitBlock_of_valleyElim_postCommutes
-#print axioms splitResidualData_of_valleyElim_block
-#print axioms splitResidualData_of_landing_block
-#print axioms splitResidualData_of_valleyElim_postCommutes
-#print axioms bottomDip_of_valleyElim_block
-#print axioms bottomDip_of_landing_block
-#print axioms bottomDip_of_valleyElim_postCommutes
-#print axioms satDifferForkWF_of_valleyElim_block_drainClosed
-#print axioms satDifferForkWF_of_landing_block_drainClosed
-#print axioms satDifferForkWF_of_valleyElim_postCommutes_drainClosed
 
 end LiveKit

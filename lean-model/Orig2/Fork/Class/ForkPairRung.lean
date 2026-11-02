@@ -454,24 +454,6 @@ theorem mechanismResidual_of_block_containment_of_ge
   TwinKit.mechanismResidual_of_block_containment_of_pairRungEq hb hc
     (splitPairRungEq_of_block_of_ge hb hg)
 
-/-- **THE CAMPAIGN FROM THE ONE-SIDED RESIDUAL** (with the choice-free
-shortest-play interface). -/
-theorem satDifferForkWF_of_block_containment_of_ge
-    (hb : SplitKit.SplitBlock) (hc : TwinKit.SplitContainment)
-    (hg : SplitTwinRungGe) (hmin : ValleyElim.ShortestPlayExists) :
-    SatDifferForkWF :=
-  TwinKit.satDifferForkWF_of_block_containment_of_pairRungEq hb hc
-    (splitPairRungEq_of_block_of_ge hb hg) hmin
-
-/-- The same in `TwinKit.SplitTwinRungPin` form (the campaign's own spelling). -/
-theorem satDifferForkWF_of_block_containment_of_ge_pin
-    (hb : SplitKit.SplitBlock) (hc : TwinKit.SplitContainment)
-    (hg : SplitTwinRungGe) (hmin : ValleyElim.ShortestPlayExists) :
-    SatDifferForkWF := by
-  have hpair : SplitPairRungEq := splitPairRungEq_of_block_of_ge hb hg
-  exact TwinKit.satDifferForkWF_of_block_containment_of_pin hb hc
-    (splitPairRungEq_iff_splitTwinRungPin.mp hpair) hmin
-
 /-! ## §7. Battery -/
 
 #check @PairRungKit.SplitTwinRungGe
@@ -506,7 +488,5 @@ theorem satDifferForkWF_of_block_containment_of_ge_pin
 #print axioms PairRungKit.pin_of_pull_ace
 #print axioms PairRungKit.splitPairRungEq_of_block_of_pull_ace
 #print axioms PairRungKit.mechanismResidual_of_block_containment_of_ge
-#print axioms PairRungKit.satDifferForkWF_of_block_containment_of_ge
-#print axioms PairRungKit.satDifferForkWF_of_block_containment_of_ge_pin
 
 end PairRungKit

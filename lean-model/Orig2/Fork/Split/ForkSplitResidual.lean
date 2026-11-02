@@ -353,46 +353,6 @@ def SplitNe : Prop :=
     (pre post tail : List Move),
     SplitHyp u v ρ F left right c d b pre post tail → c ≠ d
 
-/-- **THE TWIN CLAUSE IS PROVED.**  From `TwinLivePair F d` (the live set
-is exactly `{d, d.twin}`), the green `CanRaise F d` (the raise fires at
-the bottom) and the block of `c`: `c` cannot be `d`, hence `c = d.twin`
-and `d = c.twin`. -/
-theorem splitTwin_of_livePair_block (hl : SplitLivePair) (hb : SplitBlock) :
-    SplitTwin := by
-  intro u v ρ F left right c d b pre post tail h
-  obtain ⟨-, hSc, hcanD, -⟩ := splitHyp_green h
-  rcases (hl u v ρ F left right c d b pre post tail h c).mp hSc with h' | h'
-  · have hc : CanRaise F c := by rw [h']; exact hcanD
-    exact absurd hc (hb u v ρ F left right c d b pre post tail h)
-  · rw [h', card_twin_twin]
-
-/-- **THE RANK FLOOR IS PROVED** — indeed, from the twin clause the live
-pair's rank equals `c.rank`, so the floor holds with equality.  The floor
-needs `SplitLivePair` plus `SplitTwin` (which is itself derived from
-`SplitLivePair` + `SplitBlock` above). -/
-theorem splitFloor_of_livePair_twin (hl : SplitLivePair) (ht : SplitTwin) :
-    SplitFloor := by
-  intro u v ρ F left right c d b pre post tail h e he
-  have hdc : d.rank.toIdx = c.rank.toIdx := by
-    rw [ht u v ρ F left right c d b pre post tail h, Card.twin_rank]
-  rcases (hl u v ρ F left right c d b pre post tail h e).mp he with h' | h'
-  · rw [h']
-    omega
-  · rw [h', Card.twin_rank]
-    omega
-
-/-- **THE STRICT REDUCTION (3 clauses → 2).**  `SplitLivePair` (the
-bottom's live set is the raise card's twin pair) plus `SplitBlock` (the
-pull card is blocked) implies the whole corrected residual: the twin
-clause and the rank floor are *proved*, not assumed. -/
-theorem splitResidualData_of_livePair_block (hl : SplitLivePair) (hb : SplitBlock) :
-    SplitResidualData := by
-  intro u v ρ F left right c d b pre post tail h
-  have ht : SplitTwin := splitTwin_of_livePair_block hl hb
-  exact ⟨ht u v ρ F left right c d b pre post tail h,
-    hb u v ρ F left right c d b pre post tail h,
-    splitFloor_of_livePair_twin hl ht u v ρ F left right c d b pre post tail h⟩
-
 /-- **THE BLOCK CLAUSE PROVES THE PIN.**  `c` is blocked and `d` is
 raisable at the bottom, so `c ≠ d`; hence `SplitNe` follows from
 `SplitBlock` with no extra input. -/
@@ -400,27 +360,6 @@ theorem splitNe_of_block (hb : SplitBlock) : SplitNe := by
   intro u v ρ F left right c d b pre post tail h hcd
   obtain ⟨-, -, hcanD, -⟩ := splitHyp_green h
   exact hb u v ρ F left right c d b pre post tail h (hcd ▸ hcanD)
-
-/-- **THE FORK'S LIVE-SET HALF IS `SplitLivePair`** — the fork witness pins
-the live set outright (`forkWitness_iff`,
-`Orig2/Fork/Local/ForkCriticalPair.lean:50`). -/
-theorem splitLivePair_of_fork (hf : SplitFork) : SplitLivePair := by
-  intro u v ρ F left right c d b pre post tail h
-  exact ((forkWitness_iff F d).mp (hf u v ρ F left right c d b pre post tail h)).1
-
-/-- `SplitLivePair ∧ SplitBlock` yields the fork form: the live set is
-exactly the twin pair and the blocked member is the pull card. -/
-theorem splitFork_of_livePair_block (hl : SplitLivePair) (hb : SplitBlock) :
-    SplitFork := by
-  intro u v ρ F left right c d b pre post tail h
-  have htwin : d = c.twin := splitTwin_of_livePair_block hl hb
-    u v ρ F left right c d b pre post tail h
-  have hdtc : d.twin = c := by rw [htwin, card_twin_twin]
-  refine ⟨?_, ?_⟩
-  · intro z
-    exact (hl u v ρ F left right c d b pre post tail h z).symm
-  · rw [hdtc]
-    exact hb u v ρ F left right c d b pre post tail h
 
 /-- **THE FORK-FORM REDUCTION.**  If the bottom is a fork on the raise
 card and the pull card is not the raise card, the corrected residual
@@ -623,12 +562,18 @@ theorem satDifferForkWF_of_splitResidualData_drainClosed
     (Bridge.bottomAsymmetry_of_bottomDip (bottomDip_of_splitResidualData h) hmin)
     Bridge.forkExistenceFromAsymmetry_drainClosed
 
-/-- The same chain from the two-clause form. -/
-theorem satDifferForkWF_of_livePair_block_drainClosed
-    (hl : SplitLivePair) (hb : SplitBlock) (hmin : ValleyElim.ShortestPlayExists) :
-    SatDifferForkWF :=
-  satDifferForkWF_of_splitResidualData_drainClosed
-    (splitResidualData_of_livePair_block hl hb) hmin
+/-- **THE TWIN CLAUSE IS PROVED.**  From `TwinLivePair F d` (the live set
+is exactly `{d, d.twin}`), the green `CanRaise F d` (the raise fires at
+the bottom) and the block of `c`: `c` cannot be `d`, hence `c = d.twin`
+and `d = c.twin`. -/
+theorem splitTwin_of_livePair_block (hl : SplitLivePair) (hb : SplitBlock) :
+    SplitTwin := by
+  intro u v ρ F left right c d b pre post tail h
+  obtain ⟨-, hSc, hcanD, -⟩ := splitHyp_green h
+  rcases (hl u v ρ F left right c d b pre post tail h c).mp hSc with h' | h'
+  · have hc : CanRaise F c := by rw [h']; exact hcanD
+    exact absurd hc (hb u v ρ F left right c d b pre post tail h)
+  · rw [h', card_twin_twin]
 
 end SplitKit
 
@@ -648,12 +593,7 @@ end SplitKit
 #print axioms SplitKit.splitResidualData_iff_parts
 #print axioms SplitKit.not_splitResidual_of_split
 #print axioms SplitKit.not_splitResidual_of_satDiffer
-#print axioms SplitKit.splitTwin_of_livePair_block
-#print axioms SplitKit.splitFloor_of_livePair_twin
-#print axioms SplitKit.splitResidualData_of_livePair_block
 #print axioms SplitKit.splitNe_of_block
-#print axioms SplitKit.splitLivePair_of_fork
-#print axioms SplitKit.splitFork_of_livePair_block
 #print axioms SplitKit.splitResidualData_of_fork_ne
 #print axioms SplitKit.splitResidualData_of_fork_block
 #print axioms SplitKit.splitData_ne
@@ -665,4 +605,3 @@ end SplitKit
 #print axioms SplitKit.splitData_drainTerminal
 #print axioms SplitKit.bottomDip_of_splitResidualData
 #print axioms SplitKit.satDifferForkWF_of_splitResidualData_drainClosed
-#print axioms SplitKit.satDifferForkWF_of_livePair_block_drainClosed

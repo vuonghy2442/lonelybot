@@ -509,15 +509,6 @@ theorem mechanismResidual_of_block_containment_of_pin
       exact ⟨A', B, hpre, hstep, hpost, ⟨htwinB, hcontB⟩,
         Mech.coverEvent_of_block hB hpost hfree hcanB hSc hblock⟩
 
-/-- **THE CAMPAIGN FROM THREE CLAUSES.**  `SplitBlock` + `SplitContainment` +
-`SplitTwinRungPin`, together with the choice-free shortest-play interface,
-give `SatDifferForkWF`. -/
-theorem satDifferForkWF_of_block_containment_of_pin
-    (hb : SplitKit.SplitBlock) (hc : SplitContainment) (hp : SplitTwinRungPin)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  Mech.satDifferForkWF_of_mechanismResidual_drainClosed
-    (mechanismResidual_of_block_containment_of_pin hb hc hp) hmin
-
 /-- **THE PIN IS THE ONLY EXTRA INPUT.**  Route B's hypothesis set is exactly
 `SplitBlock + SplitContainment + SplitTwinRungPin`, and the pin is *implied*
 by the target (`rungAt_twin_of_landingLivePair`), so it is a genuine
@@ -572,14 +563,6 @@ theorem mechanismResidual_of_block_containment_of_pairRungEq
   mechanismResidual_of_block_containment_of_pin hb hc
     (splitPairRungEq_iff_splitTwinRungPin.mp hr)
 
-/-- **THE CAMPAIGN FROM THREE CLAUSES, IN LEDGER FORM** (with the
-choice-free shortest-play interface). -/
-theorem satDifferForkWF_of_block_containment_of_pairRungEq
-    (hb : SplitKit.SplitBlock) (hc : SplitContainment) (hr : SplitPairRungEq)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  Mech.satDifferForkWF_of_mechanismResidual_drainClosed
-    (mechanismResidual_of_block_containment_of_pairRungEq hb hc hr) hmin
-
 /-! ## §6d. `SplitTwin`, `SplitLivePair` and `SplitResidualData` derived -/
 
 /-- **THE RAISE CARD IS THE TWIN, AT EVERY SPLIT.**  `SplitKit.SplitTwin` is
@@ -595,33 +578,6 @@ theorem splitTwin_of_block_containment_of_pin
     (hc u v ρ F left right c d b pre post tail hh)
     (nextUp_true_iff.mp (hp u v ρ F left right c d b pre post tail hh))
     hcanD
-
-/-- **THE LIVE PAIR AT EVERY SPLIT.**  `SplitKit.SplitLivePair` from the same
-three clauses: the pull card `c` is S-live and is the twin of the raise card
-`d = c.twin`. -/
-theorem splitLivePair_of_block_containment_of_pin
-    (hb : SplitKit.SplitBlock) (hc : SplitContainment) (hp : SplitTwinRungPin) :
-    SplitKit.SplitLivePair := by
-  intro u v ρ F left right c d b pre post tail hh
-  obtain ⟨-, hSc, hcanD, -⟩ := SplitKit.splitHyp_green hh
-  have hblock : ¬ CanRaise F c := hb u v ρ F left right c d b pre post tail hh
-  have hcont : ∀ e, CanRaiseS F e → e.suit = c.suit ∨ e.suit = c.twin.suit :=
-    hc u v ρ F left right c d b pre post tail hh
-  have hpin : F.nextUp c.twin = true := hp u v ρ F left right c d b pre post tail hh
-  have htwin : CanRaiseS F c.twin :=
-    canRaiseS_twin_of_block_containment hSc hblock hcont hpin hcanD
-  have hd : d = c.twin :=
-    raise_eq_twin_of_block_containment hSc hblock hcont (nextUp_true_iff.mp hpin) hcanD
-  intro e
-  rw [hd, card_twin_twin]
-  constructor
-  · intro he
-    rcases hcont e he with hs | hs
-    · exact Or.inr (Mech.live_eq_of_suit_left (canRaiseS_rung hSc) he hs)
-    · exact Or.inl (Mech.live_eq_of_suit_twin (nextUp_true_iff.mp hpin) he hs)
-  · rintro (h | h)
-    · rw [h]; exact htwin
-    · rw [h]; exact hSc
 
 /-- **THE CORRECTED RESIDUAL `SplitResidualData`, DERIVED.**  With
 `SplitBlock`, `SplitContainment` and `SplitTwinRungPin` supplying clause 1
@@ -685,16 +641,12 @@ theorem satDifferForkWF_of_block_containment_of_pin_floor
 #print axioms TwinKit.splitLandingTwin_of_block_containment_of_pin
 #print axioms TwinKit.splitLandingTwin_of_pin_of_sited
 #print axioms TwinKit.mechanismResidual_of_block_containment_of_pin
-#print axioms TwinKit.satDifferForkWF_of_block_containment_of_pin
 #print axioms TwinKit.splitTwinRungPin_of_splitLandingTwin
 #print axioms TwinKit.splitLandingTwin_iff_splitTwinRungPin
 #print axioms TwinKit.pin_iff_pairRungEq
 #print axioms TwinKit.splitPairRungEq_iff_splitTwinRungPin
 #print axioms TwinKit.mechanismResidual_of_block_containment_of_pairRungEq
-#print axioms TwinKit.satDifferForkWF_of_block_containment_of_pairRungEq
 #print axioms TwinKit.splitTwin_of_block_containment_of_pin
-#print axioms TwinKit.splitLivePair_of_block_containment_of_pin
 #print axioms TwinKit.splitResidualData_of_block_containment_of_pin_floor
-#print axioms TwinKit.satDifferForkWF_of_block_containment_of_pin_floor
 
 end TwinKit

@@ -112,25 +112,6 @@ theorem canRaiseS_twin_of_livePair {F : State} {c d : Card}
     rw [h, card_twin_twin]
     exact (hl d).mpr (Or.inl rfl)
 
-/-- **`SplitPairRungEq` FROM THE LIVE PAIR** — both halves at once, since both
-rungs are pinned to `c.rank.toIdx`.  No `SplitBlock`, no `SplitContainment`. -/
-theorem splitPairRungEq_of_splitLivePair (hl : SplitKit.SplitLivePair) :
-    SplitPairRungEq := by
-  intro u v ρ F left right c d b pre post tail h
-  obtain ⟨-, hSc, -, -⟩ := SplitKit.splitHyp_green h
-  have htwin : CanRaiseS F c.twin :=
-    canRaiseS_twin_of_livePair hSc
-      (hl u v ρ F left right c d b pre post tail h)
-  rw [rungAt_twin_eq_of_live htwin, canRaiseS_rung hSc]
-
-/-- The `nextUp`-form of the same statement (`TwinKit.SplitTwinRungPin`). -/
-theorem splitTwinRungPin_of_splitLivePair (hl : SplitKit.SplitLivePair) :
-    TwinKit.SplitTwinRungPin := by
-  intro u v ρ F left right c d b pre post tail h
-  obtain ⟨-, hSc, -, -⟩ := SplitKit.splitHyp_green h
-  exact nextUp_twin_of_live (canRaiseS_twin_of_livePair hSc
-    (hl u v ρ F left right c d b pre post tail h))
-
 /-- The twin's S-liveness at every split's bottom — the *single* missing
 datum, named (it is the first conjunct of `Mech.LandingLivePair`). -/
 def SplitTwinLiveAtBottom : Prop :=
@@ -149,69 +130,12 @@ theorem splitPairRungEq_of_twinLiveAtBottom (hl : SplitTwinLiveAtBottom) :
   rw [rungAt_twin_eq_of_live (hl u v ρ F left right c d b pre post tail h),
     canRaiseS_rung hSc]
 
-/-- `SplitLivePair` gives the bottom's twin liveness (the §2 case analysis,
-read as a residual-level implication). -/
-theorem twinLiveAtBottom_of_splitLivePair (hl : SplitKit.SplitLivePair) :
-    SplitTwinLiveAtBottom :=
-  fun u v ρ F left right c d b pre post tail h =>
-    canRaiseS_twin_of_livePair (SplitKit.splitHyp_green h).2.1
-      (hl u v ρ F left right c d b pre post tail h)
-
-/-! ## §3. The existing valley-elimination residual discharges it -/
-
-/-- **THE PIN FROM `ValleyElimNonfork`.**  The repository's valley-elimination
-residual already yields `SplitLivePair` (`LiveKit.splitLivePair_of_valleyElim`),
-so it yields the pair-rung equality too. -/
-theorem splitPairRungEq_of_valleyElim (h : ValleyElim.ValleyElimNonfork) :
-    SplitPairRungEq :=
-  splitPairRungEq_of_splitLivePair (LiveKit.splitLivePair_of_valleyElim h)
-
-/-! ## §4. Exactness: with the other two clauses the pin *is* the live pair -/
-
-/-- **THE EXACT EQUIVALENCE.**  Given `SplitBlock` and `SplitContainment`, the
-pair-rung residual and the live-pair residual are the same statement.  The
-forward direction is this card's §2 (no hypotheses); the backward one is
-`TwinKit.splitLivePair_of_block_containment_of_pin`. -/
-theorem splitLivePair_iff_pairRungEq_of_block_containment
-    (hb : SplitKit.SplitBlock) (hc : TwinKit.SplitContainment) :
-    SplitKit.SplitLivePair ↔ SplitPairRungEq :=
-  ⟨splitPairRungEq_of_splitLivePair,
-    fun hr => TwinKit.splitLivePair_of_block_containment_of_pin hb hc
-      (TwinKit.splitPairRungEq_iff_splitTwinRungPin.mp hr)⟩
-
-/-! ## §5. The campaign consumes it -/
-
-/-- **THE CAMPAIGN WITHOUT THE PAIR-RUNG CLAUSE.**  `SplitBlock` +
-`SplitContainment` + the live-pair residual + the choice-free shortest-play
-interface give `SatDifferForkWF`.  (The pin is *derived*, not assumed.) -/
-theorem satDifferForkWF_of_livePair_block_containment
-    (hl : SplitKit.SplitLivePair) (hb : SplitKit.SplitBlock)
-    (hc : TwinKit.SplitContainment)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  TwinKit.satDifferForkWF_of_block_containment_of_pairRungEq hb hc
-    (splitPairRungEq_of_splitLivePair hl) hmin
-
-/-- The same from the repository's valley-elimination residual. -/
-theorem satDifferForkWF_of_valleyElim_block_containment
-    (helim : ValleyElim.ValleyElimNonfork) (hb : SplitKit.SplitBlock)
-    (hc : TwinKit.SplitContainment)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  satDifferForkWF_of_livePair_block_containment
-    (LiveKit.splitLivePair_of_valleyElim helim) hb hc hmin
-
 /-! ## §6. Battery -/
 
 #print axioms RungGe.rungAt_twin_eq_of_live
 #print axioms RungGe.nextUp_twin_of_live
 #print axioms RungGe.canRaiseS_twin_of_livePair
-#print axioms RungGe.splitPairRungEq_of_splitLivePair
-#print axioms RungGe.splitTwinRungPin_of_splitLivePair
 #print axioms RungGe.splitPairRungEq_of_twinLiveAtBottom
-#print axioms RungGe.twinLiveAtBottom_of_splitLivePair
-#print axioms RungGe.splitPairRungEq_of_valleyElim
-#print axioms RungGe.splitLivePair_iff_pairRungEq_of_block_containment
-#print axioms RungGe.satDifferForkWF_of_livePair_block_containment
-#print axioms RungGe.satDifferForkWF_of_valleyElim_block_containment
 
 end RungGe
 
@@ -591,34 +515,6 @@ theorem corner_split_raise_ne_twin {u v : State} {ρ : List Move} {F : State}
   rw [hd] at hg
   exact twinAlone_not_canRaise hg.1 halone hg.2.2.1
 
-/-- **A CORNER SPLIT REFUTES THE CAMPAIGN'S LIVE PAIR.**  If any split's bottom
-realised the corner, `SplitKit.SplitLivePair` would be false: the live pair
-forces the raise card to be the twin (`splitTwin_of_livePair_block`), and at a
-corner that card is not raisable.  So the residual is exactly load-bearing for
-`SplitLivePair` — it is not a technicality. -/
-theorem not_splitLivePair_of_corner (hb : SplitKit.SplitBlock)
-    {u v : State} {ρ : List Move} {F : State} {left right : List Move}
-    {c d : Card} {b : Base} {pre post tail : List Move}
-    (hh : SplitKit.SplitHyp u v ρ F left right c d b pre post tail)
-    (halone : TwinAlone F c) : ¬ SplitKit.SplitLivePair := by
-  intro hl
-  exact corner_split_raise_ne_twin hh halone
-    (SplitKit.splitTwin_of_livePair_block hl hb u v ρ F left right c d b pre post tail hh)
-
-/-! ## §7. The campaign's own chain consumes the pin, not the siting -/
-
-/-- **THE CAMPAIGN NEEDS ONLY THE PIN.**  `SplitBlock` + `SplitContainment` +
-`SplitTwinRungPin` + the shortest-play interface already give
-`SatDifferForkWF` (`TwinKit.satDifferForkWF_of_block_containment_of_pin`,
-`Orig2/Fork/Class/ForkTwinLive.lean:515`).  So `SplitTwinSited` — the only clause of the
-target that is not already the pin (`twinLive_iff_pin_and_sited`) — is consumed
-only by the *stronger* residual `SplitKit.SplitLivePair`
-(`not_splitLivePair_of_corner`), not by the campaign assembly. -/
-theorem satDifferForkWF_of_pin_only (hb : SplitKit.SplitBlock)
-    (hc : SplitContainment) (hpin : SplitTwinRungPin)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  TwinKit.satDifferForkWF_of_block_containment_of_pin hb hc hpin hmin
-
 /-! ## §8. Battery -/
 
 #print axioms SplitKit.splitHyp_green
@@ -643,7 +539,19 @@ theorem satDifferForkWF_of_pin_only (hb : SplitKit.SplitBlock)
 #print axioms TwinAt.not_local_twinSited
 #print axioms TwinAt.twinAlone_not_canRaise
 #print axioms TwinAt.corner_split_raise_ne_twin
-#print axioms TwinAt.not_splitLivePair_of_corner
-#print axioms TwinAt.satDifferForkWF_of_pin_only
+
+/-- **A CORNER SPLIT REFUTES THE CAMPAIGN'S LIVE PAIR.**  If any split's bottom
+realised the corner, `SplitKit.SplitLivePair` would be false: the live pair
+forces the raise card to be the twin (`splitTwin_of_livePair_block`), and at a
+corner that card is not raisable.  So the residual is exactly load-bearing for
+`SplitLivePair` — it is not a technicality. -/
+theorem not_splitLivePair_of_corner (hb : SplitKit.SplitBlock)
+    {u v : State} {ρ : List Move} {F : State} {left right : List Move}
+    {c d : Card} {b : Base} {pre post tail : List Move}
+    (hh : SplitKit.SplitHyp u v ρ F left right c d b pre post tail)
+    (halone : TwinAlone F c) : ¬ SplitKit.SplitLivePair := by
+  intro hl
+  exact corner_split_raise_ne_twin hh halone
+    (SplitKit.splitTwin_of_livePair_block hl hb u v ρ F left right c d b pre post tail hh)
 
 end TwinAt

@@ -418,12 +418,6 @@ def MechanismResidual : Prop :=
     SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
       SplitMechanism u v ρ F left right c d b pre post tail
 
-/-- `MechanismResidual` gives `SplitLivePair`. -/
-theorem splitLivePair_of_mechanismResidual (h : MechanismResidual) :
-    SplitKit.SplitLivePair := by
-  intro u v ρ F left right c d b pre post tail hh
-  exact (mechanism_yields hh (h u v ρ F left right c d b pre post tail hh)).2.1
-
 /-- `MechanismResidual` gives `SplitBlock`. -/
 theorem splitBlock_of_mechanismResidual (h : MechanismResidual) :
     SplitKit.SplitBlock := by
@@ -435,12 +429,6 @@ theorem splitFloor_of_mechanismResidual (h : MechanismResidual) :
     SplitKit.SplitFloor := by
   intro u v ρ F left right c d b pre post tail hh
   exact (mechanism_yields hh (h u v ρ F left right c d b pre post tail hh)).2.2.2
-
-/-- `MechanismResidual` gives the corrected residual. -/
-theorem splitResidualData_of_mechanismResidual (h : MechanismResidual) :
-    SplitKit.SplitResidualData :=
-  SplitKit.splitResidualData_of_livePair_block
-    (splitLivePair_of_mechanismResidual h) (splitBlock_of_mechanismResidual h)
 
 /-! ## §6. The identity-pair rule (W3) and the shortest split
 
@@ -511,22 +499,9 @@ theorem split_no_free_tail_identity {u v : State} {ρ : List Move} {F : State}
 #print axioms Mech.raise_eq_twin_of_livePair_block
 #print axioms Mech.floor_of_livePair_twin
 #print axioms Mech.mechanism_yields
-#print axioms Mech.splitLivePair_of_mechanismResidual
 #print axioms Mech.splitBlock_of_mechanismResidual
 #print axioms Mech.splitFloor_of_mechanismResidual
-#print axioms Mech.splitResidualData_of_mechanismResidual
 #print axioms Mech.identity_pair_shortens
 #print axioms Mech.split_no_free_tail_identity
 
-/-- **THE FULL CHAIN FROM THE MECHANISM.**  The two local landing facts
-(`LandingLivePair` + `CoverEvent`, bundled as `MechanismResidual`) plus the
-choice-free shortest-play interface give `SatDifferForkWF`; the drain is
-already discharged. -/
-theorem satDifferForkWF_of_mechanismResidual_drainClosed
-    (h : MechanismResidual) (hmin : ValleyElim.ShortestPlayExists) :
-    SatDifferForkWF :=
-  SplitKit.satDifferForkWF_of_splitResidualData_drainClosed
-    (splitResidualData_of_mechanismResidual h) hmin
-
-#print axioms Mech.satDifferForkWF_of_mechanismResidual_drainClosed
 end Mech

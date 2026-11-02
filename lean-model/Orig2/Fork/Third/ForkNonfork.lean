@@ -215,23 +215,6 @@ def NonforkBracketLocal : Prop :=
       State.step P (Move.foundToTab z bz) = some Q ∧
       RaiseSwaps Q z γ)
 
-/-- **THE REDUCTION.**  `NonforkBracketLocal` implies the campaign's
-`Elim.NonforkBracketElim`. -/
-theorem nonforkBracketElim_of_local (h : NonforkBracketLocal) :
-    Elim.NonforkBracketElim := by
-  intro u v ρ F huwf hsu hsv hplay hsplit
-  rcases h u v ρ F huwf hsu hsv hplay hsplit with
-    hf | ⟨α, γ, β, z, bz, P, Q, hρ, hα, hstep, hsw⟩
-  · exact Or.inl hf
-  · exact Or.inr ⟨α, γ, β, z, bz, P, Q, hρ, hα, hstep,
-      bracket_play_of_swaps hplay hρ hα hstep hsw⟩
-
-/-- **THE LOCAL RESIDUAL IMPLIES THE VALLEY ELIMINATION.**  Composing with
-`Elim.valleyElimNonfork_of_nonforkBracket`. -/
-theorem valleyElimNonfork_of_local (h : NonforkBracketLocal) :
-    ValleyElimNonfork :=
-  Elim.valleyElimNonfork_of_nonforkBracket (nonforkBracketElim_of_local h)
-
 /-! ## §5. An unconditional corner of the strong disjunct
 
 The `post = []`, `c = d` corner already satisfies the STRONG (bracket)
@@ -400,8 +383,6 @@ end NonforkKit
 #print axioms NonforkKit.raise_bubble
 #print axioms NonforkKit.bracket_play_of_swaps
 #print axioms NonforkKit.bracket_delete_gen
-#print axioms NonforkKit.nonforkBracketElim_of_local
-#print axioms NonforkKit.valleyElimNonfork_of_local
 #print axioms NonforkKit.local_of_samecard_nil
 #print axioms NonforkKit.raise_swap_raise
 #print axioms NonforkKit.raiseSwaps_single_raise

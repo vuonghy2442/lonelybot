@@ -413,16 +413,6 @@ theorem tailCovers_imp_slide (h : TailCovers) :
     exact not_covered_of_draw_tail hh hdraw
       (h u v ρ F left right c d b pre post tail hh hpost)
 
-/-- **THE CAMPAIGN CHAIN FROM THE TWO GEOMETRIC HALVES.**  `SplitLivePair`
-plus the two halves of the block clause (nonempty free tail, cover) plus the
-choice-free shortest-play interface give `SatDifferForkWF`; the twin clause
-and the rank floor are derived (`splitResidualData_of_livePair_block`), and
-the drain is discharged (`Bridge.forkExistenceFromAsymmetry_drainClosed`). -/
-theorem satDifferForkWF_of_livePair_parts
-    (hl : SplitLivePair) (h1 : NoEmptyTail) (h2 : TailCovers)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  satDifferForkWF_of_livePair_block_drainClosed hl (splitBlock_of_parts h1 h2) hmin
-
 end BlockKit
 
 /-! ## §6. Battery -/
@@ -443,4 +433,3 @@ end BlockKit
 #print axioms BlockKit.tailCovers_imp_unblock
 #print axioms BlockKit.not_covered_of_draw_tail
 #print axioms BlockKit.tailCovers_imp_slide
-#print axioms BlockKit.satDifferForkWF_of_livePair_parts

@@ -737,25 +737,6 @@ theorem bracket_landing_play {u v : State} {ρ α γ β : List Move}
   subst hQ
   exact hplay2
 
-/-- **READ-SAFE BRACKET IMPLIES THE LOCAL RESIDUAL.** -/
-theorem nonforkBracketLocal_of_readBracket (h : ReadBracketElim) :
-    NonforkBracketLocal := by
-  intro u v ρ F huwf hsu hsv hplay hsplit
-  rcases h u v ρ F huwf hsu hsv hplay hsplit with
-    hf | ⟨α, γ, β, z, bz, P, Q, hρ, hα, hstep, hcan, hread⟩
-  · exact Or.inl hf
-  · have hPwf : P.WF := SatDifferCensus.ShufflePlayW.wf_end hα huwf
-    have hQwf : Q.WF := step_wf hPwf hstep
-    have hplayQ : ShufflePlayW Q (γ ++ Move.tabToFound z :: β) v :=
-      bracket_landing_play hplay hρ hα hstep
-    exact Or.inr ⟨α, γ, β, z, bz, P, Q, hρ, hα, hstep,
-      raiseSwaps_of_read hQwf hplayQ hcan hread⟩
-
-/-- **THE CAMPAIGN REDUCTION FROM THE READ-SAFE BRACKET RESIDUAL.** -/
-theorem valleyElimNonfork_of_readBracket (h : ReadBracketElim) :
-    ValleyElimNonfork :=
-  NonforkKit.valleyElimNonfork_of_local (nonforkBracketLocal_of_readBracket h)
-
 /-! ### The third syntactic condition is forced, not assumed
 
 `ReadOK` also forbids a slide whose moving head is `z`.  This is not an extra
@@ -845,8 +826,6 @@ end R12
 #print axioms R12.raiseSwaps_cons
 #print axioms R12.raiseSwaps_of_read
 #print axioms R12.bracket_landing_play
-#print axioms R12.nonforkBracketLocal_of_readBracket
-#print axioms R12.valleyElimNonfork_of_readBracket
 #print axioms R12.R1_raiseSwaps
 #print axioms R12.R2_raiseSwaps
 #print axioms R12.no_slide_self_at

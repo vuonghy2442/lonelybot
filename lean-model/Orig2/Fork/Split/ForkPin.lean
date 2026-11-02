@@ -272,21 +272,6 @@ theorem bottomBothRaisableBlock_iff_candidate :
     BottomBothRaisableBlock ↔ BottomCandidateReady :=
   ⟨candidate_of_bottomBothRaisableBlock, bottomBothRaisableBlock_of_candidate⟩
 
-/-- **THE CAMPAIGN CHAIN FROM THE VACUITY.** -/
-theorem dipPin_of_notBoth (hl : SplitLivePair) (h : BottomNotBothRaisable) :
-    DipPin :=
-  dipPin_of_bothRaisable hl (bottomBothRaisableBlock_of_notBoth h)
-
-/-- **THE CAMPAIGN CHAIN FROM `SplitBlock`** (re-derived through the residual). -/
-theorem dipPin_of_splitBlock (hl : SplitLivePair) (hb : SplitBlock) : DipPin :=
-  dipPin_of_notBoth hl (bottomNotBoth_of_splitBlock hb)
-
-/-- **THE FULL CHAIN FROM THE VACUITY.** -/
-theorem satDifferForkWF_of_notBoth (hl : SplitLivePair) (h : BottomNotBothRaisable)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  satDifferForkWF_of_bothRaisable_drainClosed hl
-    (bottomBothRaisableBlock_of_notBoth h) hmin
-
 /-! ## §4. The ace boundary: no blocker can exist for an ace -/
 
 /-- **NO CARD FITS AN ACE**: `canSitOn z ace` forces `z.rank.toIdx + 1 = 0`. -/
@@ -521,9 +506,6 @@ theorem gAceMid_landing_both :
 #print axioms Pin.bottomBothRaisableBlock_of_candidate
 #print axioms Pin.candidate_of_bottomBothRaisableBlock
 #print axioms Pin.bottomBothRaisableBlock_iff_candidate
-#print axioms Pin.dipPin_of_notBoth
-#print axioms Pin.dipPin_of_splitBlock
-#print axioms Pin.satDifferForkWF_of_notBoth
 #print axioms Pin.fits_ace
 #print axioms Pin.not_blockerReady_of_rank_ace
 #print axioms Pin.not_bothRaisableBlock_of_ace

@@ -78,11 +78,6 @@ def ValleyElimNonforkMin : Prop :=
 
 /-! ## §0. The un-gated residual implies the gated one -/
 
-theorem readBracketElimMin_of_readBracket (h : R12.ReadBracketElim) :
-    ReadBracketElimMin := by
-  intro u v ρ F huwf hsu hsv hplay _ hsplit
-  exact h u v ρ F huwf hsu hsv hplay hsplit
-
 /-! ## §0b. The exact existence certificate: a same-card window
 
 `ReadBracketElim`'s data is a same-card pair whose interior is `ReadOK`.  The
@@ -125,14 +120,6 @@ def ReadWindowExists : Prop :=
     (∃ (α γ β : List Move) (z : Card) (bz : Base),
       ρ = α ++ Move.foundToTab z bz :: γ ++ Move.tabToFound z :: β ∧
       (∀ q ∈ γ, R12.ReadOK z q))
-
-theorem readBracketElim_of_windowExists (h : ReadWindowExists) :
-    R12.ReadBracketElim := by
-  intro u v ρ F huwf hsu hsv hplay hsplit
-  rcases h u v ρ F huwf hsu hsv hplay hsplit with
-    hf | ⟨α, γ, β, z, bz, hρ, hread⟩
-  · exact Or.inl hf
-  · exact Or.inr (bracket_of_samecard_window huwf hplay hρ hread)
 
 /-! ## §1. A read-safe bracket deletes at a minimal play -/
 
@@ -216,9 +203,7 @@ theorem satDifferForkWF_of_forkAtMin
 
 end ExistKit
 
-#print axioms ExistKit.readBracketElimMin_of_readBracket
 #print axioms ExistKit.bracket_of_samecard_window
-#print axioms ExistKit.readBracketElim_of_windowExists
 #print axioms ExistKit.shorter_of_readBracket
 #print axioms ExistKit.forkAtMin_of_readBracketMin
 #print axioms ExistKit.readBracketMin_of_forkAtMin

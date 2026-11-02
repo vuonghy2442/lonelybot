@@ -305,48 +305,6 @@ def DipPin : Prop :=
       (∀ σ : Suit, rungAt F σ = rungAt F₀ σ) ∧
       TwinLivePair F x ∧ ¬ CanRaise F x.twin
 
-/-- **`SplitLivePair` + the gated residual give `DipPin`.**  `SplitLivePair`
-supplies the bottom's spectrum; the fibre dichotomy gives a blocked
-representative; the orbit chain `u → F₀ → F` puts it in `u`'s orbit. -/
-theorem dipPin_of_parts (hl : SplitLivePair) (hd : BottomFibreBlock) : DipPin := by
-  intro u v ρ F₀ left right c d b pre post tail h
-  have hkeep := h
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, -, -, -⟩ := hkeep
-  have hF₀ : F₀.WF := SatDifferCensus.ShufflePlayW.wf_end hleft huwf
-  have hpair : TwinLivePair F₀ d := hl u v ρ F₀ left right c d b pre post tail h
-  have hdata : FibreBlockData F₀ :=
-    hd u v ρ F₀ left right c d b pre post tail h
-  obtain ⟨F, z, hrev, hrung, hfork⟩ := forkWitness_of_data hF₀ hdata hpair
-  obtain ⟨hspec, hpin⟩ := (forkWitness_iff F z).mp hfork
-  have huF₀ : RevEqW u F₀ := shufflePlayW_revEqW hleft
-  have huF : RevEqW u F := RevEqW_trans huF₀ hrev
-  exact ⟨F, z, RevEqW_symm huF, hrung, hspec, hpin⟩
-
-/-- **THE RESIDUAL GIVES `DipPin`.** -/
-theorem dipPin_of_bothRaisable (hl : SplitLivePair) (hd : BottomBothRaisableBlock) :
-    DipPin :=
-  dipPin_of_parts hl (bottomFibreBlock_of_bothRaisable hd)
-
-/-- **THE ORIGINAL PINNED BOTTOM IMPLIES THE RESIDUAL.**  `SplitBlock` plus
-`SplitLivePair` pin the pull card at the play's own bottom (`SplitTwin` turns it
-into the raise card's twin), so the gated fibre dichotomy holds trivially and
-`DipPin` is at most as hard as `SplitBlock`. -/
-theorem dipPin_of_livePair_block (hl : SplitLivePair) (hb : SplitBlock) : DipPin := by
-  intro u v ρ F₀ left right c d b pre post tail h
-  have hkeep := h
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, -, -, -⟩ := hkeep
-  have hF₀ : F₀.WF := SatDifferCensus.ShufflePlayW.wf_end hleft huwf
-  have hpair : TwinLivePair F₀ d := hl u v ρ F₀ left right c d b pre post tail h
-  have htwin : d = c.twin :=
-    splitTwin_of_livePair_block hl hb u v ρ F₀ left right c d b pre post tail h
-  have hblock : ¬ CanRaise F₀ c :=
-    hb u v ρ F₀ left right c d b pre post tail h
-  have hpin : ¬ CanRaise F₀ d.twin := by
-    rw [htwin, card_twin_twin]
-    exact hblock
-  have huF₀ : RevEqW u F₀ := shufflePlayW_revEqW hleft
-  exact ⟨F₀, d, RevEqW_symm huF₀, fun _ => rfl, hpair, hpin⟩
-
 /-- **THE CAMPAIGN CHAIN FROM `DipPin`.**  A minimal play gives a valley split
 (`ValleyElim.valley_exists`); `DipPin` gives a same-orbit representative with a
 fork; that is exactly the existential `SatDifferForkWF` asks for. -/
@@ -365,13 +323,6 @@ theorem satDifferForkWF_of_dipPin (h : DipPin)
   obtain ⟨F, x, horb, -, hspec, hpin⟩ :=
     h u v ρ F₀ left right c d b pre post tail hh
   exact ⟨F, x, horb, (forkWitness_iff F x).mpr ⟨hspec, hpin⟩⟩
-
-/-- **THE CAMPAIGN CHAIN FROM THE RESIDUAL.**  `SplitLivePair` plus the gated
-both-raisable block, plus the choice-free shortest-play interface. -/
-theorem satDifferForkWF_of_bothRaisable_drainClosed
-    (hl : SplitLivePair) (hd : BottomBothRaisableBlock)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  satDifferForkWF_of_dipPin (dipPin_of_bothRaisable hl hd) hmin
 
 /-! ## §5. Green play-level facts -/
 
@@ -633,11 +584,7 @@ theorem gFin_not_fibreBlockData : ¬ FibreBlockData gFin := by
 #print axioms BlockMin.blockerReady_of_coverEvent
 #print axioms BlockMin.fibreBlockData_of_bothRaisable
 #print axioms BlockMin.bottomFibreBlock_of_bothRaisable
-#print axioms BlockMin.dipPin_of_parts
-#print axioms BlockMin.dipPin_of_bothRaisable
-#print axioms BlockMin.dipPin_of_livePair_block
 #print axioms BlockMin.satDifferForkWF_of_dipPin
-#print axioms BlockMin.satDifferForkWF_of_bothRaisable_drainClosed
 #print axioms BlockMin.noEmptyTail_of_free_pre
 #print axioms BlockMin.tailCovers_iff_not_canRaise
 #print axioms BlockMin.splitBlock_of_freePre_noEmpty_and_cover

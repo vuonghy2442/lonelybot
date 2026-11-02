@@ -484,12 +484,6 @@ theorem splitLandingResidual_iff_landingAll :
     SplitLandingResidual ↔ Landing.LandingAll :=
   ⟨landingAll_of_splitLandingResidual, splitLandingResidual_of_landingAll⟩
 
-/-- **THE RESIDUAL IS EXACTLY `SplitLivePair`** (via
-`Landing.landingAll_iff_splitLivePair`). -/
-theorem splitLivePair_of_splitLandingResidual (h : SplitLandingResidual) :
-    SplitKit.SplitLivePair :=
-  Landing.landingAll_iff_splitLivePair.mp (landingAll_of_splitLandingResidual h)
-
 /-- **THE TWIN-ONLY RESIDUAL.**  The first clause of `SplitLandingResidual`
 alone. -/
 def SplitLandingTwin : Prop :=
@@ -515,16 +509,6 @@ theorem splitLandingResidual_of_free_pre_twin
   exact ⟨htwin u v ρ F left right c d b pre post tail hs A' B hplay hstep,
     landingThirdFree_of_free_pre hs.1 hs.2.1 hplay
       (hpre u v ρ F left right c d b pre post tail hs) hstep⟩
-
-/-- **THE CAMPAIGN THEOREM MODULO THE TWIN CLAUSE, WHEN `pre` IS FREE.** -/
-theorem splitLivePair_of_free_pre_twin
-    (hpre : ∀ (u v : State) (ρ : List Move) (F : State)
-      (left right : List Move) (c d : Card) (b : Base)
-      (pre post tail : List Move),
-      SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
-      ∀ m ∈ pre, ValleyElim.FreeMove m)
-    (htwin : SplitLandingTwin) : SplitKit.SplitLivePair :=
-  splitLivePair_of_splitLandingResidual (splitLandingResidual_of_free_pre_twin hpre htwin)
 
 /-! ## §7. The sharpened survivor residual (only earlier-pull cards) -/
 
@@ -579,8 +563,6 @@ theorem splitLandingResidual_of_twin_survivor
 #check @landingLivePair_of_free_pre
 #check @SplitLandingResidual
 #check @splitLandingResidual_iff_landingAll
-#check @splitLivePair_of_splitLandingResidual
-#check @splitLivePair_of_free_pre_twin
 
 #print axioms canRaiseS_below_form
 #print axioms pullSt_piles_of_ne
@@ -601,7 +583,6 @@ theorem splitLandingResidual_of_twin_survivor
 #print axioms landingAll_of_splitLandingResidual
 #print axioms splitLandingResidual_of_landingAll
 #print axioms splitLandingResidual_iff_landingAll
-#print axioms splitLivePair_of_splitLandingResidual
 /-! ## §8. Composition with the mechanism: the full chain -/
 
 /-- **`SplitLandingResidual` + `SplitBlock` give `MechanismResidual`.**  The
@@ -627,15 +608,6 @@ theorem mechanismResidual_of_splitLanding_and_block
         Mech.coverEvent_of_block hB hpost hfree hcanB hSc hblock⟩
       exact (landingLivePair_iff_local hA' hstep).mpr
         (hl u v ρ F left right c d b pre post tail hk A' B hpre hstep)
-
-/-- **THE FULL CHAIN FROM THIS CARD'S RESIDUAL.**  `SplitLandingResidual`
-(the exact landing reduction) plus `SplitBlock` (the cover half) plus the
-choice-free shortest-play interface give `SatDifferForkWF`. -/
-theorem satDifferForkWF_of_splitLanding_drainClosed
-    (hl : SplitLandingResidual) (hb : SplitKit.SplitBlock)
-    (hmin : ValleyElim.ShortestPlayExists) : SatDifferForkWF :=
-  Mech.satDifferForkWF_of_mechanismResidual_drainClosed
-    (mechanismResidual_of_splitLanding_and_block hl hb) hmin
 
 /-! ## §9. Why the `c.twin` exception is real (structural, not an artefact) -/
 
@@ -686,11 +658,9 @@ theorem canRaiseS_twin_of_landing {A B : State} {c : Card} {b : Base}
 
 #check @splitLandingResidual_of_free_pre_twin
 #print axioms splitLandingResidual_of_free_pre_twin
-#print axioms splitLivePair_of_free_pre_twin
 #print axioms SplitLandingSurvivor
 #print axioms splitLandingResidual_of_twin_survivor
 #print axioms mechanismResidual_of_splitLanding_and_block
-#print axioms satDifferForkWF_of_splitLanding_drainClosed
 #print axioms pull_card_not_pile_top
 #print axioms pull_card_pile_top_at_landing
 #print axioms canRaiseS_twin_of_landing

@@ -288,139 +288,6 @@ theorem bottomFork_of_valleyElim (helim : ValleyElim.ValleyElimNonfork) :
 
 /-! ## §4. The exact equivalence with `SplitKit.SplitLivePair` -/
 
-/-- The live pair at the bottom, with the pull card as pivot, from the
-campaign's `SplitLivePair`.  The raise card `d` is live at the bottom, hence
-the pull card `c` is one of `{d, d.twin}`; moving the pivot to the twin
-preserves the live pair. -/
-theorem twinLivePair_at_F_of_splitLivePair
-    {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (hl : SplitKit.SplitLivePair)
-    (h : SplitKit.SplitHyp u v ρ F left right c d b pre post tail) :
-    TwinLivePair F c := by
-  have hk := h
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, hshape, hfree, -⟩ := h
-  have hd : TwinLivePair F d := hl u v ρ F left right c d b pre post tail hk
-  have hcF : CanRaiseS F c := Bridge.bottom_pull_live huwf hleft hshape hfree
-  rcases (hd c).mp hcF with hcd | hcd
-  · subst hcd
-    exact hd
-  · subst hcd
-    exact ThirdRigid.twinLivePair_twin hd
-
-/-- `SplitLivePair` gives both landing clauses. -/
-theorem landing_parts_of_splitLivePair (hl : SplitKit.SplitLivePair) :
-    LandingTwinLive ∧ LandingThirdSuitFree := by
-  refine ⟨?_, ?_⟩
-  · intro u v ρ F left right c d b pre post tail h A' B hpre hstep
-    obtain ⟨hpost, hB⟩ := post_play_of_landing h hpre hstep
-    have hk := h
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, hfree, -⟩ := h
-    have htwin := twinLivePair_at_F_of_splitLivePair hl hk
-    exact (Mech.canRaiseS_landing_iff hB hpost hfree c.twin).mpr
-      ((htwin c.twin).mpr (Or.inr rfl))
-  · intro u v ρ F left right c d b pre post tail h A' B hpre hstep e he h1 h2
-    obtain ⟨hpost, hB⟩ := post_play_of_landing h hpre hstep
-    have hk := h
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, hfree, -⟩ := h
-    have htwin := twinLivePair_at_F_of_splitLivePair hl hk
-    have heF : CanRaiseS F e :=
-      (Mech.canRaiseS_landing_iff hB hpost hfree e).mp he
-    rcases (htwin e).mp heF with h' | h'
-    · exact h1 (congrArg Card.suit h')
-    · exact h2 (congrArg Card.suit h')
-
-/-- Both landing clauses give `SplitLivePair`: transport the two clauses to
-the bottom, use the landing rung pins to upgrade the suit containment to card
-equality (`Mech.live_eq_of_suit_left` / `_twin`), and move the pivot to `d`. -/
-theorem splitLivePair_of_landing_parts
-    (ht : LandingTwinLive) (hf : LandingThirdSuitFree) :
-    SplitKit.SplitLivePair := by
-  intro u v ρ F left right c d b pre post tail h
-  have hk := h
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, hshape, hfree, -⟩ := h
-  obtain ⟨A', hpre, hrest⟩ :=
-    ValleyElim.ShufflePlayW_split hleft pre (Move.foundToTab c b :: post) hshape
-  have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end hpre huwf
-  cases hrest with
-  | @cons _ B _ _ _ hrev hstep hpost =>
-      have hB : B.WF := step_wf hA' hstep
-      have hcF : CanRaiseS F c := Bridge.bottom_pull_live huwf hleft hshape hfree
-      have hctF : CanRaiseS F c.twin :=
-        (Mech.canRaiseS_landing_iff hB hpost hfree c.twin).mp
-          (ht u v ρ F left right c d b pre post tail hk A' B hpre hstep)
-      have hrungBF : rungAt F c.suit = c.rank.toIdx := by
-        rw [ValleyElim.rungAt_eq_of_free_play hpost hfree c.suit]
-        exact Mech.rungAt_landing_eq hA' hstep
-      have hrungTF : rungAt F c.twin.suit = c.rank.toIdx := by
-        have h1 := canRaiseS_rung hctF
-        rw [Card.twin_rank] at h1
-        exact h1
-      have hTwinC : TwinLivePair F c := by
-        intro e
-        constructor
-        · intro he
-          have heB : CanRaiseS B e :=
-            (Mech.canRaiseS_landing_iff hB hpost hfree e).mpr he
-          by_cases hs1 : e.suit = c.suit
-          · exact Or.inl (Mech.live_eq_of_suit_left hrungBF he hs1)
-          · by_cases hs2 : e.suit = c.twin.suit
-            · exact Or.inr (Mech.live_eq_of_suit_twin hrungTF he hs2)
-            · exact (hf u v ρ F left right c d b pre post tail hk A' B hpre hstep
-                e heB hs1 hs2).elim
-        · rintro (rfl | rfl)
-          · exact hcF
-          · exact hctF
-      obtain ⟨-, -, -, hSFd⟩ := SplitKit.splitHyp_green hk
-      rcases (hTwinC d).mp hSFd with hdc | hdc
-      · subst hdc
-        exact hTwinC
-      · exact Mech.twinLivePair_of_eq_twin hTwinC hdc
-
-/-- **THE EXACT EQUIVALENCE.**  The landing live pair (over every split) is
-exactly the campaign's `SplitKit.SplitLivePair`; there is no weaker local
-landing statement. -/
-theorem landingAll_iff_splitLivePair :
-    LandingAll ↔ SplitKit.SplitLivePair := by
-  constructor
-  · intro h
-    obtain ⟨ht, hf⟩ := landingAll_iff_parts.mp h
-    exact splitLivePair_of_landing_parts ht hf
-  · intro hl
-    exact landingAll_iff_parts.mpr (landing_parts_of_splitLivePair hl)
-
-/-- **THE LANDING LIVE PAIR FROM THE CAMPAIGN'S RESIDUAL.**  `ValleyElimNonfork`
-already gives `SplitLivePair` (`LiveKit.splitLivePair_of_valleyElim`), hence
-`LandingLivePair` at every pull landing, with no extra input. -/
-theorem landingAll_of_valleyElim
-    (helim : ValleyElim.ValleyElimNonfork) : LandingAll :=
-  landingAll_iff_splitLivePair.mpr (LiveKit.splitLivePair_of_valleyElim helim)
-
-/-- **THE LIVE-PAIR ITSELF AT THE LANDING.**  With the landing rung pin
-(`Mech.rungAt_landing_eq`) and the pull card's vanilla raisability
-(`ValleyStep.pull_card_canRaise`), `LandingLivePair` upgrades to
-`TwinLivePair B c` (`Mech.twinLivePair_of_landing`).  Hence, from
-`ValleyElimNonfork`, the landing's S-live set is exactly `{c, c.twin}`. -/
-theorem twinLivePair_at_landing_of_valleyElim
-    (helim : ValleyElim.ValleyElimNonfork) :
-    ∀ (u v : State) (ρ : List Move) (F : State)
-      (left right : List Move) (c d : Card) (b : Base)
-      (pre post tail : List Move),
-      SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
-      ∀ (A' B : State), ShufflePlayW u pre A' →
-        State.step A' (Move.foundToTab c b) = some B →
-        TwinLivePair B c := by
-  intro u v ρ F left right c d b pre post tail h A' B hpre hstep
-  have hk := h
-  obtain ⟨huwf, -, -, -, -, -, -, -, -, -, -, -⟩ := h
-  have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end hpre huwf
-  exact Mech.twinLivePair_of_landing
-    (ValleyStep.pull_card_canRaise hA' hstep)
-    (Mech.rungAt_landing_eq hA' hstep)
-    (landingAll_of_valleyElim helim u v ρ F left right c d b pre post tail hk
-      A' B hpre hstep)
-
 /-- **THE MECHANISM'S LIVE-PAIR CLAUSE, in `SplitMechanism`'s ∃-form**
 (`Orig2/Fork/Local/ForkMechanism.lean:376`): every split has a pull landing whose live
 set is `LandingLivePair`.  This is the first conjunct of `SplitMechanism`
@@ -459,11 +326,6 @@ theorem mechanismLivePair_iff_landingAll :
     | @cons _ B _ _ _ hrev hstep hpost =>
         exact ⟨A', B, hpre, hstep,
           h u v ρ F left right c d b pre post tail hk A' B hpre hstep⟩
-
-/-- **`MechanismLivePair` from the campaign's residual.** -/
-theorem mechanismLivePair_of_valleyElim
-    (helim : ValleyElim.ValleyElimNonfork) : MechanismLivePair :=
-  mechanismLivePair_iff_landingAll.mpr (landingAll_of_valleyElim helim)
 
 /-! ## §5. The exact missing bracket lemma -/
 
@@ -546,18 +408,11 @@ theorem landingAll_of_twinLive_and_bracket
 #print axioms landingLivePair_of_bottomFork
 #print axioms post_play_of_landing
 #print axioms landingAll_iff_parts
-#print axioms twinLivePair_at_F_of_splitLivePair
-#print axioms landing_parts_of_splitLivePair
-#print axioms splitLivePair_of_landing_parts
-#print axioms landingAll_iff_splitLivePair
-#print axioms landingAll_of_valleyElim
-#print axioms twinLivePair_at_landing_of_valleyElim
 #print axioms landingTwinLive_of_bottomFork
 #print axioms landingThirdSuitFree_of_bottomFork
 #print axioms landingAll_of_bottomFork
 #print axioms bottomFork_of_valleyElim
 #print axioms mechanismLivePair_iff_landingAll
-#print axioms mechanismLivePair_of_valleyElim
 #print axioms landingThirdSuitFree_of_bracket
 #print axioms bracket_of_landingThirdSuitFree
 #print axioms thirdSuitBracket_iff_landingThirdSuitFree
