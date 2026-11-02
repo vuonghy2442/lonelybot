@@ -490,25 +490,6 @@ theorem satDifferFork_of_meet_of_data
   obtain ⟨y, hy⟩ := forkState_iff.mp hfs
   exact ⟨p'.1, y, hcls', hy⟩
 
-/-- **THE UNGATED IFF AT MEET POSITIONS** — the pairwise half of
-`MeetConstancy`: at a meet position, two same-orbit members agree on forkness.
-NOTE: the `hc` slot is not needed for this pairwise claim — the hypothesis-free
-form is `MeetCoverTwo.forkState_iff_of_same_position`, downstream of this
-module, so it cannot be cited here; the extra arguments are kept because this
-row is the meet-level spelling used by the bridge's consumers. -/
-theorem meetConstancy_forkState_iff (hc : MeetConstancy)
-    {u v : State} {x : Card} {q : Position}
-    (hsu : SSaturated u) (hsv : SSaturated v) (hcls : sameOrbitSetoid.r u v)
-    (hdiff : ∃ σ : Suit, rungAt u σ ≠ rungAt v σ)
-    (hmeet : PairMeetAt q u v x) (hfl : ForkLiveAt q x)
-    {p p' : WFState}
-    (hp : (Quotient.mk orbitRungSetoid p : Position) = q)
-    (hp' : (Quotient.mk orbitRungSetoid p' : Position) = q)
-    (hpu : sameOrbitSetoid.r u p.1) (hp'u : sameOrbitSetoid.r u p'.1) :
-    forkState p.1 ↔ forkState p'.1 :=
-  ⟨fun _ => hc u v x q hsu hsv hcls hdiff hmeet hfl p' hp' hp'u,
-   fun _ => hc u v x q hsu hsv hcls hdiff hmeet hfl p hp hpu⟩
-
 /-! ## §7. The exact consumer chain -/
 
 /-- `SatDifferFork` implies its `WF`-gated form (drop the binder). -/
@@ -565,7 +546,6 @@ end ForkFib
 #print axioms ForkFib.gFin_not_fibreBlockData
 #print axioms ForkFib.satDifferFork_of_meetConstancy
 #print axioms ForkFib.satDifferFork_of_meet_of_data
-#print axioms ForkFib.meetConstancy_forkState_iff
 #print axioms ForkFib.satDifferForkWF_of_satDifferFork
 #print axioms ForkFib.forkless_found_unique_of_meet
 #print axioms ForkFib.forkless_found_unique_of_meet_data
