@@ -5,7 +5,6 @@ import Orig2.Fork.Class.ForkMinCross
 import Orig2.Fork.Class.ForkExist
 import Orig2.Fork.Class.ForkLivePair
 import Orig2.Fork.Third.ForkNonfork
-import Orig2.Fork.Split.ForkMountainAccount
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000

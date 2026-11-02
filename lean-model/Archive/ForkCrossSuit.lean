@@ -1,8 +1,6 @@
-import Orig2.Fork.Local.ForkRelocate
 import Orig2.Fork.Split.ForkSplit
 import Orig2.Fork.Split.ForkLedger
 import Orig2.Fork.Local.ForkSafeTransport
-import Orig2.Fork.Split.ForkBaseEnabling
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000

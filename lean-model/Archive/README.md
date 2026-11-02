@@ -245,3 +245,42 @@ NOTE for the certificate: `Archive/Cert/ForkCertBoard.lean` imports
 restoring the cross-suit lane first (`git mv Archive/ForkCrossSuit*.lean
 Archive/ForkFibreCorridor.lean Orig2/Fork/Third/`), or repointing that import.
 
+
+## Strict retirement of the refuted conditional route (2026-11-02, owner decision)
+
+The `SatDifferForkWF` route rested on residuals that the kernel has refuted:
+`SplitLivePair` (`ForkTwinAt.not_splitLivePair_of_corner`),
+`MtnPr.SameCardRelocation` (archived `ForkPermRefute`), `ReadBracketElim` /
+`NonforkBracketLocal` (`ForkExistRefute`), `MountainAtSplits` (archived
+`ForkEqualRungMain`), `RaiseBeforePullShortens` (`ForkRelocate`).  Every
+`SatDifferForkWF_of_*` theorem downstream is vacuous.  Two automatic sweeps
+were tried and reverted: the vacuity is interleaved with the campaign's own
+imports, so piecemeal deletion reached the engine.
+
+The retained set was therefore defined as the import closure of the live
+slice/join campaign plus the substrate:
+
+```text
+kept:  ForkOneColourClosure, ForkTwinJoin, ForkMeetCover, ForkFibMeet,
+       ForkRaiseOnly, ForkDecide, ForkMin, ForkPairRung, ForkTwinAt
+       + closure (Fork/Class 19, Fork/Local 13, Fork/Split 16, Fork/Third 4)
+       + Substrate 12, Fiber 26, Boundary 2, Claims 3, 4 umbrellas
+```
+
+The other **32 Fork cards** were archived here (not deleted):
+
+| bucket | cards |
+|---|---|
+| Class | `ForkCanon`, `ForkExistRefute`, `ForkNonComp`, `ForkRankFloor`, `ForkRankFloorAttack` |
+| Local | `ForkBlocks`, `ForkChain`, `ForkDirect`, `ForkNoSelf`, `ForkPullSwaps`, `ForkRaiseLeft`, `ForkRelocate`, `ForkSlideFwd`, `ForkStraddle`, `ForkWindow` |
+| Split | `ForkBaseEnabling`, `ForkEmptyTail`, `ForkFrontier`, `ForkGatedTower`, `ForkJoint`, `ForkMountainAccount`, `ForkMountainShape`, `ForkMtnExists`, `ForkPinRight`, `ForkTailHead` |
+| Third | `ForkFace1`, `ForkMate`, `ForkNoMate`, `ForkSurvivor`, `ForkThirdCrossing`, `ForkThirdLive`, `ForkThirdResidual` |
+
+Result: `Orig2` 131 -> 99 cards; `lake build Orig2` 137 -> 105 jobs, green.
+The root header now states that the campaign is the slice/join normal form
+and that this route is retired-but-restorable.
+
+Restore recipe: `git mv Archive/<Card>.lean Orig2/Fork/<bucket>/<Card>.lean`,
+re-add `import Orig2.Fork.<bucket>.<Card>` to `Orig2.lean` (and to `Fork.lean`
+if the umbrella should re-export it), rebuild.
+

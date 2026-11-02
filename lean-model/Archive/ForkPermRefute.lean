@@ -1,4 +1,3 @@
-import Orig2.Fork.Local.ForkRelocate
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000

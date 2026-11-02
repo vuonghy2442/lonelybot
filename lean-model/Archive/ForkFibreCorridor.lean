@@ -1,5 +1,4 @@
 import Orig2.Fork.CrossSuit.ForkCrossSuit
-import Orig2.Fork.Local.ForkDirect
 import Orig2.Fork.Split.FirstPassage
 import Orig2.Fork.CrossSuit.ForkCrossSuitPure
 

@@ -1,4 +1,3 @@
-import Orig2.Fork.Local.ForkDirect
 import Orig2.Substrate.CargoRaise
 
 set_option autoImplicit false

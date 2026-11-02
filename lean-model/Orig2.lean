@@ -12,25 +12,15 @@ import Orig2.Fork.Split.ForkLocator
 import Orig2.Fork.Third.ForkElim
 import Orig2.Fork.Third.ForkNonfork
 import Orig2.Fork.Class.ForkReadBracket
-import Orig2.Fork.Class.ForkExistRefute
 import Orig2.Fork.Class.ForkExist
 import Orig2.Fork.Class.ForkMinCross
 import Orig2.Fork.Split.ForkMountain
 import Orig2.Fork.Split.ForkLandingLocal
 import Orig2.Fork.Split.ForkLedger
-import Orig2.Fork.Third.ForkThirdLive
-import Orig2.Fork.Third.ForkThirdCrossing
-import Orig2.Fork.Third.ForkThirdResidual
 import Orig2.Fork.Class.ForkTwinLive
 import Orig2.Fork.Split.ForkDipPin
-import Orig2.Fork.Split.ForkMountainAccount
-import Orig2.Fork.Split.ForkMountainShape
-import Orig2.Fork.Third.ForkSurvivor
 import Orig2.Fork.Class.ForkPairRung
-import Orig2.Fork.Split.ForkEmptyTail
 import Orig2.Fork.Split.ForkPin
-import Orig2.Fork.Third.ForkMate
-import Orig2.Fork.Local.ForkRaiseLeft
 import Orig2.Fork.Class.ForkRungGe
 import Orig2.Fork.Class.ForkRungGeGadget
 import Orig2.Fork.Local.ForkNormalizeTail
@@ -38,32 +28,10 @@ import Orig2.Fiber
 import Orig2.Boundary
 import Orig2.Boundary.BoundaryForkFree
 import Orig2.Boundary.BoundaryMinPath
-import Orig2.Fork.Split.ForkFrontier
-import Orig2.Fork.Local.ForkSlideFwd
-import Orig2.Fork.Local.ForkDirect
-import Orig2.Fork.Local.ForkWindow
 import Orig2.Fork.Class.ForkTwinAt
-import Orig2.Fork.Local.ForkNoSelf
 import Orig2.Fork.Split.ForkPinAt
-import Orig2.Fork.Third.ForkNoMate
-import Orig2.Fork.Class.ForkRankFloor
-import Orig2.Fork.Class.ForkRankFloorAttack
-import Orig2.Fork.Split.ForkJoint
-import Orig2.Fork.Split.ForkPinRight
-import Orig2.Fork.Local.ForkRelocate
-import Orig2.Fork.Local.ForkStraddle
-import Orig2.Fork.Local.ForkPullSwaps
-import Orig2.Fork.Split.ForkGatedTower
-import Orig2.Fork.Split.ForkBaseEnabling
-import Orig2.Fork.Split.ForkMtnExists
-import Orig2.Fork.Split.ForkTailHead
-import Orig2.Fork.Local.ForkChain
-import Orig2.Fork.Class.ForkCanon
-import Orig2.Fork.Local.ForkBlocks
-import Orig2.Fork.Third.ForkFace1
 import Orig2.Fork.Class.ForkFibMeet
 import Orig2.Fork.Class.ForkMeetCover
-import Orig2.Fork.Class.ForkNonComp
 import Orig2.Fork.Class.ForkTwinJoin
 import Orig2.Fork.Class.ForkRaiseOnly
 import Orig2.Fork.Class.ForkOneColourClosure
@@ -91,10 +59,10 @@ On disk the same four umbrellas group the cards (2026-11-02 layout):
 
 ```text
 Orig2/Substrate/   12 cards  (game core, kits, Position, Classification)
-Orig2/Fork/Class/  24 cards  (fork class theory, rung/non-comparability, join/slice)
-Orig2/Fork/Local/  23 cards  (letter commutation, normalization, relocation)
-Orig2/Fork/Split/  26 cards  (split/tail/landing/pin/mountain/drain/frontier)
-Orig2/Fork/Third/  11 cards  (third-suit, survivor, mate, elimination)
+Orig2/Fork/Class/  19 cards  (fork class theory, rung/non-comparability, join/slice)
+Orig2/Fork/Local/  13 cards  (letter commutation, normalization, relocation)
+Orig2/Fork/Split/  16 cards  (split/tail/landing/pin/mountain/drain/frontier)
+Orig2/Fork/Third/   4 cards  (third-suit, survivor, mate, elimination)
 Orig2/Fiber/       26 cards  (fiber, orbit, king, twin machinery)
 Orig2/Boundary/     2 cards  (BoundaryForkFree, BoundaryMinPath)
 Orig2/Claims/       3 cards  (Claims, ClaimsScrutiny, Chart)
@@ -108,11 +76,18 @@ The earlier consolidated proof is `FiberTransfer` alone; everything else
 rider machinery — is retired to `Archive/`.  The ledger (`Claims`,
 `ClaimsScrutiny`) remains the statement book.
 
-The live campaign targets are:
+The live campaign is the **slice / join normal form**:
 
-* `SatDifferFork` — differing-rung saturated class-mates force a fork.
-* `ForkPositionRigid` — all forks of a class share one Position; reduced
-  to `ForkThirdRigid`.
-* `ArmDichotomySW` — the flat-fiber, draw-corrected arm dichotomy;
-  equivalent to `SatDifferFork ∧ SatEqualCargoSW`.
+* `ForklessOneColourClosure` - pair targets have a one-colour-exact upper
+  bound (the arbitrary-target form is FALSE);
+* `ForklessSliceLUB` / `ForklessSliceMeet` / `SliceFinite` - the exact
+  numeric height as a 2D slice computation;
+* `MinimalFullJoin` - the least class-mate above the componentwise max.
+
+The old conditional route (`SplitLivePair`, `SameCardRelocation`,
+`ReadBracketElim`, `NonforkBracketLocal`, `MountainAtSplits`,
+`RaiseBeforePullShortens` and their `SatDifferForkWF_of_*` consumers) was
+refuted and retired to `Archive/` on 2026-11-02: the residuals are false,
+so the route is vacuous.  It stays restorable and greppable there.
+
 -/

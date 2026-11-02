@@ -1,7 +1,3 @@
-import Orig2.Fork.Class.ForkRankFloorAttack
-import Orig2.Fork.Third.ForkNoMate
-import Orig2.Fork.Split.ForkFrontier
-import Orig2.Fork.Local.ForkDirect
 
 /-! ## Merged from `Orig2/Fork/Split/ForkMountainGate.lean` (2026-11-02) -/
 

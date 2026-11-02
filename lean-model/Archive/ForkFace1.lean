@@ -1,4 +1,3 @@
-import Orig2.Fork.Local.ForkBlocks
 import Orig2.Fork.Local.ForkSafeTransport
 
 set_option autoImplicit false

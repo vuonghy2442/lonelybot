@@ -1,9 +1,6 @@
-import Orig2.Fork.Third.ForkThirdResidual
-import Orig2.Fork.Third.ForkThirdCrossing
 import Orig2.Fork.Split.ForkLandingLocal
 import Orig2.Fork.Local.ForkCriticalPair
 import Orig2.Fork.Class.ForkReadBracket
-import Orig2.Fork.Class.ForkExistRefute
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000

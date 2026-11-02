@@ -1,9 +1,3 @@
-import Orig2.Fork.Split.ForkMtnExists
-import Orig2.Fork.Split.ForkPinRight
-import Orig2.Fork.Split.ForkJoint
-import Orig2.Fork.Local.ForkWindow
-import Orig2.Fork.Local.ForkDirect
-import Orig2.Fork.Local.ForkStraddle
 
 /-! ## Merged from `Orig2/Fork/Split/ForkLandResReduction.lean` (2026-11-02) -/
 

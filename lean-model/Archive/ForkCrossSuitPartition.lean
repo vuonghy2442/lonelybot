@@ -1,6 +1,5 @@
 import Orig2.Fork.CrossSuit.ForkCrossSuit
 import Orig2.Fork.Local.ForkCommuteSlide
-import Orig2.Fork.Local.ForkBlocks
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000

@@ -1,5 +1,3 @@
-import Orig2.Fork.Local.ForkBlocks
-import Orig2.Fork.Local.ForkRelocate
 import Orig2.Substrate.Position
 import Orig2.Substrate.StepWF
 import Orig2.Substrate.Classification

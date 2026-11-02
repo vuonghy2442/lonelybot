@@ -1,7 +1,5 @@
-import Orig2.Fork.Split.ForkMountainShape
 import Orig2.Fork.Local.ForkCommuteSlide
 import Orig2.Fork.Local.ForkCommute
-import Orig2.Fork.Local.ForkNoSelf
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000

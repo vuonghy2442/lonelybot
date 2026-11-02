@@ -1,6 +1,5 @@
 import Orig2.Fork.Local.ForkMechanism
 import Orig2.Fork.Class.ForkRungGe
-import Orig2.Fork.Local.ForkNoSelf
 
 set_option autoImplicit false
 set_option maxHeartbeats 3000000

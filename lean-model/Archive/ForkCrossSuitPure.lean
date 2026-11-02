@@ -1,5 +1,4 @@
 import Orig2.Fork.CrossSuit.ForkCrossSuit
-import Orig2.Fork.Local.ForkDirect
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000

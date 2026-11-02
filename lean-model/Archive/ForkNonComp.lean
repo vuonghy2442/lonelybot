@@ -1,7 +1,5 @@
 import Orig2.Fork.Class.ForkMeetCover
 import Orig2.Fork.Local.ForkValley
-import Orig2.Fork.Local.ForkNoSelf
-import Orig2.Fork.Third.ForkFace1
 import Orig2.Fork.Local.Cover
 
 set_option autoImplicit false

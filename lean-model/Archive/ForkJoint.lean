@@ -1,5 +1,3 @@
-import Orig2.Fork.Split.ForkFrontier
-import Orig2.Fork.Local.ForkNoSelf
 import Orig2.Fork.Class.ForkRungGe
 import Orig2.Fork.Class.ForkPairRung
 import Orig2.Fork.Class.ForkLivePair

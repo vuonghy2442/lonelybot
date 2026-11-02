@@ -1,8 +1,4 @@
-import Orig2.Fork.Split.ForkPinRight
 import Orig2.Fork.Class.ForkReadBracket
-import Orig2.Fork.Local.ForkNoSelf
-import Orig2.Fork.Third.ForkMate
-import Orig2.Fork.Split.ForkMountainAccount
 
 /-!
 # Orig2/ForkChoiceFree — the choice-free geometry of the straddling bracket

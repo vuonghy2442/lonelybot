@@ -1,7 +1,5 @@
 import Orig2.ForkSatChain
-import Orig2.Fork.Local.ForkDirect
 import Orig2.Fork.Local.ForkCommute
-import Orig2.Fork.Local.ForkPullSwaps
 import Orig2.Fork.Local.ForkCommuteSlide
 
 set_option autoImplicit false

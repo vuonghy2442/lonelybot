@@ -1,5 +1,4 @@
 import Orig2.Fork.Third.ForkNonfork
-import Orig2.Fork.Split.ForkEmptyTail
 import Orig2.Fork.Class.ForkLivePair
 import Orig2.Fork.Split.ForkTailCover
 
