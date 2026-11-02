@@ -143,33 +143,6 @@ theorem overshoot_of_exact (h : TwinJoinOrForkTarget) : TwinJoinOrForkOvershoot 
     exact Or.inl ⟨z, joinAt_imp_joinAtLeast hz⟩
   · exact Or.inr hfork
 
-/-- **WITHDRAWN — FALSE.**  Kernel-adjacent model refutation in
-`Temp/AS_Report.md` (verified over the 2308-state component and the full
-`valley_probe` component; 520/1605 crossed instances fail, 332 components):
-
-```text
-s  rungs (10,12,13,0)        s' rungs (11,10,12,0)
-σ = H,  M = (11,12,13,0)     target (11,12,13,0) is ABSENT
-```
-
-The obstruction is the **twin pull**: `JH` is buried under `TC`; `TC` needs a
-rank-10 red base, and the only one is `JD`, which is on the `D` FOUNDATION.
-Exposing `JH` therefore forces `pull JD`, which lowers the twin `D` from 12.
-So the twin cannot stay fixed: the colour-pinned version fails too.
-
-Consequence: the gap-closer is dead in this form, and `argmin_of_deficient`
-below is vacuous (a true implication from a false premise).  Do not cite this
-definition as a dischargeable hypothesis. -/
-def RaiseDeficientGame : Prop :=
-  ∀ (s s' : State) (M : Suit → Nat) (σ : Suit),
-    sameOrbitSetoid.r s s' →
-    rungAt s σ.twin = M σ.twin →
-    rungAt s σ < M σ →
-    M σ ≤ rungAt s' σ →
-    ∃ s'', sameOrbitSetoid.r s s'' ∧
-      rungAt s'' σ = rungAt s σ + 1 ∧
-      rungAt s'' σ.twin = rungAt s σ.twin
-
 /-- **THE ARGMIN STEP (game level, strengthened).**  If the twin rung is the
 lower (≤ the t rung), the target `s'` is at least the t rung and strictly above
 the twin rung, then some class-mate raises the LOWER twin rung by one, keeping
@@ -203,28 +176,6 @@ theorem joinAt_swap {s s' s''' : State} {t : Suit}
       rungAt s''' t.twin = Nat.max (rungAt s t.twin) (rungAt s' t.twin) := h2
       _ = Nat.max (rungAt s' t.twin) (rungAt s t.twin) := by
         simpa using Nat.max_comm (rungAt s t.twin) (rungAt s' t.twin)
-
-/-- **The deficient step implies the argmin step.**  Given the argmin
-hypotheses, set `M` to the current rungs everywhere except the raised twin,
-where `M twin` is the endpoint's twin rung.  The other twin is `t`, already at
-`M t = rungAt s t`; the endpoint supplies the room.  Note the `twin ≤ t` and
-`t ≤ s' t` hypotheses are not even needed: the deficient step is strictly
-stronger. -/
-theorem argmin_of_deficient (h : RaiseDeficientGame) : ArgminStepGame := by
-  intro s s' t hcls hle ht hlt
-  have htwin_ne : t ≠ t.twin := by cases t <;> decide
-  let M : Suit → Nat :=
-    fun τ => if τ = t.twin then rungAt s' t.twin else rungAt s τ
-  have hM : M t.twin = rungAt s' t.twin := by simp [M]
-  have hMt : M t = rungAt s t := by simp [M, htwin_ne]
-  have hmatch : rungAt s (t.twin).twin = M (t.twin).twin := by
-    simp [Suit.twin_twin, hMt]
-  have hdefc : rungAt s t.twin < M t.twin := by rw [hM]; exact hlt
-  have hroom : M t.twin ≤ rungAt s' t.twin := by rw [hM]; exact Nat.le_refl _
-  obtain ⟨s'', hss'', hrung, hother⟩ :=
-    h s s' M t.twin hcls hmatch hdefc hroom
-  refine ⟨s'', hss'', ?_, hrung⟩
-  simpa [Suit.twin_twin] using hother
 
 /-- The local engine at a dip, with the three cases explicit.  `CoveredStall`
 is the `3c` residual, named here as a `Prop` over the dip state.  The target

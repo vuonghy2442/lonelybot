@@ -264,26 +264,6 @@ theorem canPlace_inr_stays {st s' : State} {c z : Card} {q : Move}
     s'.canPlace c (Sum.inr z) = true :=
   (PullKit.pullable_step hst hstep hrev hread hseat ⟨hft, h⟩).2
 
-/-- **WITHDRAWN — FALSE.**  Kernel refutation
-(`InrExpRefute.inrExposeResidual_false`, and independently
-`InrExpRefute.inrExposeResidual_false_via_Perm`): the Perm witness
-(`Orig2/ForkPermRefute.lean`) has its pull base `5♥` buried under `4♣`, the
-interior slides `4♣` away, and the play is still shortest.  So "exposure during
-the interior shortens" is not a theorem, and the `inr` half of `BaseEnabling`
-has NO instances (`InrExpRefute.baseEnabling_inr_vacuous`).  The live statement
-needs the legal-at-origin gate (`InrExpRefute.InrExpHeadGated`).  Kept so the
-refutation can name it; do not cite as a residual. -/
-def InrExposeResidual : Prop :=
-  ∀ (u v : State) (ρ pre γ₁ γ₂ post : List Move) (c z : Card) (A E : State),
-    u.WF → ShufflePlayW u ρ v →
-    ρ = pre ++ Move.tabToFound c :: γ₁ ++ Move.foundToTab c (Sum.inr z) :: post →
-    ShufflePlayW u pre A →
-    (∀ q ∈ γ₁, SlideFwd.ReadSafe c q) →
-    (∀ q ∈ γ₁, MtnPr.SeatInert (Sum.inr z) q) →
-    A.pileOfTop z = none →
-    (∃ k, E.pileOfTop z = some k) →
-    ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length < ρ.length
-
 /-! ## §5. The local net-one identity behind the gap witness
 
 At a `WF` state `S` where `c` tops pile `a` and a *different* card `d` sits

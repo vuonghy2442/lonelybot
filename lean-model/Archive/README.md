@@ -200,3 +200,14 @@ plus 7 deliberate non-campaign umbrellas/ledger/boundary cards
 `BoundaryForkFree`, `BoundaryMinPath`).  There is no unbuilt dead weight
 left in `Orig2/`.
 
+
+## Withdrawn definitions (2026-11-02)
+
+`WITHDRAWN_DEFS.md` holds the verbatim text of definitions removed from the
+live tree because they were marked WITHDRAWN / FALSE and had no live use:
+`InrExposeResidual` and `RaiseDeficientGame` (+ its vacuous wrapper
+`argmin_of_deficient`).  Restore by copying the definition back into the named
+source card.  Note: the archived certificate/refutation card `ForkInrExpRefute`
+names `InrExposeResidual`, so restoring that card also requires restoring the
+definition (or retargeting its statement).
+
