@@ -426,76 +426,6 @@ theorem chain_rank_lt_thirteen {B v : State} {tail : List Move} {z z' : Card}
 ## §7. The residual, and the reduction
 -/
 
-/-- **WITHDRAWN — FALSE.**  Kernel refutation: `Sat.not_coverChainResidual`
-(`Orig2/ForkSatChain.lean`), with `Sat.not_noChainRaise` refuting the first
-clause on the promoted twin board (`B = Seat.uT`, `v = Seat.BT`, and `BT` IS
-`SSaturated`), `d = z' = ♠3`, `tail = [raise ♠3]`.  `Sat.not_noChainRaiseCorr`
-even refutes the "exclude the trivial `s1 = [], z' = d` case" repair.
-
-ROOT CAUSE: this residual quantifies over **arbitrary** plays `B → v`; neither
-shortest-ness nor the corridor decomposition appears in it, so no event-level
-patch can work.  `freeCorridor_of_coverChain` below is therefore a kernel-checked
-implication from a FALSE premise.  Cross-suit vacuity is NOT closed by this
-route; the live reduction is `NoSeatMateCrossSuit` (`Orig2/Fork/Local/ForkBlocks.lean`),
-with the twin/pull-free corner closed modulo `Sat.TwinRelocationResidual`
-(`Orig2/ForkSatChain.lean`). -/
-def CoverChainResidual : Prop :=
-  ∀ (B v : State) (tail : List Move) (d : Card),
-    B.WF → SSaturated v → CanRaise B d → ShufflePlayW B tail v →
-    ∀ (z' : Card) (s1 s2 : List Move) (A Z : State) (m : Move),
-      z'.rank.toIdx ≤ d.rank.toIdx →
-      tail = s1 ++ m :: s2 → ShufflePlayW B s1 A → CanRaise A z' →
-      State.step A m = some Z → ¬ CanRaise Z z' →
-      (m = Move.tabToFound z' ∨
-        ∃ x : Card, m = Move.tabToTab x (Sum.inr z') ∧ ¬ CanRaise Z x) → False
-
-/-- **`NoChainRaise`** — the first endpoint of the chain: no chain card of rank
-at most `d`'s is *raised* after being raisable.  (This is the same-card
-relocation lane: the chain card was pulled and goes straight back up; the
-campaign's `PullKit`/`Relocate` machinery owns it.) -/
-def NoChainRaise : Prop :=
-  ∀ (B v : State) (tail : List Move) (d : Card),
-    B.WF → SSaturated v → CanRaise B d → ShufflePlayW B tail v →
-    ∀ (z' : Card) (s1 s2 : List Move) (A Z : State),
-      z'.rank.toIdx ≤ d.rank.toIdx →
-      tail = s1 ++ Move.tabToFound z' :: s2 → ShufflePlayW B s1 A →
-      CanRaise A z' → State.step A (Move.tabToFound z') = some Z →
-      ¬ CanRaise Z z' → False
-
-/-- **`NoCoverStall`** — the second endpoint: no cover of a chain card of rank
-at most `d`'s is followed by a mover that is *not* raisable.  This is the
-opposite-coloured cover stall. -/
-def NoCoverStall : Prop :=
-  ∀ (B v : State) (tail : List Move) (d : Card),
-    B.WF → SSaturated v → CanRaise B d → ShufflePlayW B tail v →
-    ∀ (z' x : Card) (s1 s2 : List Move) (A Z : State),
-      z'.rank.toIdx ≤ d.rank.toIdx →
-      tail = s1 ++ Move.tabToTab x (Sum.inr z') :: s2 → ShufflePlayW B s1 A →
-      CanRaise A z' → State.step A (Move.tabToTab x (Sum.inr z')) = some Z →
-      ¬ CanRaise Z z' → ¬ CanRaise Z x → False
-
-/-- **THE RESIDUAL DECOMPOSES INTO ITS TWO ENDPOINTS.** -/
-theorem coverChainResidual_iff :
-    CoverChainResidual ↔ NoChainRaise ∧ NoCoverStall := by
-  constructor
-  · intro h
-    refine ⟨?_, ?_⟩
-    · intro B v tail d hB hv hcan hplay z' s1 s2 A Z hle heq hp hcanA hstep hblk
-      exact h B v tail d hB hv hcan hplay z' s1 s2 A Z (m := Move.tabToFound z')
-        hle heq hp hcanA hstep hblk (Or.inl rfl)
-    · intro B v tail d hB hv hcan hplay z' x s1 s2 A Z hle heq hp hcanA hstep hblk hx
-      exact h B v tail d hB hv hcan hplay z' s1 s2 A Z (m := Move.tabToTab x (Sum.inr z'))
-        hle heq hp hcanA hstep hblk (Or.inr ⟨x, rfl, hx⟩)
-  · rintro ⟨h1, h2⟩ B v tail d hB hv hcan hplay z' s1 s2 A Z m hle heq hp hcanA hstep hblk hshape
-    rcases hshape with hm | ⟨x, hm, hx⟩
-    · have hstep' : State.step A (Move.tabToFound z') = some Z := by rw [← hm]; exact hstep
-      exact h1 B v tail d hB hv hcan hplay z' s1 s2 A Z hle
-        (hm ▸ heq) hp hcanA hstep' hblk
-    · have hstep' : State.step A (Move.tabToTab x (Sum.inr z')) = some Z := by
-        rw [← hm]; exact hstep
-      exact h2 B v tail d hB hv hcan hplay z' x s1 s2 A Z hle
-        (hm ▸ heq) hp hcanA hstep' hblk hx
-
 end Chain
 
 /-! ## §8. Axiom battery -/
@@ -516,9 +446,5 @@ end Chain
 #print axioms Chain.chain_exists_aux
 #print axioms Chain.chain_exists
 #print axioms Chain.chain_rank_lt_thirteen
-#print axioms Chain.coverChainResidual_iff
 
-#check @Chain.CoverChainResidual
-#check @Chain.NoChainRaise
-#check @Chain.NoCoverStall
 

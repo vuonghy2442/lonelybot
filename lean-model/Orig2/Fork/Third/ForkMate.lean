@@ -420,44 +420,6 @@ theorem self_pull_raise_not_forced :
   rintro ⟨γ₁, γ₂, h, hraise⟩
   exact no_self_raise_in_one_letter_pre h hraise
 
-/-- **THE TARGET'S RAISE CLAUSE IS NOT A THEOREM.**  If `pre` is free-or-pull,
-contains `pull e`, and ends with `e` S-live, one cannot conclude that `raise e`
-occurs in `pre` after the pull.  (`PairPullRaiseInPre`'s existence half, with
-exactly the brief's survivor hypothesis `CanRaiseS`.) -/
-def SelfPullRaiseInPre : Prop :=
-  ∀ (u A' : State) (pre : List Move) (e : Card) (bz : Base),
-    ShufflePlayW u pre A' →
-    (∀ m ∈ pre, LandKit.FreeOrPull m) →
-    (∃ γ₁ γ₂ : List Move, pre = γ₁ ++ Move.foundToTab e bz :: γ₂) →
-    CanRaiseS A' e →
-    ∃ γ₁ γ₂ : List Move,
-      pre = γ₁ ++ Move.foundToTab e bz :: γ₂ ∧ Move.tabToFound e ∈ γ₂
-
-theorem not_selfPullRaiseInPre : ¬ SelfPullRaiseInPre := by
-  intro h
-  obtain ⟨u, A', pre, e, bz, -, hplay, hall, hmem, hlive, hcon⟩ :=
-    self_pull_raise_not_forced
-  exact hcon (h u A' pre e bz hplay hall hmem hlive)
-
-/-- The same refutation with the survivor hypothesis weakened to `nextUp`
-(which `CanRaiseS` implies); this is the strongest form of the local claim. -/
-def SelfPullRaiseInPreNextUp : Prop :=
-  ∀ (u A' : State) (pre : List Move) (e : Card) (bz : Base),
-    ShufflePlayW u pre A' →
-    (∀ m ∈ pre, LandKit.FreeOrPull m) →
-    (∃ γ₁ γ₂ : List Move, pre = γ₁ ++ Move.foundToTab e bz :: γ₂) →
-    A'.nextUp e = true →
-    ∃ γ₁ γ₂ : List Move,
-      pre = γ₁ ++ Move.foundToTab e bz :: γ₂ ∧ Move.tabToFound e ∈ γ₂
-
-theorem not_selfPullRaiseInPre_nextUp : ¬ SelfPullRaiseInPreNextUp := by
-  intro h
-  obtain ⟨u, A', pre, e, bz, huwf, hplay, hall, hmem, hlive, hcon⟩ :=
-    self_pull_raise_not_forced
-  have hA'wf : A'.WF := SatDifferCensus.ShufflePlayW.wf_end hplay huwf
-  have hnext : A'.nextUp e = true := ThirdLive.nextUp_of_canRaiseS hA'wf hlive
-  exact hcon (h u A' pre e bz hplay hall hmem hnext)
-
 end Mate
 
 #print axioms Mate.splitHyp_not_readBracket
@@ -482,7 +444,3 @@ end Mate
 #print axioms Mate.pull_self_freeOrPull
 #print axioms Mate.no_self_raise_in_one_letter_pre
 #print axioms Mate.self_pull_raise_not_forced
-#print axioms Mate.SelfPullRaiseInPre
-#print axioms Mate.not_selfPullRaiseInPre
-#print axioms Mate.SelfPullRaiseInPreNextUp
-#print axioms Mate.not_selfPullRaiseInPre_nextUp

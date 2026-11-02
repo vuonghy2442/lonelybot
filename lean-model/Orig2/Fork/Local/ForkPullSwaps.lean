@@ -758,35 +758,6 @@ theorem sameCardRelocation_ready : SameCardRelocationReady := by
   simp only [List.length_append, List.length_cons] at hlen ⊢
   omega
 
-/-- **THE READINESS GAP, NAMED.**  "The pull is legal at the image of the
-raise, whenever the window is read-safe and the base is seat-inert."  This is
-the one hypothesis the pull-bubble route consumes beyond the residual's own
-assumptions.  It is free when `canPlace c b` holds at the raise's origin
-(`pullable_raiseSt_of_canPlace`) and is **false in general**
-(`Temp/PullSw_Gap.lean`: a bare-king raise inside the window empties the
-`inl` base, enabling the pull). -/
-def PullReadyAtImage : Prop :=
-  ∀ (u v : State) (ρ pre γ post : List Move) (c : Card) (b : Base) (A B : State),
-    u.WF → ShufflePlayW u ρ v →
-    ρ = pre ++ Move.tabToFound c :: γ ++ Move.foundToTab c b :: post →
-    ShufflePlayW u pre A →
-    State.step A (Move.tabToFound c) = some B →
-    (∀ q ∈ γ, SlideFwd.ReadSafe c q) →
-    (∀ q ∈ γ, MtnPr.SeatInert b q) → Pullable B c b
-
-/-- **THE REDUCTION.**  If pull readiness at the raise's image is available
-as a lemma (`PullReadyAtImage`), then `MtnPr.SameCardRelocation` follows. -/
-theorem sameCardRelocation_of_pullReadyAtImage
-    (h : PullReadyAtImage) : MtnPr.SameCardRelocation := by
-  intro u v ρ pre γ post c b huwf hplay hρ hread hseat
-  exact sameCardRelocation_ready u v ρ pre γ post c b huwf hplay hρ hread hseat
-    (fun A B hpre hstep => h u v ρ pre γ post c b A B huwf hplay hρ hpre hstep hread hseat)
-
-/-- **READINESS IS FREE WHEN THE SLIDE IS LEGAL.**  If `canPlace c b` already
-holds at the raise's origin, then the pull is ready at the raise's image
-(`R12.canPlace_raiseSt` + `foundTop_raiseSt_self`).  Hence the only case the
-bubble route misses is the `canPlace c b = false` (exceptional-seat) side —
-which is exactly the base-enabling gap of §6. -/
 theorem pullable_raiseSt_of_canPlace {A : State} {c : Card} {b : Base} {a : Anchor}
     (hA : A.WF) (hpo : A.pileOfTop c = some a)
     (hcp : A.canPlace c b = true) :
@@ -899,36 +870,6 @@ theorem gapB_not_pullable_C :
     gapB.canPlace GAPK_C (Sum.inl Anchor.p1) = false := by
   rw [canPlace_inl_unfold]; decide
 
-/-- **THE READINESS GAP IS GENUINE.** -/
-theorem pullReadyAtImage_false : ¬ PullReadyAtImage := by
-  intro h
-  have hpull : Pullable gapB GAPK_C (Sum.inl Anchor.p1) :=
-    h gapState gapD
-      [Move.tabToFound GAPK_C, Move.tabToFound GAPK_W,
-        Move.foundToTab GAPK_C (Sum.inl Anchor.p1)]
-      [] [Move.tabToFound GAPK_W] [] GAPK_C (Sum.inl Anchor.p1) gapState gapB
-      gapState_wf gap_play rfl (Walk.nil gapState) step_raiseC
-      (by
-        intro q hq
-        rw [List.mem_singleton] at hq
-        subst hq
-        exact gap_readSafe)
-      (by
-        intro q hq
-        rw [List.mem_singleton] at hq
-        subst hq
-        exact gap_seatInert)
-  have hcp := hpull.2
-  rw [gapB_not_pullable_C] at hcp
-  exact absurd hcp (by simp)
-
-
-/-! ## §7. The gap instance is still shortenable (the residual is not refuted)
-
-The `§6` configuration has a two-letter witness play to the same endpoint:
-`raise SK ; slide HK -> Sum.inl p1`.  So `SameCardRelocation` itself survives
-this instance; what §6 kills is only the *pull-bubble route* to it. -/
-
 def gapB2 : State := raiseSt gapState GAPK_W Anchor.p1
 def gapD2 : State := slideSt gapB2 GAPK_C (Sum.inl Anchor.p1) Anchor.p0
 
@@ -999,11 +940,9 @@ theorem gap_instance_shortens :
 #print axioms PullKit.pullSwaps_of_read
 #print axioms PullKit.pull_moves_left_read
 #print axioms PullKit.sameCardRelocation_ready
-#print axioms PullKit.sameCardRelocation_of_pullReadyAtImage
 #print axioms PullKit.pullable_raiseSt_of_canPlace
 #print axioms PullKit.gapState_wf
 #print axioms PullKit.gap_play
-#print axioms PullKit.pullReadyAtImage_false
 #print axioms PullKit.gap_short
 #print axioms PullKit.gap_instance_shortens
 

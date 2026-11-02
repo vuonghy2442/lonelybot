@@ -207,48 +207,6 @@ theorem loop_no_third_survivor :
   subst hE
   exact h1 rfl
 
-/-! ### 1c. The third-suit hypotheses are load-bearing (necessity) -/
-
-/-- The residual's syntactic shape **without** the `SplitHyp` gate and
-**without** the third-suit hypotheses. -/
-def LandingBracketAllLive : Prop :=
-  ∀ (u v : State) (rho : List Move) (F : State)
-    (left right : List Move) (c d : Card) (b : Base)
-    (pre post tail : List Move),
-    u.WF → SSaturated u → SSaturated v → ShufflePlayW u rho v →
-    ValleyElim.ValleySplitAt u v rho F →
-    rho = left ++ right →
-    left = pre ++ Move.foundToTab c b :: post →
-    (∀ m ∈ post, ValleyElim.FreeMove m) →
-    right = Move.tabToFound d :: tail →
-    ∀ (A' B : State), ShufflePlayW u pre A' →
-      State.step A' (Move.foundToTab c b) = some B →
-      ∀ e : Card, CanRaiseS B e →
-      ∃ (α γ β : List Move) (z : Card) (bz : Base) (P Q : State),
-        rho = α ++ Move.foundToTab z bz :: γ ++ Move.tabToFound z :: β ∧
-        (∀ q ∈ γ, R12.ReadOK z q)
-
-/-- **THE THIRD-SUIT HYPOTHESES CANNOT BE DROPPED** (at the ungated level): the
-loop is a valley split whose landing has the S-live card `5H` but no read-safe
-same-card bracket anywhere (`ExistRefute.no_bracket_data`). -/
-theorem not_landingBracketAllLive : ¬ LandingBracketAllLive := by
-  intro h
-  have hb := h ExistRefute.u ExistRefute.V ExistRefute.rho ExistRefute.F
-    [ExistRefute.mPull, ExistRefute.mS1, ExistRefute.mS2] [ExistRefute.mRaise]
-    ExistRefute.H5 ExistRefute.H5 (Sum.inr ExistRefute.C6) []
-    [ExistRefute.mS1, ExistRefute.mS2] []
-    ExistRefute.u_wf ExistRefute.u_sat ExistRefute.V_sat ExistRefute.play
-    ExistRefute.split rfl rfl ?_ rfl
-    ExistRefute.u ExistRefute.B (Walk.nil ExistRefute.u) ExistRefute.step_pull
-    ExistRefute.H5 loop_B_H5_live
-  · obtain ⟨α, γ, β, z, bz, P, Q, hρ, hread⟩ := hb
-    exact ExistRefute.no_bracket_data ⟨α, γ, β, z, bz, hρ, hread⟩
-  · intro m hm
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
-    rcases hm with rfl | rfl
-    · exact free_slide ExistRefute.C4 (Sum.inr ExistRefute.H5)
-    · exact free_slide ExistRefute.C4 (Sum.inr ExistRefute.D5)
-
 /-! ## 2. The kill taxonomy -/
 
 /-- `R12.ReadOK` is decidable: all its clauses are decidable equalities on the
@@ -567,7 +525,6 @@ end Surv
 #print axioms Surv.loop_B_live_eq
 #print axioms Surv.loop_B_H5_live
 #print axioms Surv.loop_no_third_survivor
-#print axioms Surv.not_landingBracketAllLive
 #print axioms Surv.readOKDecidable
 #print axioms Surv.canRaise_of_read_play
 #print axioms Surv.frozen_survivor_not_all_read
