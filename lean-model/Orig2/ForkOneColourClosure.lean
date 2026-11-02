@@ -140,6 +140,57 @@ theorem minimalFullJoin_oneColourExact
       rwa [htt] at this
     exact Nat.le_antisymm hle hge
 
+/-- An upper bound exact on the twin pair of `t`. -/
+def OneColourExactUpper (u : State) (z : Suit → Nat) (t : Suit)
+    (w : State) : Prop :=
+  UpperTarget u z w ∧
+    rungAt w t = z t ∧ rungAt w t.twin = z t.twin
+
+/-- The least exact-`t` upper bound: a purely one-colour (2D) LUB. -/
+def SliceLUB (u : State) (z : Suit → Nat) (t : Suit)
+    (w : State) : Prop :=
+  OneColourExactUpper u z t w ∧
+    ∀ v, OneColourExactUpper u z t v →
+      ∀ σ : Suit, rungAt w σ ≤ rungAt v σ
+
+/-- **THE ONE-COLOUR SLICE THEOREM.**  If a target has an exact-`t` upper
+bound, then it has a least exact-`t` upper bound.  This is a 2D statement:
+the exact pair is fixed and only the other pair is minimised. -/
+def ForklessSliceLUB : Prop :=
+  ∀ u, u.WF → Forkless u →
+    ∀ z : Suit → Nat, ∀ t : Suit,
+      (∃ w, OneColourExactUpper u z t w) →
+      ∃ w, SliceLUB u z t w
+
+/-- **THE EXACT NUMERIC HEIGHT REDUCES TO ONE COLOUR.**  The full minimal
+join is itself the one-colour slice LUB on an exact colour. -/
+theorem minimalFullJoin_is_sliceLUB
+    (hslice : ForklessSliceLUB)
+    (hcl : ForklessOneColourClosure)
+    {s s' w : State}
+    (hs : s.WF) (hfl : Forkless s) (hmin : MinimalFullJoin s s' w) :
+    ∃ t : Suit,
+      SliceLUB s
+        (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t w := by
+  let z : Suit → Nat := fun σ => Nat.max (rungAt s σ) (rungAt s' σ)
+  obtain ⟨t, ht, htt⟩ :=
+    minimalFullJoin_oneColourExact hcl hs hfl hmin
+  have hex : ∃ v, OneColourExactUpper s z t v :=
+    ⟨w, hmin.1, ht, htt⟩
+  obtain ⟨wt, hwt⟩ := hslice s hs hfl z t hex
+  have hwt_upper : UpperTarget s z wt := hwt.1.1
+  have hw_le_wt : ∀ σ : Suit, rungAt w σ ≤ rungAt wt σ :=
+    hmin.2 wt hwt_upper
+  have hwt_le_w : ∀ σ : Suit, rungAt wt σ ≤ rungAt w σ :=
+    hwt.2 w ⟨hmin.1, ht, htt⟩
+  have hrung_eq : ∀ σ : Suit, rungAt w σ = rungAt wt σ :=
+    fun σ => Nat.le_antisymm (hw_le_wt σ) (hwt_le_w σ)
+  refine ⟨t, ?_, ?_⟩
+  · exact ⟨hmin.1, ht, htt⟩
+  · intro v hv σ
+    rw [hrung_eq σ]
+    exact hwt.2 v hv σ
+
 /-- The support form: all strict overshoot lies outside the exact twin
 pair, hence in the other colour. -/
 theorem minimalFullJoin_overshoot_oneColour
@@ -217,3 +268,4 @@ end OneColourClosure
 #print axioms OneColourClosure.fullJoinAtLeastOrFork_of_top_and_closure
 #print axioms OneColourClosure.minimalFullJoin_oneColourExact
 #print axioms OneColourClosure.minimalFullJoin_overshoot_oneColour
+#print axioms OneColourClosure.minimalFullJoin_is_sliceLUB
