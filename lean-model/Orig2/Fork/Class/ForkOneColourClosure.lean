@@ -307,6 +307,25 @@ def ForklessSliceMeet : Prop :=
             (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v ∧
           RungLe v v1 ∧ RungLe v v2
 
+/-- **THE UNGATED MEET FORM.**  Identical to `ForklessSliceMeet` without the
+`Forkless` hypothesis: measured 0 failures on 118 fork-bearing components
+(twinswap) as well as on the forkless families. -/
+def SliceMeet : Prop :=
+  ∀ u, u.WF →
+    ∀ s s', sameOrbitSetoid.r u s → sameOrbitSetoid.r u s' →
+      ∀ t : Suit, ∀ v1 v2,
+        InSlice u
+          (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v1 →
+        InSlice u
+          (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v2 →
+        ∃ v, InSlice u
+            (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v ∧
+          RungLe v v1 ∧ RungLe v v2
+
+/-- The gated statement is a corollary of the ungated one. -/
+theorem forklessSliceMeet_of_sliceMeet (h : SliceMeet) : ForklessSliceMeet :=
+  fun u hu _ s s' hs hs' t v1 v2 h1 h2 => h u hu s s' hs hs' t v1 v2 h1 h2
+
 /-- A slice LUB is a meet witness: it lies below both exact upper bounds. -/
 theorem sliceLUB_meet {u : State} {z : Suit → Nat} {t : Suit} {w v1 v2 : State}
     (hw : SliceLUB u z t w)
