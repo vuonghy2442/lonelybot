@@ -440,8 +440,11 @@ If `c` is raisableS at `s` and a **licensed** `raiseS` word from `s` contains
 `c`, then the word whose play raises `c` first and the rest in ascending rank
 order is realisable from `s`.
 
-PROVED: `raiseS_rankfront_L` (`Temp/RankFront_tail.lean`) with
-`tail_exists`; unconditional — no rank, twin, fork, reachability or distinctness
+PROVED: `rankFront_holds` in `Orig2/Fork/Class/ForkRaiseReorderProof.lean`, which
+discharges this `def` verbatim; the proof lives in `ForkRaiseReorderKit` /
+`ForkRaiseReorderProof` (`raiseS_rankfront_L`, `tail_exists`,
+`canRaiseS_of_raise_perm`, `cover_must_be_raised`, `tie_swap`/`tieFree`).
+Unconditional — no rank, twin, fork, reachability or distinctness
 side condition.  Earlier fragments: `raiseS_rankfront_of_licensed`
 (`Temp/RankFront_proof.lean:130`, the "all cards licensed at `s`, distinct
 ranks" case) and the sorted-play theorem `raiseS_sorted_of_licensed`
