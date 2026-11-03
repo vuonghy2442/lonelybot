@@ -66,3 +66,18 @@ induction on the word (no classical reasoning).  An earlier draft discharged
 the count with `List.countP_eq_zero` + `simp`, which pulled
 `Classical.choice` into the axiom line; the inductive form keeps the file at
 `[propext, Quot.sound]`.
+
+## Addendum (verified in this session)
+
+* `List.filter` in Lean 4 core has type `(α → Bool) → List α → List α`, so the
+  ledger's predicate must be written `fun d => decide (d.suit = σ)` (the
+  brief's `fun d => d.suit = σ` does not elaborate).  This is exactly
+  `List.countP (fun d => decide (d.suit = σ))` up to
+  `List.countP_eq_length_filter`, i.e. the same quantity.
+* `rungAt_raiseStepS` is stated over the **weak** `RaiseStepS` (which admits
+  commit raises), so it is a fortiori available for the licensed relation;
+  the three word-level rows are stated over `RaiseSSeqLicensed` as requested.
+* Nothing in `Orig2/` was modified; the only files touched are
+  `Temp/RungMono.lean` and this report.
+* Re-verified: `lake env lean Temp/RungMono.lean` exits 0 and the five
+  `#print axioms` lines are exactly the `[propext, Quot.sound]` list above.
