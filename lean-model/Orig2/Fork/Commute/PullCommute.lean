@@ -31,6 +31,10 @@ House rules: no `sorry`, no `Classical`, no `noncomputable`, no new axioms.
 
 namespace OneColourClosure
 
+/-- Local spelling of the twin irreflexivity row (the promoted tree no longer
+carries the scratch copy). -/
+theorem card_twin_ne_self (c : Card) : c.twin ≠ c := card_twin_ne c
+
 /-- Membership in `sortByRank P` is membership in `P`. -/
 theorem mem_sortByRank_iff {P : List Card} {d : Card} :
     d ∈ sortByRank P ↔ d ∈ P :=
@@ -74,7 +78,7 @@ theorem preTwin_goodArm
       (CanRaiseS.now c hcanC) (Steps.refl zs) hcstep
   have hcanCT_zc : CanRaise zc c.twin :=
     canRaise_of_raise_sameRank hzswf hcstep (Card.twin_rank c)
-      (card_twin_ne_self c) hcanCT
+      (card_twin_ne c) hcanCT
   obtain ⟨z2, hctstep⟩ := step_tabToFound_of_canRaise hcanCT_zc
   have hctplay : RaiseSSeqLicensed zc [c.twin] z2 :=
     RaiseSSeqLicensed.cons (RaiseSSeqLicensed.nil zc)
@@ -112,7 +116,7 @@ theorem preTwin_goodArm
       rw [Card.twin_rank] at hlt
       exact Nat.lt_irrefl _ hlt
     · rw [List.mem_singleton] at hc
-      exact card_twin_ne_self c hc
+      exact card_twin_ne c hc
   have hArank : ∀ a ∈ L ++ [c], a.rank.toIdx ≤ c.twin.rank.toIdx := by
     intro a ha
     rw [Card.twin_rank]
