@@ -1,5 +1,11 @@
 # GOAL + NEXT STEPS (resume card)
 
+> **SOLVED (2026-11-04).** The target is proved and promoted to
+> `Orig2/Fork/Commute/`: `OneColourClosure.fullJoinAtLeastOrFork_proved`
+> (and the stronger `OneColourClosure.raises_or_fork`).  The residual notes
+> below are historical.  `lake build Orig2` passes; axioms are
+> `[propext, Quot.sound]`.
+
 Snapshot: branch `macro-game`, remote `origin/macro-game` at `9cab052` — everything below is
 committed and pushed.
 

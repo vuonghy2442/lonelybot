@@ -1,10 +1,10 @@
 import Orig2.Fork.Class.ForkRaiseReorderProof
-import Temp.RungMono
-import Temp.PullRaiseId
-import Temp.Obstruction
-import Temp.FrozenSuit
-import Temp.RaisesOrFork
-import Temp.BlockHousing
+import Orig2.Fork.Commute.RungMono
+import Orig2.Fork.Commute.PullRaiseId
+import Orig2.Fork.Commute.Obstruction
+import Orig2.Fork.Commute.FrozenSuit
+import Orig2.Fork.Commute.RaisesOrFork
+import Orig2.Fork.Commute.BlockHousing
 
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
@@ -210,8 +210,7 @@ theorem raises_or_fork_play
     (hPull : ∀ {s u t v : State} {c : Card} {b : Base} {ws : List Card},
       s.WF → State.step s (Move.foundToTab c b) = some u →
       RaiseSSeqLicensed u ws v → RungLe t v →
-      (∃ v', RaiseSSeqLicensed s (playWord (sortByRank ws)) v' ∧ RungLe s v' ∧
-        RungLe t v')
+      (∃ ws' v', RaiseSSeqLicensed s ws' v' ∧ RungLe s v' ∧ RungLe t v')
       ∨ Fork s)
     {s t : State} {play : List Move} (hplay : ShufflePlayW s play t) (hs : s.WF) :
     (∃ ws v, RaiseSSeqLicensed s ws v ∧ RungLe s v ∧ RungLe t v) ∨ Fork s := by
@@ -252,8 +251,8 @@ theorem raises_or_fork_play
         · exact Or.inr (fork_of_sameOrbit hsymm hfork)
     | foundToTab c b =>
         rcases ih hs1 with ⟨ws, v, hρ, huv, htv⟩ | hfork
-        · rcases hPull hst hstep hρ htv with ⟨v', hplay', hsv', htv'⟩ | hfork'
-          · exact Or.inl ⟨_, v', hplay', hsv', htv'⟩
+        · rcases hPull hst hstep hρ htv with ⟨ws', v', hplay', hsv', htv'⟩ | hfork'
+          · exact Or.inl ⟨ws', v', hplay', hsv', htv'⟩
           · exact Or.inr hfork'
         · exact Or.inr (fork_of_sameOrbit hsymm hfork)
     | tabToTab c b =>
@@ -277,8 +276,7 @@ theorem raises_or_fork_of
     (hPull : ∀ {s u t v : State} {c : Card} {b : Base} {ws : List Card},
       s.WF → State.step s (Move.foundToTab c b) = some u →
       RaiseSSeqLicensed u ws v → RungLe t v →
-      (∃ v', RaiseSSeqLicensed s (playWord (sortByRank ws)) v' ∧ RungLe s v' ∧
-        RungLe t v')
+      (∃ ws' v', RaiseSSeqLicensed s ws' v' ∧ RungLe s v' ∧ RungLe t v')
       ∨ Fork s)
     (hspectrum : ∀ {z : State} {x : Card}, z.WF → CanRaiseS z x → CanRaiseS z x.twin →
       Fork z ∨
@@ -297,8 +295,7 @@ theorem fullJoinAtLeastOrFork_of_hPull
     (hPull : ∀ {s u t v : State} {c : Card} {b : Base} {ws : List Card},
       s.WF → State.step s (Move.foundToTab c b) = some u →
       RaiseSSeqLicensed u ws v → RungLe t v →
-      (∃ v', RaiseSSeqLicensed s (playWord (sortByRank ws)) v' ∧ RungLe s v' ∧
-        RungLe t v')
+      (∃ ws' v', RaiseSSeqLicensed s ws' v' ∧ RungLe s v' ∧ RungLe t v')
       ∨ Fork s)
     (hspectrum : ∀ {z : State} {x : Card}, z.WF → CanRaiseS z x → CanRaiseS z x.twin →
       Fork z ∨

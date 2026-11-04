@@ -1,5 +1,11 @@
 # The raises-or-fork plan (detailed working document)
 
+> **SOLVED (2026-11-04).** The plan closed via the commutation route (not
+> `TailReplay`): see `Orig2/Fork/Commute/PullCommute.lean`,
+> `OneColourClosure.raises_or_fork` and
+> `OneColourClosure.fullJoinAtLeastOrFork_proved`.  The historical notes below
+> are kept for context.
+
 Status: **the path induction is complete; one arm remains — the twin arm of the pull case.**
 Last updated after the `RaisesOrForkMain` round.
 

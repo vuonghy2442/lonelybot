@@ -1,11 +1,11 @@
 import Orig2.Fork.Class.ForkRaiseReorderKit
 import Orig2.Fork.Class.ForkRaiseReorderProof
 import Orig2.Fork.Split.ForkDrainInduction
-import Temp.RungMono
-import Temp.RaisesOrFork
-import Temp.SatDiffer_config
-import Temp.FrozenSuit
-import Temp.Fork_producer
+import Orig2.Fork.Commute.RungMono
+import Orig2.Fork.Commute.RaisesOrFork
+import Orig2.Fork.Commute.SatDiffer_config
+import Orig2.Fork.Commute.FrozenSuit
+import Orig2.Fork.Commute.Fork_producer
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -16,7 +16,7 @@ set_option linter.unusedVariables false
 
 This card supplies the **spectrum containment** consumed by the sibling
 producers `OneColourClosure.fork_of_collapsed_spectrum` /
-`fork_of_spectrum` (`Temp/RaisesOrFork.lean`, committed).  Those producers are
+`fork_of_spectrum` (`Orig2/Fork/Commute/RaisesOrFork.lean`, committed).  Those producers are
 **not reproved here**.
 
 Main theorem (the requested shape):
@@ -44,7 +44,7 @@ spectrum with both twins `S`-live, `ForkWitness z' x` is *exactly* the block
 * twin vanilla and `x` blocked ⇒ `ForkWitness z' x.twin` (because
   `x.twin.twin = x`);
 * both twins vanilla ⇒ the both-vanilla square `twin_raise_square_both`
-  applies (`Temp/RaisesOrFork.lean`).
+  applies (`Orig2/Fork/Commute/RaisesOrFork.lean`).
 
 Hence the exhaustive endpoint statement is a **trichotomy**
 (`spectrum_pair_trichotomy`), not the naive two-branch template.  The naive

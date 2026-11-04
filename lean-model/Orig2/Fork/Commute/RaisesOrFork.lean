@@ -1,10 +1,10 @@
 import Orig2.Fork.Class.ForkRaiseReorderProof
-import Temp.SatDiffer_config
-import Temp.Fork_producer
-import Temp.RungMono
-import Temp.PullRaiseId
-import Temp.Obstruction
-import Temp.FrozenSuit
+import Orig2.Fork.Commute.SatDiffer_config
+import Orig2.Fork.Commute.Fork_producer
+import Orig2.Fork.Commute.RungMono
+import Orig2.Fork.Commute.PullRaiseId
+import Orig2.Fork.Commute.Obstruction
+import Orig2.Fork.Commute.FrozenSuit
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
@@ -127,7 +127,7 @@ theorem exists_append_raise_of_word_notMem {s z : State} {ws : List Card}
 
 /-! ## 1b. Rungs climb along a licensed raiseS play
 
-The pointwise monotone row and the guarded no-letter row are `Temp/RungMono.lean`
+The pointwise monotone row and the guarded no-letter row are `Orig2/Fork/Commute/RungMono.lean`
 (`RungMono.rungAt_le`, `RungMono.rungAt_le_of_raiseSSeqLicensed`); they are not
 reproved here.  The `RungLe`-shaped corollary below is the form the target's
 join branch consumes. -/
@@ -165,8 +165,8 @@ theorem twin_raise_square_both {z : State} {c : Card} (hz : z.WF)
 /-! ## 2. The obstruction at a deficit point: buried cover, or frozen suit
 
 This is the shape the refined plan's "cover/nextUp descent" starts from, built
-on the sibling card `Temp/Obstruction.lean` (`not_canRaiseS_cases`) and
-`Temp/FrozenSuit.lean` (`commitLocked_rung_le`).  At a point where `c` is
+on the sibling card `Orig2/Fork/Commute/Obstruction.lean` (`not_canRaiseS_cases`) and
+`Orig2/Fork/Commute/FrozenSuit.lean` (`commitLocked_rung_le`).  At a point where `c` is
 next-up (`z.nextUp c = true`, i.e. the rung of `c`'s suit is exactly `c.rank`)
 and `c` is a tableau card, the four-way obstruction collapses to two:
 
@@ -208,7 +208,7 @@ theorem covered_at_of_buried {z : State} (hz : z.WF) {c : Card} {a : Anchor}
 
 /-- **The commit-lock obstruction freezes the suit.**  A lone face-up card at
 the bottom of its run cannot be passed by its suit's rung anywhere in the
-orbit: `Temp/FrozenSuit.lean` covers both lock sub-cases (a hidden deck under
+orbit: `Orig2/Fork/Commute/FrozenSuit.lean` covers both lock sub-cases (a hidden deck under
 the card, or a non-king).
 
 This is the "harmless deadlock" row: for a class-mate `t`, `rungAt t c.suit`

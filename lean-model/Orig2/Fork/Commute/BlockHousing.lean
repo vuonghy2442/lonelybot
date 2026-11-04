@@ -1,6 +1,6 @@
-import Temp.PullRaiseId
-import Temp.RungMono
-import Temp.RaisesOrFork
+import Orig2.Fork.Commute.PullRaiseId
+import Orig2.Fork.Commute.RungMono
+import Orig2.Fork.Commute.RaisesOrFork
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
