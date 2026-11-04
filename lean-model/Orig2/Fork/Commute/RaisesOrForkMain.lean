@@ -155,49 +155,6 @@ theorem raises_or_fork_play
             rungLe_of_rung_eq hrung' htv⟩
         · exact Or.inr (fork_of_sameOrbit hsymm hfork)
 
-/-- **RAISE-OR-FORK, from the two sub-goals.**
-
-`hPull` is the pull step (append `raise c` to the tail, hoist it to the front,
-cancel against the pull; the `∨ Fork s` arm carries the twin-stuck case).
-`hspectrum` is the spectrum dichotomy; the induction below does not consume it
-— the fork disjunct is only ever *lifted* along the orbit — and it is carried
-to match the interface.
-
-The target's `RungLe s v` conjunct is free (`rungLe_of_raiseSSeqLicensed`). -/
-theorem raises_or_fork_of
-    (hPull : ∀ {s u t v : State} {c : Card} {b : Base} {ws : List Card},
-      s.WF → State.step s (Move.foundToTab c b) = some u →
-      RaiseSSeqLicensed u ws v → RungLe t v →
-      (∃ ws' v', RaiseSSeqLicensed s ws' v' ∧ RungLe s v' ∧ RungLe t v')
-      ∨ Fork s)
-    (hspectrum : ∀ {z : State} {x : Card}, z.WF → CanRaiseS z x → CanRaiseS z x.twin →
-      Fork z ∨
-        ∃ z', sameOrbitSetoid.r z z' ∧
-          (∀ c, CanRaiseS z' c → c = x ∨ c = x.twin) ∧
-          CanRaise z' x ∧ CanRaise z' x.twin)
-    {s t : State} (hs : s.WF) (h : sameOrbitSetoid.r s t) :
-    (∃ ws v, RaiseSSeqLicensed s ws v ∧ RungLe s v ∧ RungLe t v) ∨ Fork s := by
-  obtain ⟨_, _, play, hplay⟩ := h
-  exact raises_or_fork_play hPull hplay hs
-
-/-- **THE ROUTE'S PAYOFF.**  The conditional raise-or-fork theorem implies
-`FullJoinAtLeastOrFork` with the join witness `w := v` supplied by the play
-itself (via `fullJoinAtLeastOrFork_of_raises_or_fork`, no residue). -/
-theorem fullJoinAtLeastOrFork_of_hPull
-    (hPull : ∀ {s u t v : State} {c : Card} {b : Base} {ws : List Card},
-      s.WF → State.step s (Move.foundToTab c b) = some u →
-      RaiseSSeqLicensed u ws v → RungLe t v →
-      (∃ ws' v', RaiseSSeqLicensed s ws' v' ∧ RungLe s v' ∧ RungLe t v')
-      ∨ Fork s)
-    (hspectrum : ∀ {z : State} {x : Card}, z.WF → CanRaiseS z x → CanRaiseS z x.twin →
-      Fork z ∨
-        ∃ z', sameOrbitSetoid.r z z' ∧
-          (∀ c, CanRaiseS z' c → c = x ∨ c = x.twin) ∧
-          CanRaise z' x ∧ CanRaise z' x.twin) :
-    FullJoinAtLeastOrFork :=
-  fullJoinAtLeastOrFork_of_raises_or_fork
-    (fun s t hs h => raises_or_fork_of hPull hspectrum hs h)
-
 end OneColourClosure
 
 #print axioms OneColourClosure.sameOrbit_of_revStep
@@ -207,5 +164,3 @@ end OneColourClosure
 #print axioms OneColourClosure.replay_of_orbit_rung
 #print axioms OneColourClosure.countP_erase_add
 #print axioms OneColourClosure.raises_or_fork_play
-#print axioms OneColourClosure.raises_or_fork_of
-#print axioms OneColourClosure.fullJoinAtLeastOrFork_of_hPull
