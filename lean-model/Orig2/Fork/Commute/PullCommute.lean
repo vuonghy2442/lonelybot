@@ -582,6 +582,51 @@ theorem fullJoinAtLeastOrFork_proved :
     FullJoinAtLeastOrFork :=
   fullJoinAtLeastOrFork_of_raises_or_fork raises_or_fork
 
+/-- A saturated state admits no nonempty licensed raise word. -/
+theorem raiseSSeqLicensed_eq_nil_of_ssaturated {u w : State} {ws : List Card}
+    (hsat : SSaturated u) (h : RaiseSSeqLicensed u ws w) : ws = [] := by
+  cases hnil : ws with
+  | nil => rfl
+  | cons c ws' =>
+      have hrevne : ws.reverse ≠ [] := by simp [hnil]
+      obtain ⟨d, rest, hrev⟩ := List.exists_cons_of_ne_nil hrevne
+      have hws : ws = playWord ([d] ++ rest) := by
+        have h1 : ws = (d :: rest).reverse := by
+          rw [← hrev, List.reverse_reverse]
+        rw [h1, playWord]
+        simp
+      have h' : RaiseSSeqLicensed u (playWord ([d] ++ rest)) w := by
+        rwa [hws] at h
+      obtain ⟨u1, hsingle, -⟩ :=
+        RaiseSSeqLicensed.split_chron (A := [d]) (R := rest) h'
+      have hd : CanRaiseS u d :=
+        canRaiseS_of_raiseSSeqLicensed_head (by simpa [playWord] using hsingle)
+      exact absurd hd (hsat d)
+
+/-- **`SatDifferForkWF` FROM `raises_or_fork`.**  At saturated endpoints the
+only licensed raise word is empty, so the join from `u` forces `v ≤ u` and the
+join from `v` forces `u ≤ v`; differing rungs make that impossible, leaving the
+fork arm. -/
+theorem satDifferForkWF_proved : SatDifferForkWF := by
+  intro u v hu hsu hsv hcls hdiff
+  have hv : v.WF := ForklessTop.wf_of_sameOrbit hcls hu
+  rcases raises_or_fork u v hu hcls with ⟨ws, w, hplay, huw, hvw⟩ | hfork
+  · have hws : ws = [] := raiseSSeqLicensed_eq_nil_of_ssaturated hsu hplay
+    subst hws
+    have hwu : w = u := by cases hplay; rfl
+    have hvu : RungLe v u := by simpa [hwu] using hvw
+    rcases raises_or_fork v u hv (sameOrbitSetoid.iseqv.symm hcls) with
+      ⟨ws2, w2, hplay2, hvw2, huw2⟩ | hfork2
+    · have hws2 : ws2 = [] := raiseSSeqLicensed_eq_nil_of_ssaturated hsv hplay2
+      subst hws2
+      have hw2v : w2 = v := by cases hplay2; rfl
+      have huv : RungLe u v := by simpa [hw2v] using huw2
+      obtain ⟨σ, hσ⟩ := hdiff
+      exact absurd (Nat.le_antisymm (huv σ) (hvu σ)) hσ
+    · obtain ⟨F, x, hF, hx⟩ := hfork2
+      exact ⟨F, x, sameOrbitSetoid.iseqv.trans hcls hF, hx⟩
+  · exact hfork
+
 end OneColourClosure
 
 #print axioms OneColourClosure.mem_sortByRank_iff
@@ -598,3 +643,5 @@ end OneColourClosure
 #print axioms OneColourClosure.twinRescue_proved
 #print axioms OneColourClosure.raises_or_fork
 #print axioms OneColourClosure.fullJoinAtLeastOrFork_proved
+#print axioms OneColourClosure.raiseSSeqLicensed_eq_nil_of_ssaturated
+#print axioms OneColourClosure.satDifferForkWF_proved
