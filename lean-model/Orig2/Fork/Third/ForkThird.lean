@@ -68,34 +68,8 @@ theorem pred_fit {l : List Card} {c : Card} (hrok : runOK l = true)
   rw [hl] at hrok
   exact SeedKit.runOK_adjacent_fit d c P S hrok
 
-/-- A nodup run whose top is its own head is a singleton. -/
-theorem tail_eq_nil_of_lastOf_head {c : Card} {t : List Card}
-    (hnd : (c :: t).Nodup) (h : lastOf (c :: t) = some c) : t = [] := by
-  cases t with
-  | nil => rfl
-  | cons u us =>
-      exfalso
-      have h2 : lastOf (u :: us) = some c := by
-        change lastOf (c :: u :: us) = some c at h
-        exact h
-      have hmem : c ∈ u :: us := lastOf_mem h2
-      exact (List.nodup_cons.mp hnd).1 hmem
-
-/-! ## §3. `NoParent` and the low third-suit card -/
-
-/-- **NoParent st c** — no card sits directly below `c`. -/
 def NoParent (st : State) (c : Card) : Prop :=
   ∀ z : Card, seatOf st c ≠ some (Sum.inr z)
-
-theorem noParent_of_head {st : State} (hwf : st.WF) {c : Card} {a : Anchor}
-    {t : List Card} (h : (st.piles a).faceUp = c :: t) : NoParent st c := by
-  intro z hz
-  have hmem : c ∈ (st.piles a).faceUp := by rw [h]; exact List.mem_cons_self ..
-  have hhold : st.pileHolding c = some a := (pileHolding_eq_some_iff hwf).2 hmem
-  have hb : below c (st.piles a).faceUp = [] := by rw [h]; exact below_cons_self c t
-  have hseat : seatOf st c = some (Sum.inl a) := tfc_seatOf_inl_intro hhold hb
-  rw [hseat] at hz
-  exact absurd hz (by simp)
 
 theorem seatOf_inr_of_below_ne_nil {st : State} (hwf : st.WF) {c : Card} {a : Anchor}
     (hmem : c ∈ (st.piles a).faceUp) (h : below c (st.piles a).faceUp ≠ []) :
@@ -182,20 +156,6 @@ theorem twinLivePair_of_forkWitness {st : State} {x y : Card}
     rw [tfc_card_twin_twin] at hc
     exact ⟨fun hh => Or.symm (hc.mpr hh), fun hh => hc.mp (Or.symm hh)⟩
 
-theorem fork_pair_rungs {G : State} {x y : Card} (hy : ForkWitness G y)
-    (hxy : y = x ∨ y = x.twin) :
-    rungAt G x.suit = x.rank.toIdx ∧ rungAt G x.twin.suit = x.rank.toIdx := by
-  obtain ⟨h1, h2⟩ := forkState_witness_rungs hy
-  rcases hxy with h | h
-  · subst h; exact ⟨h1, h2⟩
-  · subst h
-    refine ⟨?_, ?_⟩
-    · rw [tfc_card_twin_twin, Card.twin_rank] at h2
-      exact h2
-    · rw [Card.twin_rank] at h1
-      exact h1
-
-/-- A fork always has pair rank at least 2 (the cover pin `rung + 2 ≤ r`). -/
 theorem fork_rank_ge_two {st : State} (hwf : st.WF) {x : Card} (hx : ForkWitness st x) :
     2 ≤ x.rank.toIdx := by
   have hyS : CanRaiseS st x.twin := (hx.1 x.twin).mp (Or.inr rfl)
@@ -243,22 +203,6 @@ theorem seated_twin_rung_eq {F G : State} {x y c : Card}
         rfl hliveG hc' hρ).1
   omega
 
-/-- **THE COVER SUIT IS CLASS-RIGID AT ANY FORK.**  The `hthird` row on the
-cover suit, with NO orientation hypothesis: `Orig2/Fiber/LockRung.lean`'s
-`coverSuit_rung_eq_of_sameOrientation` needs the same cover on the same twin at
-both ends, which the token invariant supplies for free. -/
-theorem fork_cover_suit_rigid {F G : State} {x y d : Card}
-    (hF : F.WF) (hG : G.WF) (hcls : sameOrbitSetoid.r F G)
-    (hx : ForkWitness F x) (hy : ForkWitness G y) (hxy : y = x ∨ y = x.twin)
-    (hd : seatOf F d = some (Sum.inr x.twin)) :
-    rungAt F d.suit = rungAt G d.suit :=
-  seated_twin_rung_eq hF hG hcls hx hy hxy (Or.inr hd)
-
-/-! ## §6. The low third-suit row -/
-
-/-- **THE LOW THIRD SUIT IS FROZEN.**  If at the fork `F` (witness `w`, rank
-`r`) the third suit `σ` sits at rung `≤ r - 1` and the rank-`(r-1)` third card
-has no parent, then no witness descendant raises `σ` past that rung. -/
 theorem lock_of_third_low {F Z : State} {w : Card} {σ : Suit} {play : List Move}
     (hF : F.WF) (hw : ForkWitness F w)
     (hσcol : σ.color ≠ w.suit.color) (hr1 : 1 ≤ w.rank.toIdx)
@@ -422,7 +366,6 @@ end ThirdRigid
 #print axioms ThirdRigid.third_top_parent_is_pair
 #print axioms ThirdRigid.seated_twin_stays
 #print axioms ThirdRigid.seated_twin_rung_eq
-#print axioms ThirdRigid.fork_cover_suit_rigid
 #print axioms ThirdRigid.lock_of_third_low
 #print axioms ThirdRigid.noParent_transfer
 #print axioms ThirdRigid.forkThirdRigid_of_high

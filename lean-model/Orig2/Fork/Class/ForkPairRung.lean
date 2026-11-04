@@ -371,19 +371,6 @@ theorem splitTwinRungGe_iff_prePullGe :
     have hge := hg u v ρ F left right c d b pre post tail hh A' hpre
     omega
 
-/-- **THE RESIDUAL AT THE PRE-PULL STATE, ONE INEQUALITY.**  Given
-`SplitBlock`, `SplitPairRungEq` is the single inequality
-`c.rank.toIdx ≤ rungAt A' c.twin.suit` at every split. -/
-theorem splitPairRungEq_iff_prePullGe_of_block (hb : SplitKit.SplitBlock) :
-    SplitPairRungEq ↔ SplitPrePullGe :=
-  (splitPairRungEq_iff_ge_of_block hb).trans splitTwinRungGe_iff_prePullGe
-
-/-! ## §5. Fragments proved outright -/
-
-/-- **THE FAILURE MODE IS ONE-SIDED.**  At a blocked bottom, if the pin fails
-then the twin suit is strictly BEHIND: `rungAt F c.twin.suit < c.rank.toIdx`.
-The twin can never be *ahead* (that direction is `rungAt_twin_le_of_block`), so
-the whole residual is the single question "has the twin suit caught up?". -/
 theorem pin_fails_iff_strictly_behind {F : State} {c : Card}
     (hF : F.WF) (hS : CanRaiseS F c) (hb : ¬ CanRaise F c) :
     (rungAt F c.twin.suit < c.rank.toIdx) ↔
@@ -446,24 +433,6 @@ theorem splitPairRungEq_of_block_of_pull_ace
 
 /-! ## §6. The campaign consumes the new residual -/
 
-/-- **THE CAMPAIGN FROM THE ONE-SIDED RESIDUAL.**  `SplitBlock` +
-`SplitContainment` + `SplitTwinRungGe` give `Mech.MechanismResidual`. -/
-theorem mechanismResidual_of_block_containment_of_ge
-    (hb : SplitKit.SplitBlock) (hc : TwinKit.SplitContainment)
-    (hg : SplitTwinRungGe) : Mech.MechanismResidual :=
-  TwinKit.mechanismResidual_of_block_containment_of_pairRungEq hb hc
-    (splitPairRungEq_of_block_of_ge hb hg)
-
-/-! ## §7. Battery -/
-
-#check @PairRungKit.SplitTwinRungGe
-#check @PairRungKit.SplitTwinRungLe
-#check @PairRungKit.SplitPrePullGap
-#check @PairRungKit.SplitPrePullGe
-#check @PairRungKit.rungAt_twin_le_of_block
-#check @PairRungKit.splitTwinRungLe_of_block
-#check @PairRungKit.splitPairRungEq_iff_ge_of_block
-
 #print axioms chop_append_singleton
 #print axioms PairRungKit.lastOf_of_fromCard_singleton
 #print axioms PairRungKit.pileOfTop_of_fromCard_singleton
@@ -481,12 +450,10 @@ theorem mechanismResidual_of_block_containment_of_ge
 #print axioms PairRungKit.pairRungEq_of_splitPrePullGap
 #print axioms PairRungKit.splitPairRungEq_iff_prePullGap
 #print axioms PairRungKit.splitTwinRungGe_iff_prePullGe
-#print axioms PairRungKit.splitPairRungEq_iff_prePullGe_of_block
 #print axioms PairRungKit.pin_fails_iff_strictly_behind
 #print axioms PairRungKit.pin_of_raise_eq_twin
 #print axioms PairRungKit.splitPairRungEq_of_splitTwin
 #print axioms PairRungKit.pin_of_pull_ace
 #print axioms PairRungKit.splitPairRungEq_of_block_of_pull_ace
-#print axioms PairRungKit.mechanismResidual_of_block_containment_of_ge
 
 end PairRungKit

@@ -162,22 +162,6 @@ theorem pileOfTop_ne_none_of_canRaise {F : State} {c : Card}
   rw [hpa]
   exact Option.some_ne_none a
 
-/-- **TWO VANILLA-RAISABLE TWINS TOP TWO DIFFERENT PILES.** -/
-theorem bothRaisable_pileTops {F : State} {x : Card}
-    (hx : CanRaise F x) (ht : CanRaise F x.twin) :
-    ∃ a b : Anchor, F.pileOfTop x = some a ∧ F.pileOfTop x.twin = some b ∧ a ≠ b := by
-  obtain ⟨-, a, hpa, -⟩ := hx
-  obtain ⟨-, b, hpb, -⟩ := ht
-  refine ⟨a, b, hpa, hpb, ?_⟩
-  intro hab
-  subst hab
-  have h1 := (pileOfTop_top hpb).2
-  have h2 := (pileOfTop_top hpa).2
-  exact (_root_.card_twin_ne x) (Option.some.inj (h1.symm.trans h2))
-
-/-- **THE DISJUNCTION OF `BothRaisableBlock` COLLAPSES.**  In the both-raisable
-case both twins are pile tops, so by `blockerReady_iff_twin` a blocker for one
-is a blocker for the other: the residual is a *single* disjunct. -/
 theorem bothRaisableBlock_iff_single (F : State) :
     BothRaisableBlock F ↔
       ∀ (x : Card), F.WF → TwinLivePair F x → CanRaise F x → CanRaise F x.twin →
@@ -296,12 +280,6 @@ theorem not_blockerReady_of_rank_ace {F : State} {y : Card}
     exact h2.1
   exact Nat.succ_ne_zero z.rank.toIdx h3
 
-/-- The canonical-suit form. -/
-theorem not_blockerReady_of_ace {F : State} {s : Suit} :
-    ¬ BlockerReady F (Card.mk s Rank.ace) :=
-  not_blockerReady_of_rank_ace rfl
-
-/-- **THE UNGATED BOTH-RAISABLE STATEMENT IS FALSE AT AN ACE PAIR.** -/
 theorem not_bothRaisableBlock_of_ace {F : State} {x : Card}
     (hr : x.rank = Rank.ace) (hF : F.WF) (hl : TwinLivePair F x)
     (hx : CanRaise F x) (ht : CanRaise F x.twin) :
@@ -339,62 +317,6 @@ def gAce : State :=
     waste := []
     drawStep := 1 }
 
-theorem gAce_wf_found : ∀ s : Suit, ∃ n, gAce.found s = s.upCards.take n := by
-  intro s
-  exact ⟨0, rfl⟩
-
-theorem gAce_wf_runs : ∀ a : Anchor, runOK (gAce.piles a).faceUp = true := by
-  intro a
-  cases a <;> decide
-
-theorem gAce_wf_count : ∀ c ∈ Card.universe, gAce.cardCount c = 1 := by
-  intro c _
-  rcases c with ⟨s, r⟩
-  cases s <;> cases r <;> decide
-
-theorem gAce_wf : gAce.WF :=
-  ⟨gAce_wf_found, gAce_wf_runs, gAce_wf_count, by decide⟩
-
-/-- The total live scan: `gAce`'s S-live set is exactly `{AH, AD}`. -/
-theorem gAce_liveB :
-    (Card.universe.all (fun c =>
-      decide (canRaiseSB gAce c = decide (c = AH ∨ c = AH.twin)))) = true := by
-  decide
-
-theorem gAce_twinLivePair : TwinLivePair gAce AH := by
-  intro c
-  have hb : canRaiseSB gAce c = decide (c = AH ∨ c = AH.twin) :=
-    of_decide_eq_true ((List.all_eq_true.mp gAce_liveB) c (Card.mem_universe c))
-  constructor
-  · intro hS
-    have h1 : canRaiseSB gAce c = true := (canRaiseSB_iff gAce_wf).mpr hS
-    rw [hb] at h1
-    exact of_decide_eq_true h1
-  · intro hd
-    have h1 : decide (c = AH ∨ c = AH.twin) = true := decide_eq_true hd
-    rw [← hb] at h1
-    exact (canRaiseSB_iff gAce_wf).mp h1
-
-theorem gAce_canRaise_AH : CanRaise gAce AH := by
-  refine ⟨by decide, .p0, by decide, Or.inl (by decide)⟩
-
-theorem gAce_canRaise_AD : CanRaise gAce AD := by
-  refine ⟨by decide, .p1, by decide, Or.inl (by decide)⟩
-
-/-- **THE UNGATED RESIDUAL IS FALSE, KERNEL-CHECKED ON FOUR CARDS.** -/
-theorem gAce_not_bothRaisableBlock : ¬ BothRaisableBlock gAce :=
-  not_bothRaisableBlock_of_ace (x := AH) rfl gAce_wf gAce_twinLivePair
-    gAce_canRaise_AH gAce_canRaise_AD
-
-/-- `gAce` has no ready blocker for either twin. -/
-theorem gAce_not_blockerReady :
-    ¬ BlockerReady gAce AH ∧ ¬ BlockerReady gAce AD :=
-  ⟨not_blockerReady_of_ace, not_blockerReady_of_ace⟩
-
-/-! ### §5b. The arrangement is a genuine pull landing -/
-
-/-- The state before the second pull: `AH` and `AD` founded, `2S` and `2C`
-bare. -/
 def gAcePre : State :=
   { found := fun s => match s with
       | .heart => [AH]
@@ -413,31 +335,6 @@ def gAcePre : State :=
     waste := []
     drawStep := 1 }
 
-theorem gAcePre_wf : gAcePre.WF := by
-  refine ⟨?_, ?_, ?_, by decide⟩
-  · intro s
-    cases s
-    · exact ⟨0, rfl⟩
-    · exact ⟨1, rfl⟩
-    · exact ⟨1, rfl⟩
-    · exact ⟨0, rfl⟩
-  · intro a; cases a <;> decide
-  · intro c _
-    rcases c with ⟨s, r⟩
-    cases s <;> cases r <;> decide
-
-/-- The pull `AH → 2S` fires from `gAcePre`, and its card is raisable at the
-landing (`ValleyStep.pull_card_canRaise`, `Orig2/Fork/Local/ForkValley.lean:90`). -/
-theorem gAcePre_pull_fires :
-    ∃ B, State.step gAcePre (Move.foundToTab AH (Sum.inr S2)) = some B ∧
-      CanRaise B AH := by
-  have htop : gAcePre.foundTop .heart = some AH := by decide
-  have hcp : gAcePre.canPlace AH (Sum.inr S2) = true := by decide
-  have hstep := step_foundToTab_splice htop hcp
-  exact ⟨_, hstep, ValleyStep.pull_card_canRaise gAcePre_wf hstep⟩
-
-/-- The state before the `AD → 2C` pull: `AH` on `2S` (as in `gAce`), `AD`
-still founded. -/
 def gAceMid : State :=
   { found := fun s => match s with
       | .heart => []
@@ -498,7 +395,6 @@ theorem gAceMid_landing_both :
 #print axioms Pin.blockerReady_twin_of_blockerReady
 #print axioms Pin.blockerReady_iff_twin
 #print axioms Pin.pileOfTop_ne_none_of_canRaise
-#print axioms Pin.bothRaisable_pileTops
 #print axioms Pin.bothRaisableBlock_iff_single
 #print axioms Pin.bottomBothRaisableBlock_of_notBoth
 #print axioms Pin.bottomNotBoth_of_splitBlock
@@ -509,14 +405,6 @@ theorem gAceMid_landing_both :
 #print axioms Pin.fits_ace
 #print axioms Pin.not_blockerReady_of_rank_ace
 #print axioms Pin.not_bothRaisableBlock_of_ace
-#print axioms Pin.gAce_wf
-#print axioms Pin.gAce_twinLivePair
-#print axioms Pin.gAce_canRaise_AH
-#print axioms Pin.gAce_canRaise_AD
-#print axioms Pin.gAce_not_bothRaisableBlock
-#print axioms Pin.gAce_not_blockerReady
-#print axioms Pin.gAcePre_wf
-#print axioms Pin.gAcePre_pull_fires
 #print axioms Pin.gAceMid_wf
 #print axioms Pin.gAceMid_landing_both
 

@@ -300,64 +300,6 @@ CanRaise st x,  CanRaiseS st x.twin,  ¬ CanRaise st x.twin,
 ```
 -/
 
-/-- **The twin involution keeps `c` out of the protected pair.**  If
-`c ∉ {x, x.twin}` then `c.twin ∉ {x, x.twin}` (`card_twin_twin`,
-`Orig2/Substrate/Vocab.lean:530`). -/
-theorem twin_pair_disjoint {c x : Card} (hx : c ≠ x) (hxt : c ≠ x.twin) :
-    c.twin ≠ x ∧ c.twin ≠ x.twin := by
-  constructor
-  · intro h
-    have h2 : c.twin.twin = x.twin := congrArg Card.twin h
-    rw [card_twin_twin] at h2
-    exact hxt h2
-  · intro h
-    have h2 : c.twin.twin = x.twin.twin := congrArg Card.twin h
-    rw [card_twin_twin, card_twin_twin] at h2
-    exact hx h2
-
-/-- **A card covers at most one card** (`seatOf` is a function): if `u1`
-sits directly on both `z₁` and `z₂` then `z₁ = z₂`.  This is the formal
-content of "`u1 ≠` the card covering `x.twin`" whenever `u1` already
-sits on `c ≠ x.twin`. -/
-theorem cover_unique {st : State} {u1 z₁ z₂ : Card}
-    (h1 : seatOf st u1 = some (Sum.inr z₁))
-    (h2 : seatOf st u1 = some (Sum.inr z₂)) : z₁ = z₂ := by
-  have h := h1.symm.trans h2
-  injection h with h
-  exact Sum.inr.inj h
-
-/-- **`u1` does not cover the protected twin.**  If `u1` sits directly on
-`c` and `c ≠ x.twin`, then `u1` does not sit directly on `x.twin`:
-that would force `c = x.twin` by `cover_unique`. -/
-theorem u1_not_cover_twin {st : State} {u1 c x : Card}
-    (h1 : seatOf st u1 = some (Sum.inr c)) (hct : c ≠ x.twin) :
-    seatOf st u1 ≠ some (Sum.inr x.twin) := by
-  intro h2
-  exact hct (cover_unique h1 h2)
-
-/-! ### §4.1 The dangerous case: which side is possible?
-
-At the flat shape `faceUp a = bs ++ c :: u1 :: run` the cards *below* `c`
-are `bs`, the cards *above* `c` are `u1 :: run`.  The brief asks whether
-`x.twin` can be moved by the slide, i.e. lie in `u1 :: run` (equivalently:
-`c` sits below the twin in the same pile).
-
-* `x.twin ∈ bs` (**twin physically below `c`**) is IMPOSSIBLE: it forces
-  `x.twin.rank < c.rank` (strict descent) while the drain invariant's
-  rank floor forces `x.rank ≤ c.rank` with `x.rank = x.twin.rank`.
-* `c ∈` the run of `x.twin`'s own flat split is the SAME statement, so it
-  is impossible too.
-* `x.twin ∈ u1 :: run` (**twin above `c`**) is NOT excluded by the floor:
-  it only forces `c.rank > x.twin.rank`, which is consistent with
-  `x.rank ≤ c.rank`.  But it is HARMLESS: the slide moves the whole run
-  as a block, so the twin's relative position inside it is preserved; and
-  the twin cannot be the run's top (else it would already be vanilla
-  raisable at `st`, contradicting the block).
--/
-
-/-- **The twin cannot lie below `c` in `c`'s pile.**  The rank floor
-`x.rank ≤ every live rank` plus the strict descent of the legal run
-`bs ++ c :: u1 :: run` contradict `x.twin ∈ bs`. -/
 theorem no_twin_below_c {st : State} {x c : Card} (hwf : st.WF)
     (hfloor : ∀ d, CanRaiseS st d → x.rank.toIdx ≤ d.rank.toIdx)
     (hc : CanRaiseS st c) {a : Anchor} {bs run : List Card} {u1 : Card}
@@ -371,27 +313,6 @@ theorem no_twin_below_c {st : State} {x c : Card} (hwf : st.WF)
   have hge : x.rank.toIdx ≤ c.rank.toIdx := hfloor c hc
   omega
 
-/-- **`c` cannot sit above the twin in the twin's own pile** — the
-mirror reading of `no_twin_below_c`: if `x.twin`'s flat split has `c` in
-its upper run, then `c.rank < x.twin.rank = x.rank`, against the floor. -/
-theorem no_c_above_twin {st : State} {x c : Card} (hwf : st.WF)
-    (hfloor : ∀ d, CanRaiseS st d → x.rank.toIdx ≤ d.rank.toIdx)
-    (hc : CanRaiseS st c) {p : Anchor} {B Run : List Card}
-    (hshape : (st.piles p).faceUp = B ++ x.twin :: Run)
-    (hmem : c ∈ Run) : False := by
-  have hok : runOK ((B ++ [x.twin]) ++ Run) = true := by
-    rw [List.append_assoc, List.cons_append, List.nil_append, ← hshape]
-    exact hwf.2.1 p
-  have hlt : c.rank.toIdx < x.twin.rank.toIdx :=
-    runOK_desc hok (List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))) hmem
-  have hlt' : c.rank.toIdx < x.rank.toIdx := hlt
-  have hge : x.rank.toIdx ≤ c.rank.toIdx := hfloor c hc
-  omega
-
-/-- **The surviving case only needs `c` one rank above the pair.**  If
-`x.twin` does lie in the run above `c`, then `x.rank < c.rank` — a
-strict inequality that the rank floor (`x.rank ≤ c.rank`) does not
-refute.  So the drain invariant does NOT exclude this configuration. -/
 theorem twin_above_c_rank {st : State} {x c : Card} (hwf : st.WF)
     {a : Anchor} {bs run : List Card} {u1 : Card}
     (hshape : (st.piles a).faceUp = bs ++ c :: u1 :: run)
@@ -425,51 +346,6 @@ theorem twin_not_top_of_c_pile {st : State} {x c : Card}
       omega)
   exact hblockT ⟨hnextT, a, hpod, Or.inl hchop⟩
 
-/-- **No pile top is both S-live and blocked.**  If `c` tops a pile then
-the flat characterization's seat clause is exactly `CanRaise`'s: the flat
-witness is `c` on top of its own pile, so `CanRaiseS` collapses to
-`CanRaise`.  Consequence: whenever the drain's two letters leave the
-protected twin as a pile top, the twin clause
-`CanRaiseS · x.twin ∧ ¬ CanRaise · x.twin` is necessarily broken. -/
-theorem not_both_of_top {st : State} {c : Card} {a : Anchor}
-    (hwf : st.WF) (htop : (st.piles a).top = some c) :
-    ¬ (CanRaiseS st c ∧ ¬ CanRaise st c) := by
-  rintro ⟨hlive, hblock⟩
-  obtain ⟨hnext, b, bs, run, hshape, hseat, hdisj⟩ :=
-    canRaiseS_flat_necessity hwf hlive
-  have hmemA : c ∈ (st.piles a).faceUp := Pile.mem_of_top htop
-  have hmemB : c ∈ (st.piles b).faceUp := by
-    rw [hshape]
-    exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
-  have hba : b = a := by
-    by_cases h : b = a
-    · exact h
-    · exact absurd hmemA ((mem_faceUp_unique hwf hmemB a (Ne.symm h)).1)
-  rw [hba] at hshape hseat
-  have hpod : st.pileOfTop c = some a := (pileOfTop_eq_some_iff hwf).2 htop
-  have hchop : chop (st.piles a).faceUp ≠ [] ∨
-      ((st.piles a).hidden = [] ∧ c.rank = Rank.king) := by
-    rcases hseat with hbs | hbk
-    · refine Or.inl ?_
-      rw [hshape]
-      apply chop_ne_nil_of_two_le
-      cases bs with
-      | nil => exact absurd rfl hbs
-      | cons w ws =>
-          simp only [List.length_append, List.length_cons]
-          omega
-    · exact Or.inr hbk
-  exact hblock ⟨hnext, a, hpod, hchop⟩
-
-/-! ### §4.2 The surviving case is harmless: the twin keeps a card above it
-
-The slide moves the whole run `u1 :: run` as a block onto `c.twin`'s pile,
-so the twin's position *inside* the run is preserved.  All that is needed
-is that the twin is not the run's last (top) card — otherwise it would
-already top `c`'s pile at `st` and be vanilla raisable.
--/
-
-/-- Split a list at a member (the `List.mem_iff_append` normal form). -/
 theorem split_of_mem {x : Card} {l : List Card} (hmem : x ∈ l) :
     ∃ pre post, l = pre ++ x :: post :=
   List.mem_iff_append.mp hmem
@@ -535,117 +411,6 @@ The two clauses below are exactly the flat-characterization content; they
 reduce target 3 to those frame facts plus the rank-floor transport.
 -/
 
-/-- **The twin clause at the endpoint, from the endpoint's flat split.**
-If `x.twin` still has a *nonempty* run above it at the `WF` endpoint `z`,
-then `CanRaiseS z x.twin` (flat sufficiency) and `¬ CanRaise z x.twin`
-(the twin is covered, so it cannot top a pile). -/
-theorem twin_clause_of_flat {z : State} {x : Card} {p : Anchor}
-    {B R : List Card}
-    (hwf : z.WF)
-    (hnext : z.nextUp x.twin = true)
-    (hshape : (z.piles p).faceUp = B ++ x.twin :: R)
-    (hseat : B ≠ [] ∨ ((z.piles p).hidden = [] ∧ x.twin.rank = Rank.king))
-    (hxtop : z.pileOfTop x ≠ none)
-    (hR : R ≠ []) :
-    CanRaiseS z x.twin ∧ ¬ CanRaise z x.twin := by
-  have hxtop' : z.pileOfTop x.twin.twin ≠ none := by
-    rw [card_twin_twin]; exact hxtop
-  have hlive : CanRaiseS z x.twin :=
-    canRaiseS_flat_sufficiency hwf ⟨hnext, p, B, R, hshape, hseat, Or.inr hxtop'⟩
-  refine ⟨hlive, ?_⟩
-  intro hcan
-  obtain ⟨-, a, hpod, -⟩ := hcan
-  have htopA : (z.piles a).top = some x.twin := (pileOfTop_top hpod).2
-  have hmemA : x.twin ∈ (z.piles a).faceUp := Pile.mem_of_top htopA
-  have hmemP : x.twin ∈ (z.piles p).faceUp := by
-    rw [hshape]
-    exact List.mem_append.mpr (Or.inr (List.mem_cons_self ..))
-  have hpa : p = a := by
-    by_cases h : p = a
-    · exact h
-    · exact absurd hmemP ((mem_faceUp_unique hwf hmemA p h).1)
-  rw [hpa] at hshape
-  -- `x.twin` is last in pile `a` but `hshape` has `R ≠ []` after it
-  have h1 : lastOf (B ++ x.twin :: R) = some x.twin := by
-    rw [← hshape]; exact htopA
-  cases R with
-  | nil => exact absurd rfl hR
-  | cons r rs =>
-      rw [tfc_lastOf_append_ne B (List.cons_ne_nil x.twin (r :: rs))] at h1
-      rw [show lastOf (x.twin :: r :: rs) = lastOf (r :: rs) from rfl] at h1
-      have hmemR : x.twin ∈ r :: rs := lastOf_mem h1
-      have hok : runOK (B ++ x.twin :: r :: rs) = true := by
-        rw [← hshape]; exact hwf.2.1 a
-      have hok' : runOK ((B ++ [x.twin]) ++ (r :: rs)) = true := by
-        rw [List.append_assoc, List.cons_append, List.nil_append]; exact hok
-      have hlt := runOK_desc hok'
-        (List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))) hmemR
-      omega
-
-/-- **`CanRaise` at the endpoint, from the endpoint's top split.** -/
-theorem canRaise_of_flat_top {z : State} {x : Card} {q : Anchor}
-    {B : List Card}
-    (hnext : z.nextUp x = true)
-    (hpod : z.pileOfTop x = some q)
-    (hshape : (z.piles q).faceUp = B ++ [x])
-    (hseat : B ≠ [] ∨ ((z.piles q).hidden = [] ∧ x.rank = Rank.king)) :
-    CanRaise z x :=
-  ⟨hnext, q, hpod, by rw [hshape, chop_snoc]; exact hseat⟩
-
-/-- **TARGET 3 — `drain_step_other_live`, reduction form.**  For a blocked
-live `c ∉ {x, x.twin}`, the two-letter drain (slide `c`'s run onto
-`c.twin`, then raise `c`) preserves the whole displaced invariant
-provided the endpoint has the frame listed above.  The rank-floor
-conjunct is the one genuinely open transport (`rank_preserved`,
-`Temp/Drain_Report.md:172`); it is *not* derivable from the three frame
-facts alone, so it enters as the named hypothesis `hfloor`.
-
-The twin-side frame needs NO side condition beyond the hypotheses below:
-by `no_twin_below_c` the twin is not below `c`, and by
-`twin_not_top_of_c_pile` the twin keeps a card above it in the run case
-(so the run above it at the endpoint is again nonempty). -/
-theorem drain_step_other_live {z : State} {x c : Card} {p q : Anchor}
-    {B R Bx : List Card}
-    (hwf : z.WF)
-    (hc : c ≠ x) (hct : c ≠ x.twin)
-    -- the twin clause's endpoint frame
-    (hnextT : z.nextUp x.twin = true)
-    (hshapeT : (z.piles p).faceUp = B ++ x.twin :: R)
-    (hseatT : B ≠ [] ∨ ((z.piles p).hidden = [] ∧ x.twin.rank = Rank.king))
-    (hxtop : z.pileOfTop x ≠ none)
-    (hR : R ≠ [])
-    -- the protected card `x`'s endpoint frame
-    (hnextX : z.nextUp x = true)
-    (hpodX : z.pileOfTop x = some q)
-    (hshapeX : (z.piles q).faceUp = Bx ++ [x])
-    (hseatX : Bx ≠ [] ∨ ((z.piles q).hidden = [] ∧ x.rank = Rank.king))
-    -- the residual rank-floor transport
-    (hfloor : ∀ d, CanRaiseS z d → x.rank.toIdx ≤ d.rank.toIdx) :
-    CanRaiseS z x.twin ∧ ¬ CanRaise z x.twin ∧ CanRaise z x ∧
-      (∀ d, CanRaiseS z d → x.rank.toIdx ≤ d.rank.toIdx) := by
-  obtain ⟨hS, hB⟩ := twin_clause_of_flat hwf hnextT hshapeT hseatT hxtop hR
-  exact ⟨hS, hB, canRaise_of_flat_top hnextX hpodX hshapeX hseatX, hfloor⟩
-
-/-! ## §6. The RAISE letter is already closed in the library
-
-The drain's second letter is `tabToFound c`.  Its effect on the protected
-twin is fully available in `Orig2`:
-
-* `CanRaiseS` is transported by
-  `SafeTransport.canRaiseS_of_canRaiseS_raise_high`
-  (`Orig2/Fork/Local/ForkSafeTransport.lean:151`) — the flat characterization route
-  (no reversibility needed);
-* `¬ CanRaise` is the contrapositive of
-  `ValleyDrain.canRaise_of_raise_high` (`Orig2/Fork/Split/ForkDrain.lean:98`).
-
-Both need only `c.suit ≠ x.twin.suit`, `c ≠ x` and
-`x.twin.rank ≤ c.rank`, and the drain invariant supplies all three.
-So the raise half of target 3 is *proved*, and the `CanRaiseS_preserved`
-input of `Temp/Drain_Report.md:149` is discharged.
--/
-
-/-- **`¬ CanRaise` survives a high raise** — the contrapositive of
-`ValleyDrain.canRaise_of_raise_high` (`Orig2/Fork/Split/ForkDrain.lean:98`). -/
 theorem not_canRaise_raise_high {st w : State} {c d : Card} {b : Anchor}
     (hwf : st.WF) (hstep : State.step st (Move.tabToFound c) = some w)
     (hsu : d.suit ≠ c.suit) (hrank : d.rank.toIdx ≤ c.rank.toIdx)
@@ -718,20 +483,12 @@ end OneSlide
 #print axioms OneSlide.cover_fit_twin
 #print axioms OneSlide.cover_slide_exists
 #print axioms OneSlide.one_slide_of_blocked_live
-#print axioms OneSlide.twin_pair_disjoint
-#print axioms OneSlide.cover_unique
-#print axioms OneSlide.u1_not_cover_twin
 #print axioms OneSlide.no_twin_below_c
-#print axioms OneSlide.no_c_above_twin
 #print axioms OneSlide.twin_above_c_rank
 #print axioms OneSlide.twin_not_top_of_c_pile
 #print axioms OneSlide.split_of_mem
 #print axioms OneSlide.post_ne_nil_of_lastOf_ne
 #print axioms OneSlide.twin_run_keeps_cover
-#print axioms OneSlide.not_both_of_top
-#print axioms OneSlide.twin_clause_of_flat
-#print axioms OneSlide.canRaise_of_flat_top
-#print axioms OneSlide.drain_step_other_live
 #print axioms OneSlide.not_canRaise_raise_high
 #print axioms OneSlide.twin_clause_raise
 #print axioms OneSlide.CanRaiseS_preserved_proved

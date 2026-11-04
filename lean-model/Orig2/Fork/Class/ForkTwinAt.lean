@@ -121,21 +121,9 @@ def SplitTwinLiveAtBottom : Prop :=
     SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
     CanRaiseS F c.twin
 
-/-- **THE PIN FROM THE TWIN'S LIVENESS.**  The one datum `SplitTwinLiveAtBottom`
-gives the pair-rung equality outright. -/
-theorem splitPairRungEq_of_twinLiveAtBottom (hl : SplitTwinLiveAtBottom) :
-    SplitPairRungEq := by
-  intro u v ρ F left right c d b pre post tail h
-  obtain ⟨-, hSc, -, -⟩ := SplitKit.splitHyp_green h
-  rw [rungAt_twin_eq_of_live (hl u v ρ F left right c d b pre post tail h),
-    canRaiseS_rung hSc]
-
-/-! ## §6. Battery -/
-
 #print axioms RungGe.rungAt_twin_eq_of_live
 #print axioms RungGe.nextUp_twin_of_live
 #print axioms RungGe.canRaiseS_twin_of_livePair
-#print axioms RungGe.splitPairRungEq_of_twinLiveAtBottom
 
 end RungGe
 
@@ -378,114 +366,6 @@ theorem twinLive_iff_pin_and_sited :
 
 /-! ## §4. The siting clause is one explicit corner -/
 
-/-- **THE CORNER REFUTES SITING.**  If `c.twin` is the only face-up card of its
-pile and the pile is not a bare king, nothing is sited. -/
-theorem not_twinSited_of_twinAlone {F : State} {c : Card} (hF : F.WF)
-    (h : TwinAlone F c) : ¬ TwinSited F c := by
-  obtain ⟨a, hfu, hcorner⟩ := h
-  rintro ⟨a', hmem', hseat'⟩
-  have hmem : c.twin ∈ (F.piles a).faceUp := by
-    rw [hfu]; exact List.mem_singleton_self c.twin
-  have h1 : F.pileHolding c.twin = some a := (pileHolding_eq_some_iff hF).mpr hmem
-  have h2 : F.pileHolding c.twin = some a' := (pileHolding_eq_some_iff hF).mpr hmem'
-  have haa : a = a' := Option.some.inj (h1.symm.trans h2)
-  subst haa
-  rcases hseat' with hb | ⟨hh0, hk⟩
-  · rw [hfu] at hb
-    rw [show ([c.twin] : List Card) = c.twin :: [] from rfl, below_cons_self] at hb
-    exact hb rfl
-  · rcases hcorner with hne | hrk
-    · exact hne hh0
-    · exact hrk hk
-
-/-- **SITING IS EXACTLY "NOT THE CORNER"** at a blocked bottom (where the twin
-provably tops a pile). -/
-theorem twinSited_iff_not_twinAlone {F : State} {c : Card} (hF : F.WF)
-    (hS : CanRaiseS F c) (hb : ¬ CanRaise F c) :
-    TwinSited F c ↔ ¬ TwinAlone F c := by
-  constructor
-  · intro hs ha
-    exact not_twinSited_of_twinAlone hF ha hs
-  · intro hna
-    have htop : F.pileOfTop c.twin ≠ none :=
-      PairRungKit.pileOfTop_twin_of_block hF hS hb
-    obtain ⟨a, ha⟩ := option_some_of_ne_none htop
-    have hlastTop : (F.piles a).top = some c.twin := (pileOfTop_eq_some_iff hF).mp ha
-    have hlast : lastOf (F.piles a).faceUp = some c.twin := hlastTop
-    have hmem : c.twin ∈ (F.piles a).faceUp := Pile.mem_of_top hlastTop
-    refine ⟨a, hmem, ?_⟩
-    by_cases hb' : below c.twin (F.piles a).faceUp = []
-    · by_cases hcorner :
-        ((F.piles a).hidden ≠ [] ∨ c.twin.rank ≠ Rank.king)
-      · exact absurd ⟨a, eq_singleton_of_below_nil
-          (runOK_nodup (hF.2.1 a)) hlast hb', hcorner⟩ hna
-      · simp only [not_or] at hcorner
-        exact Or.inr ⟨by simpa using hcorner.1, by simpa using hcorner.2⟩
-    · exact Or.inl hb'
-
-/-- **THE POINTWISE FORM OF THE TARGET AT A BLOCKED BOTTOM.**  The twin's
-S-licence is *exactly* the rung pin plus the exclusion of the corner state. -/
-theorem canRaiseS_twin_iff_nextUp_and_not_corner {F : State} {c : Card}
-    (hF : F.WF) (hS : CanRaiseS F c) (hb : ¬ CanRaise F c) :
-    (CanRaiseS F c.twin ↔ F.nextUp c.twin = true ∧ ¬ TwinAlone F c) := by
-  have hsit := twinSited_iff_not_twinAlone hF hS hb
-  constructor
-  · intro h
-    exact ⟨nextUp_true_iff.mpr (canRaiseS_rung h),
-      hsit.mp (sited_of_canRaiseS hF h)⟩
-  · rintro ⟨hpin, hna⟩
-    exact canRaiseS_twin_of_blocked hF hS hb hpin (hsit.mpr hna)
-
-/-- **THE SITING RESIDUAL IS "NO CORNER", under `SplitBlock`.** -/
-theorem splitTwinSited_iff_splitTwinAlone (hb : SplitKit.SplitBlock) :
-    SplitTwinSited ↔ SplitTwinAlone := by
-  constructor
-  · intro hs u v ρ F left right c d b pre post tail hh
-    have hg := SplitKit.splitHyp_green hh
-    exact (twinSited_iff_not_twinAlone hg.1 hg.2.1
-      (hb u v ρ F left right c d b pre post tail hh)).mp
-      (hs u v ρ F left right c d b pre post tail hh)
-  · intro hna u v ρ F left right c d b pre post tail hh
-    have hg := SplitKit.splitHyp_green hh
-    exact (twinSited_iff_not_twinAlone hg.1 hg.2.1
-      (hb u v ρ F left right c d b pre post tail hh)).mpr
-      (hna u v ρ F left right c d b pre post tail hh)
-
-/-- **THE TARGET, IN TERMS OF THE CAMPAIGN'S PIN AND THE ONE CORNER.**  Under
-`SplitBlock` the last unowned half of `SplitLivePair` is exactly the twin-suit
-rung pin plus the exclusion of the corner state. -/
-theorem rungGe_iff_pin_and_notAlone_of_block (hb : SplitKit.SplitBlock) :
-    RungGe.SplitTwinLiveAtBottom ↔ SplitTwinRungPin ∧ SplitTwinAlone := by
-  rw [twinLive_iff_pin_and_sited, splitTwinSited_iff_splitTwinAlone hb]
-
-/-! ## §5. The corner is not a local consequence -/
-
-/-- **THE LOCAL SITING LEMMA IS FALSE, KERNEL-CHECKED.**  The rung gadget's
-landing state carries `WF`, the green licence and the block — and no siting.  So
-`SplitTwinSited` can only be proved by consuming minimality / the saturation of
-the endpoints, never by the bottom's local data. -/
-theorem not_local_twinSited :
-    ¬ (∀ (F : State) (c : Card),
-        F.WF → CanRaiseS F c → ¬ CanRaise F c → TwinSited F c) := by
-  intro h
-  have hs := h RungGeGadget.F RungGeGadget.H5
-    RungGeGadget.F_wf RungGeGadget.F_live RungGeGadget.F_block
-  obtain ⟨a, hmem, hseat⟩ := hs
-  have h1 : RungGeGadget.F.pileHolding RungGeGadget.H5.twin = some a :=
-    (pileHolding_eq_some_iff RungGeGadget.F_wf).mpr hmem
-  have h2 : RungGeGadget.F.pileHolding RungGeGadget.H5.twin = some Anchor.p1 := by
-    decide
-  have ha : a = Anchor.p1 := Option.some.inj (h1.symm.trans h2)
-  subst ha
-  rcases hseat with hb | ⟨-, hk⟩
-  · exact absurd hb (by decide)
-  · exact absurd hk (by decide)
-
-/-! ## §6. The corner *is* the mechanism failure -/
-
-/-- **AT A CORNER THE TWIN IS NOT RAISABLE.**  So the raise card `d` at such a
-bottom is never `c.twin`: the siting clause and the mechanism clause fail
-together. -/
 theorem twinAlone_not_canRaise {F : State} {c : Card} (hF : F.WF)
     (h : TwinAlone F c) : ¬ CanRaise F c.twin := by
   obtain ⟨a, hfu, hcorner⟩ := h
@@ -531,12 +411,6 @@ theorem corner_split_raise_ne_twin {u v : State} {ρ : List Move} {F : State}
 #print axioms TwinAt.splitTwinSited_of_twinLive
 #print axioms TwinAt.twinLive_of_pin_and_sited
 #print axioms TwinAt.twinLive_iff_pin_and_sited
-#print axioms TwinAt.not_twinSited_of_twinAlone
-#print axioms TwinAt.twinSited_iff_not_twinAlone
-#print axioms TwinAt.canRaiseS_twin_iff_nextUp_and_not_corner
-#print axioms TwinAt.splitTwinSited_iff_splitTwinAlone
-#print axioms TwinAt.rungGe_iff_pin_and_notAlone_of_block
-#print axioms TwinAt.not_local_twinSited
 #print axioms TwinAt.twinAlone_not_canRaise
 #print axioms TwinAt.corner_split_raise_ne_twin
 

@@ -88,17 +88,6 @@ def SplitHyp (u v : State) (ρ : List Move) (F : State)
 /-! ## §1b. The one read the block clause needs: `CanRaise` sees only
 `found` and `piles` -/
 
-/-- The vanilla raise license is a `found`+`piles` read. -/
-theorem canRaise_congr_found_piles {u v : State} (hf : u.found = v.found)
-    (hp : u.piles = v.piles) (c : Card) : CanRaise u c ↔ CanRaise v c := by
-  have hpile : u.pileOfTop c = v.pileOfTop c := CommuteStep.pileOfTop_congr_piles hp c
-  have hnext : u.nextUp c = v.nextUp c := by
-    unfold State.nextUp State.foundHeight
-    rw [hf]
-  unfold CanRaise
-  rw [hnext, hpile, hp]
-
-/-- A draw-only play preserves `found` and `piles`. -/
 theorem drawPlay_found_piles {u v : State} {ρ : List Move}
     (hplay : ShufflePlayW u ρ v) (hall : ∀ m ∈ ρ, m = Move.draw) :
     v.found = u.found ∧ v.piles = u.piles := by
@@ -146,54 +135,6 @@ theorem splitHyp_post_ne_nil {u v : State} {ρ : List Move} {F : State}
   obtain ⟨huwf, -, -, -, -, -, -, hleft, -, hshape, -, -⟩ := h
   exact Bridge.blocked_pull_needs_free_tail huwf (hshape ▸ hleft) hblock
 
-/-- **THE BLOCK CLAUSE FORCES A *SLIDE* IN THE FREE TAIL** — the strict
-sharpening of `splitHyp_post_ne_nil`.  If every letter of `post` were a
-draw, then `F.found = B.found` and `F.piles = B.piles` at the pull's
-landing `B`, and `CanRaise` is a `found`+`piles` read, so the pull card
-would still be raisable at `F`.  Hence a `tabToTab` must occur. -/
-theorem splitHyp_post_has_slide {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail)
-    (hblock : ¬ CanRaise F c) :
-    ∃ (c' : Card) (b' : Base), Move.tabToTab c' b' ∈ post := by
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, hshape, hfree, -⟩ := h
-  obtain ⟨A', hpre, hrest⟩ :=
-    ValleyElim.ShufflePlayW_split hleft pre (Move.foundToTab c b :: post) hshape
-  have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end hpre huwf
-  obtain ⟨B, hstepP, hpost⟩ :
-      ∃ B : State, State.step A' (Move.foundToTab c b) = some B ∧
-        ShufflePlayW B post F := by
-    cases hrest with
-    | cons hrev hstep hpost => exact ⟨_, hstep, hpost⟩
-  have hcanB : CanRaise B c := ValleyStep.pull_card_canRaise hA' hstepP
-  by_cases hany : post.any isSlideB = true
-  · obtain ⟨α, m, β, heq, hα, hm⟩ := ValleyElim.exists_first_bool isSlideB post hany
-    obtain ⟨c', b', rfl⟩ := isSlideB_eq_true_iff.mp hm
-    exact ⟨c', b', by rw [heq]; exact List.mem_append_right _ (List.mem_cons_self ..)⟩
-  · exfalso
-    have hfalse : post.any isSlideB = false := by
-      cases hv : post.any isSlideB with
-      | false => rfl
-      | true => exact absurd hv hany
-    have hno : ∀ m ∈ post, isSlideB m = false := ValleyElim.any_eq_false hfalse
-    have hdraw : ∀ m ∈ post, m = Move.draw := by
-      intro m hm
-      rcases hfree m hm with rfl | ⟨c', b', hm'⟩
-      · rfl
-      · exfalso
-        have hs : isSlideB m = true := by rw [hm']; rfl
-        rw [hno m hm] at hs
-        exact Bool.false_ne_true hs
-    obtain ⟨hf, hp⟩ := drawPlay_found_piles hpost hdraw
-    exact hblock ((canRaise_congr_found_piles hf hp c).mpr hcanB)
-
-
-/-! ## §2. The corrected residual and its three-clause decomposition -/
-
-/-- **`SplitResidualData`** — the CORRECTED `Bridge.SplitResidual`: the
-split equations are hypotheses, so the conclusion is about the cards that
-actually occur in the split. -/
 def SplitResidualData : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base)
@@ -275,25 +216,6 @@ theorem not_splitResidual_of_split
     huwf hsu hsv hplay hsplit hmin
   exact card_twin_ne x hbad.1.symm
 
-/-- **THE REFUTATION FROM DIFFERING RUNGS.**  For any saturated
-differing-rung pair with a witness play, `Bridge.SplitResidual` is false
-— `ValleyElim.valley_exists` supplies the split. -/
-theorem not_splitResidual_of_satDiffer
-    {u v : State} {ρ : List Move}
-    (huwf : u.WF) (hsu : SSaturated u) (hsv : SSaturated v)
-    (hdiff : ∃ σ : Suit, rungAt u σ ≠ rungAt v σ)
-    (hplay : ShufflePlayW u ρ v)
-    (hmin : ∀ ρ' : List Move, ShufflePlayW u ρ' v → ρ.length ≤ ρ'.length) :
-    ¬ Bridge.SplitResidual := by
-  obtain ⟨F, hF⟩ := ValleyElim.valley_exists huwf hsu hsv hdiff hplay
-  exact not_splitResidual_of_split huwf hsu hsv hplay hF hmin
-
-/-! ## §4. The strictly smaller residuals -/
-
-/-- **`SplitLivePair`** — at the bottom, every S-live card is the raise
-card `d` or its twin, and both are live.  This is the campaign's own
-`TwinLivePair` (`Orig2/Fork/Local/ForkCriticalPair.lean:46`): a card-free,
-rank-free statement about the bottom's live set. -/
 def SplitLivePair : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base)
@@ -318,189 +240,6 @@ def SplitNe : Prop :=
     (pre post tail : List Move),
     SplitHyp u v ρ F left right c d b pre post tail → c ≠ d
 
-/-- **THE BLOCK CLAUSE PROVES THE PIN.**  `c` is blocked and `d` is
-raisable at the bottom, so `c ≠ d`; hence `SplitNe` follows from
-`SplitBlock` with no extra input. -/
-theorem splitNe_of_block (hb : SplitBlock) : SplitNe := by
-  intro u v ρ F left right c d b pre post tail h hcd
-  obtain ⟨-, -, hcanD, -⟩ := splitHyp_green h
-  exact hb u v ρ F left right c d b pre post tail h (hcd ▸ hcanD)
-
-/-- **THE FORK-FORM REDUCTION.**  If the bottom is a fork on the raise
-card and the pull card is not the raise card, the corrected residual
-follows.  (The pin is what turns "the raise card's twin is blocked" into
-"the *pull* card is blocked".) -/
-theorem splitResidualData_of_fork_ne (hf : SplitFork) (hn : SplitNe) :
-    SplitResidualData := by
-  intro u v ρ F left right c d b pre post tail h
-  obtain ⟨hiff, hblkdt⟩ := hf u v ρ F left right c d b pre post tail h
-  have hcd : c ≠ d := hn u v ρ F left right c d b pre post tail h
-  obtain ⟨-, hSc, -, -⟩ := splitHyp_green h
-  have hct : c = d.twin := by
-    rcases (hiff c).mpr hSc with h' | h'
-    · exact absurd h' hcd
-    · exact h'
-  have htwin : d = c.twin := by rw [hct, card_twin_twin]
-  refine ⟨htwin, ?_, ?_⟩
-  · rw [hct]; exact hblkdt
-  · intro e he
-    have hdc : d.rank.toIdx = c.rank.toIdx := by rw [htwin, Card.twin_rank]
-    rcases (hiff e).mpr he with h' | h'
-    · rw [h']; omega
-    · rw [h', Card.twin_rank]; omega
-
-/-- The fork form with the block clause instead of the pin. -/
-theorem splitResidualData_of_fork_block (hf : SplitFork) (hb : SplitBlock) :
-    SplitResidualData :=
-  splitResidualData_of_fork_ne hf (splitNe_of_block hb)
-
-/-! ## §5. Green corollaries on the split data -/
-
-/-- From the twin clause: the pull card and the raise card differ. -/
-theorem splitData_ne {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail)
-    (htwin : d = c.twin) : c ≠ d := by
-  intro hcd
-  have : c = c.twin := by rw [← htwin, hcd]
-  exact card_twin_ne c this.symm
-
-/-- **THE BLOCK CLAUSE FORCES DIFFERENT SUITS.**  The pull fixes the rung
-of `c`'s suit at `c.rank.toIdx`; the raise at `F` makes `d` next-up,
-fixing the rung of `d`'s suit at `d.rank.toIdx`.  Equal suits would force
-equal ranks, hence `c = d`, contradicting the block.  (This is the
-`c.suit ≠ d.suit` side condition of `ValleyElim.ValleyCrossingLocator`,
-discharged in the blocked branch.) -/
-theorem splitBlock_suit_ne {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail)
-    (hblock : ¬ CanRaise F c) : c.suit ≠ d.suit := by
-  intro hsu
-  obtain ⟨-, -, hcanD, -⟩ := splitHyp_green h
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, hshape, hfree, -⟩ := h
-  obtain ⟨A', hpre, hrest⟩ :=
-    ValleyElim.ShufflePlayW_split hleft pre (Move.foundToTab c b :: post) hshape
-  have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end hpre huwf
-  obtain ⟨B, hstepP, hpost⟩ :
-      ∃ B : State, State.step A' (Move.foundToTab c b) = some B ∧
-        ShufflePlayW B post F := by
-    cases hrest with
-    | cons hrev hstep hpost => exact ⟨_, hstep, hpost⟩
-  have hnextD : F.nextUp d = true := hcanD.1
-  have hdrank : d.rank.toIdx = (F.found d.suit).length := by
-    have hh := of_decide_eq_true hnextD
-    simpa [State.nextUp, State.foundHeight] using hh
-  obtain ⟨c', htop, hc', -, -⟩ := step_foundToTab_inv hstepP
-  rw [hc'] at htop
-  have hidx : c.rank.toIdx + 1 = (A'.found c.suit).length :=
-    SatDifferCensus.foundTop_rank_succ hA' htop
-  have hrungB : (B.found c.suit).length = (A'.found c.suit).length - 1 := by
-    have hh := rungAt_foundToTab hstepP c.suit
-    rw [ite_eq_left rfl] at hh
-    exact hh
-  have hcrank : c.rank.toIdx = (F.found c.suit).length := by
-    have hpres := ValleyElim.rungAt_eq_of_free_play hpost hfree c.suit
-    rw [show (F.found c.suit).length = (B.found c.suit).length from hpres, hrungB]
-    omega
-  have hrank : c.rank = d.rank := by
-    apply Rank.toIdx_inj
-    rw [hcrank, hdrank, hsu]
-  have hcd : c = d := by
-    cases c with
-    | mk s1 r1 =>
-      cases d with
-      | mk s2 r2 =>
-        simp_all
-  have hc : CanRaise F c := by rw [hcd]; exact hcanD
-  exact hblock hc
-
-/-- **THE RESIDUAL'S TURN IS A GENUINE CROSSING TURN**: with the twin and
-block clauses the two cards differ and lie in different suits — exactly
-the second disjunct of `ValleyElim.valley_elim_pull_raise`'s `hturn`. -/
-theorem splitData_crossing {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail)
-    (htwin : d = c.twin) (hblock : ¬ CanRaise F c) :
-    c ≠ d ∧ c.suit ≠ d.suit :=
-  ⟨splitData_ne h htwin, splitBlock_suit_ne h hblock⟩
-
-
-/-- The pull card is **covered** at the bottom (the chart's `CoveredAt`
-read of the block clause, `Orig2/Substrate/Vocab.lean:917`). -/
-theorem splitData_covered {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail)
-    (hblock : ¬ CanRaise F c) : CoveredAt F c := by
-  obtain ⟨hF, hSc, -, -⟩ := splitHyp_green h
-  exact covered_of_live_not_canRaise hF hSc hblock
-
-/-- The exact cover shape: a nonempty run sits directly on the covered
-pull card (a card `u1` on `c`, with `canSitOn u1 c`). -/
-theorem splitData_covered_shape {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail)
-    (htwin : d = c.twin) (hblock : ¬ CanRaise F c) :
-    ∃ (a : Anchor) (bs : List Card) (u1 : Card) (rest : List Card),
-      (F.piles a).faceUp = bs ++ c :: u1 :: rest ∧ canSitOn u1 c = true := by
-  obtain ⟨hF, hSc, -, -⟩ := splitHyp_green h
-  have hdtc : d.twin = c := by rw [htwin, card_twin_twin]
-  have hSdt : CanRaiseS F d.twin := by rw [hdtc]; exact hSc
-  have hbdt : ¬ CanRaise F d.twin := by rw [hdtc]; exact hblock
-  simpa only [hdtc] using Bridge.covered_twin_head_fits hF hSdt hbdt
-
-/-- **THE SPLIT DATA IS A DRAIN INVARIANT.**  With the residual's three
-clauses, the bottom carries `Drain.DrainInvariant F d` — exactly the input
-of the drain phase (`Orig2/Fork/Split/ForkDrainInduction.lean:65`,
-`Drain.drain_raise_phase`). -/
-theorem splitData_drainInvariant {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail)
-    (htwin : d = c.twin) (hblock : ¬ CanRaise F c)
-    (hfloor : ∀ e, CanRaiseS F e → c.rank.toIdx ≤ e.rank.toIdx) :
-    Drain.DrainInvariant F d := by
-  obtain ⟨hF, hSc, hcanD, -⟩ := splitHyp_green h
-  have hdtc : d.twin = c := by rw [htwin, card_twin_twin]
-  have hSdt : CanRaiseS F d.twin := by rw [hdtc]; exact hSc
-  have hbdt : ¬ CanRaise F d.twin := by rw [hdtc]; exact hblock
-  have hrank : d.rank.toIdx = c.rank.toIdx := by rw [htwin, Card.twin_rank]
-  exact ⟨hcanD, hSdt, hbdt, fun e he => by rw [hrank]; exact hfloor e he⟩
-
-/-- **THE BOTTOM IS A DRAIN TERMINAL.**  `SplitLivePair` + `SplitBlock`
-alone give `Drain.DrainTerminal F d`: the drain's terminal branch
-(`drain_terminal_fork`) applies at the bottom with no further work. -/
-theorem splitData_drainTerminal {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail)
-    (hl : TwinLivePair F d) (hblock : ¬ CanRaise F c) :
-    Drain.DrainTerminal F d := by
-  obtain ⟨hF, hSc, hcanD, -⟩ := splitHyp_green h
-  have hct : c = d.twin := by
-    rcases (hl c).mp hSc with h' | h'
-    · have hc : CanRaise F c := by rw [h']; exact hcanD
-      exact absurd hc hblock
-    · exact h'
-  have htwin : d = c.twin := by rw [hct, card_twin_twin]
-  have hfloor : ∀ e, CanRaiseS F e → c.rank.toIdx ≤ e.rank.toIdx := by
-    intro e he
-    have hdc : d.rank.toIdx = c.rank.toIdx := by rw [htwin, Card.twin_rank]
-    rcases (hl e).mp he with h' | h'
-    · rw [h']; omega
-    · rw [h', Card.twin_rank]; omega
-  exact ⟨splitData_drainInvariant h htwin hblock hfloor,
-    fun e he => (hl e).mp he⟩
-
-/-! ## §6. The campaign chain from the corrected residual -/
-
-/-- The corrected residual implies the bridge residual `BottomDip` (the
-proof of `Bridge.bottomDip_of_splitResidual`, with the split equations
-available so no binder mismatch remains). -/
 theorem bottomDip_of_splitResidualData (h : SplitResidualData) : Bridge.BottomDip := by
   intro u v ρ F huwf hsu hsv hcls hdiff hplay hsplit hmin
   obtain ⟨left, right, c, d, b, pre, post, tail,
@@ -572,27 +311,14 @@ end SplitKit
 
 /-! ## §7. Battery -/
 
-#print axioms SplitKit.canRaise_congr_found_piles
 #print axioms SplitKit.drawPlay_found_piles
 #print axioms SplitKit.isSlideB_eq_true_iff
 #print axioms SplitKit.splitHyp_green
 #print axioms SplitKit.splitHyp_post_ne_nil
-#print axioms SplitKit.splitHyp_post_has_slide
 #print axioms SplitKit.emptyTail_turn_ne
 #print axioms SplitKit.splitResidualData_of_parts
 #print axioms SplitKit.parts_of_splitResidualData
 #print axioms SplitKit.splitResidualData_iff_parts
 #print axioms SplitKit.not_splitResidual_of_split
-#print axioms SplitKit.not_splitResidual_of_satDiffer
-#print axioms SplitKit.splitNe_of_block
-#print axioms SplitKit.splitResidualData_of_fork_ne
-#print axioms SplitKit.splitResidualData_of_fork_block
-#print axioms SplitKit.splitData_ne
-#print axioms SplitKit.splitBlock_suit_ne
-#print axioms SplitKit.splitData_crossing
-#print axioms SplitKit.splitData_covered
-#print axioms SplitKit.splitData_covered_shape
-#print axioms SplitKit.splitData_drainInvariant
-#print axioms SplitKit.splitData_drainTerminal
 #print axioms SplitKit.bottomDip_of_splitResidualData
 #print axioms SplitKit.satDifferForkWF_of_splitResidualData_drainClosed

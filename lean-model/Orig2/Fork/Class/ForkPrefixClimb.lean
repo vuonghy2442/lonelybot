@@ -763,22 +763,6 @@ def CapCertificate : Prop :=
         (forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= rungAt v σ) ->
         forall σ, cap σ <= rungAt v σ)
 
-/-- The campaign-facing shape: one-colour-exact join or a fork. -/
-theorem fullJoinAtLeastOneColourOrFork_of_climbable
-    (hW : ClimbablePrefixWitness)
-    (hcl : OneColourClosure.ForklessOneColourClosure)
-    (hcap : CapCertificate)
-    (hdich : forall u, u.WF ->
-      OneColourClosure.Forkless u \/ OneColourClosure.Fork u) :
-    OneColourClosure.FullJoinAtLeastOneColourOrFork := by
-  intro s s' hws hws' hcls
-  rcases hdich s hws with hfl | hfk
-  · obtain ⟨cap, hcap13, hup, hmin⟩ := hcap s s' hws hws' hcls
-    exact Or.inl (fullJoinAtLeastOneColour_of_climbable hW hcl hws hfl
-      (sameOrbitSetoid.iseqv.refl s) hcls hws hcap13 hup hmin)
-  · exact Or.inr hfk
-
-#print axioms fullJoinAtLeastOneColourOrFork_of_climbable
 
 end PrefixClimb
 

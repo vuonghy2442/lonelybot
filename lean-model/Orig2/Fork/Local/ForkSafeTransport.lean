@@ -195,28 +195,6 @@ theorem canRaiseS_of_canRaiseS_raise_high
       rw [hwk] at hnone
       exact nomatch hnone
 
-/-- **The requested theorem.**  A reversible high raise preserves
-`CanRaiseS · x` on any restricted safe path.
-
-The `hrev` hypothesis is kept to match the consumer's signature; the
-flat characterization route does not need it (the raise's own pile is
-excluded by the rank argument, not by reversibility). -/
-theorem canRaiseS_of_raise_high
-    {st w : State} {c x : Card}
-    (hwf : st.WF)
-    (hstep : State.step st (Move.tabToFound c) = some w)
-    (hrev : reversibleAtW st (Move.tabToFound c))
-    (hcs : c.suit ≠ x.suit)
-    (hct : c ≠ x.twin)
-    (hrank : x.rank.toIdx ≤ c.rank.toIdx)
-    (hsafe : ∃ z, Steps (RevStepOf (safeMoves x.rank.toIdx x)) st z ∧ CanRaise z x)
-    : CanRaiseS w x :=
-  canRaiseS_of_canRaiseS_raise_high hwf hstep hcs hct hrank
-    (canRaiseS_of_safePath hsafe)
-
-/-- **The consumer-shaped corollary** (`Temp/Drain_Invariant.lean:558`):
-the held card is the blocked twin `y`, waiting for `CanRaiseS u' y`
-after a raise of `c` with `c ≠ y`, `c ≠ y.twin`. -/
 theorem canRaiseS_twin_of_raise_high
     {u u' : State} {c y : Card}
     (huwf : u.WF)
@@ -229,7 +207,6 @@ theorem canRaiseS_twin_of_raise_high
   canRaiseS_of_canRaiseS_raise_high huwf hstep hcs hct hrank hS
 
 #print axioms SafeTransport.canRaiseS_of_canRaiseS_raise_high
-#print axioms SafeTransport.canRaiseS_of_raise_high
 #print axioms SafeTransport.canRaiseS_of_safePath
 #print axioms SafeTransport.canRaiseS_twin_of_raise_high
 

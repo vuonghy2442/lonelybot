@@ -157,19 +157,12 @@ theorem F_step : State.step F (Move.tabToTab S4 (Sum.inr D5)) = some A := by
 
 /-! ## §3. The rungs: the twin is four behind -/
 
-theorem A_rung_own : rungAt A H5.suit = H5.rank.toIdx := rfl
 theorem F_rung_own : rungAt F H5.suit = H5.rank.toIdx := rfl
-theorem A_rung_twin : rungAt A D5.suit = 0 := rfl
 theorem F_rung_twin : rungAt F D5.suit = 0 := rfl
 
 /-- `5H.rank.toIdx = 4`. -/
 theorem H5_rank : H5.rank.toIdx = 4 := rfl
 
-/-- **THE PIN FAILS at the cover's source.** -/
-theorem A_pin_fails : rungAt A D5.suit < rungAt A H5.suit := by
-  rw [A_rung_twin, A_rung_own, H5_rank]; decide
-
-/-- **THE PIN FAILS at the cover's landing.** -/
 theorem F_pin_fails : rungAt F D5.suit < rungAt F H5.suit := by
   rw [F_rung_twin, F_rung_own, H5_rank]; decide
 
@@ -186,17 +179,6 @@ theorem A_canRaise : CanRaise A H5 :=
 /-- **`c` IS S-LIVE AT THE SOURCE** (the green licence of `splitHyp_green`). -/
 theorem A_live : CanRaiseS A H5 := CanRaiseS.now H5 A_canRaise
 
-/-- The twin is *not* raisable at the source: its suit's rung is not its rank. -/
-theorem A_twin_not_raisable : ¬ CanRaise A D5 := by
-  intro h
-  have hf : A.nextUp D5 = false := by decide
-  have h1 : A.nextUp D5 = true := h.1
-  rw [hf] at h1
-  exact Bool.false_ne_true h1
-
-/-! ## §5. The licences at the landing -/
-
-/-- **`c` IS BLOCKED AT THE LANDING** — `4S` sits on it. -/
 theorem F_block : ¬ CanRaise F H5 := by
   intro h
   obtain ⟨-, a, ha, -⟩ := h
@@ -262,42 +244,15 @@ theorem coverEvent_does_not_imply_pin :
     coverEvent_with_failing_pin
   exact absurd (h B F' post c hB hcov hlive) (Nat.ne_of_lt hlt)
 
-/-- **THE `BlockMin.BlockerReady` DATUM AT THE SOURCE.**  `4S` is a ready blocker
-for `5H`: it fits, it is face up in `p1` with `5D` beneath it, and `5H` tops
-`p0`. -/
-theorem A_blockerReady : BlockMin.BlockerReady A H5 :=
-  ⟨S4, .p1, .p0, by decide, by decide, by decide, by decide⟩
-
-/-- The same datum is exactly what `blockerReady_of_coverEvent` extracts from the
-cover event (the tie to `Orig2/Fork/Split/ForkDipPin.lean:229`). -/
-theorem blockerReady_from_coverEvent :
-    ∃ A' : State, BlockMin.BlockerReady A' H5 :=
-  BlockMin.blockerReady_of_coverEvent A_wf A_coverEvent
-
-/-- **THE WHOLE DATUM `blockerReady_of_coverEvent` EXTRACTS, WITH THE PIN
-FAILING**: the source state, the ready blocker, the cover's source seat, the
-green licence, and the twin strictly behind. -/
-theorem blockerReady_with_failing_pin :
-    ∃ (A' : State) (c x : Card),
-      A'.WF ∧ BlockMin.BlockerReady A' c ∧
-      seatOf A' x = some (Sum.inr c.twin) ∧
-      CanRaiseS A' c ∧
-      rungAt A' c.twin.suit < rungAt A' c.suit :=
-  ⟨A, H5, S4, A_wf, A_blockerReady, A_seat, A_live, A_pin_fails⟩
-
-/-! ## §7. Battery -/
-
 #print axioms RungGeGadget.A_wf
 #print axioms RungGeGadget.F_wf
 #print axioms RungGeGadget.A_rev
 #print axioms RungGeGadget.F_rev
 #print axioms RungGeGadget.A_step
 #print axioms RungGeGadget.F_step
-#print axioms RungGeGadget.A_pin_fails
 #print axioms RungGeGadget.F_pin_fails
 #print axioms RungGeGadget.A_canRaise
 #print axioms RungGeGadget.A_live
-#print axioms RungGeGadget.A_twin_not_raisable
 #print axioms RungGeGadget.F_block
 #print axioms RungGeGadget.F_live
 #print axioms RungGeGadget.F_canRaise_AC
@@ -305,9 +260,6 @@ theorem blockerReady_with_failing_pin :
 #print axioms RungGeGadget.A_coverEvent
 #print axioms RungGeGadget.coverEvent_with_failing_pin
 #print axioms RungGeGadget.coverEvent_does_not_imply_pin
-#print axioms RungGeGadget.A_blockerReady
-#print axioms RungGeGadget.blockerReady_from_coverEvent
-#print axioms RungGeGadget.blockerReady_with_failing_pin
 
 end RungGeGadget
 

@@ -179,15 +179,7 @@ theorem noSlide_of_isRaise {m : Move} (h : IsRaise m) : NoSlide m := by
 
 /-- Every letter is a raise, and every letter is a pull. -/
 def OnlyRaises (l : List Move) : Prop := ∀ m ∈ l, IsRaise m
-def OnlyPulls (l : List Move) : Prop := ∀ m ∈ l, IsPull m
-/-- Every letter is a raise or a pull (no slide, draw or waste letter). -/
 def OnlyRaisePull (l : List Move) : Prop := ∀ m ∈ l, IsRaise m ∨ IsPull m
-
-theorem onlyRaises_tail {a : Move} {l : List Move} (h : OnlyRaises (a :: l)) : OnlyRaises l :=
-  fun m hm => h m (List.mem_cons_of_mem _ hm)
-
-theorem onlyPulls_tail {a : Move} {l : List Move} (h : OnlyPulls (a :: l)) : OnlyPulls l :=
-  fun m hm => h m (List.mem_cons_of_mem _ hm)
 
 theorem onlyRaisePull_tail {a : Move} {l : List Move} (h : OnlyRaisePull (a :: l)) :
     OnlyRaisePull l := fun m hm => h m (List.mem_cons_of_mem _ hm)
@@ -386,19 +378,6 @@ theorem sort_raises : ∀ (ρ : List Move) {st B : State},
 
 /-! ## §6. The mountain shape -/
 
-theorem noPull_of_onlyRaises {l : List Move} (h : OnlyRaises l) : NoPull l := by
-  intro m hm c b hc
-  obtain ⟨c', h'⟩ := h m hm
-  rw [h'] at hc
-  cases hc
-
-theorem noRaise_of_onlyPulls {l : List Move} (h : OnlyPulls l) : NoRaise l := by
-  intro m hm c hc
-  obtain ⟨c', b', h'⟩ := h m hm
-  rw [h'] at hc
-  cases hc
-
-/-- Any play already split in the mountain shape is a mountain. -/
 theorem mountain_of_shape {u peak v : State} {ρ₁ ρ₂ : List Move}
     (h₁ : ShufflePlayW u ρ₁ peak) (h₂ : ShufflePlayW peak ρ₂ v)
     (hnp : NoPull ρ₁) (hnr : NoRaise ρ₂) : Mountain u v :=
@@ -412,48 +391,6 @@ theorem mountain_of_sorted {u v : State} {ρ₁ ρ₂ : List Move}
   obtain ⟨peak, h₁, h₂⟩ := walk_split ρ₁ hsorted
   exact mountain_of_shape h₁ h₂ hnp hnr
 
-/-- **`mountain_of_shuffle`** — the play-level lifting: a `{raise, pull}`
-play whose raise/pull pairs are swappable at every reachable state is a
-mountain.  `sort_raises` produces the sorted play; `mountain_of_sorted`
-splits it. -/
-theorem mountain_of_shuffle {u v : State} {ρ : List Move}
-    (hwf : u.WF) (h : ShufflePlayW u ρ v)
-    (horp : OnlyRaisePull ρ) (hcomm : RaisesPullsPlay u) :
-    Mountain u v := by
-  obtain ⟨ρ₁, ρ₂, hplay, hOnlyR, hNR⟩ := sort_raises ρ hwf horp h hcomm
-  exact mountain_of_sorted hplay (noPull_of_onlyRaises hOnlyR) hNR
-
-/-- **Degenerate case (no hypothesis).**  A play with no pull letter is a
-mountain: the raise block is the whole play, the pull block is empty. -/
-theorem mountain_of_raiseBlock {u v : State} {ρ : List Move}
-    (h : ShufflePlayW u ρ v) (hnp : NoPull ρ) : Mountain u v :=
-  mountain_of_shape h (Walk.nil v) hnp (by intro m hm; simp at hm)
-
-/-- **Degenerate case (no hypothesis).**  A play with no raise letter is a
-mountain: the raise block is empty. -/
-theorem mountain_of_pullBlock {u v : State} {ρ : List Move}
-    (h : ShufflePlayW u ρ v) (hnr : NoRaise ρ) : Mountain u v :=
-  mountain_of_shape (Walk.nil u) h (by intro m hm; simp at hm) hnr
-
-/-! ## §7. `bracket_delete_at` — deleting a `pull c ; … ; raise c` bracket -/
-
-/-- **BRACKET DELETE.**  Suppose a play reaches `A'`, pulls `c` onto `b`
-to `S`, then plays an interior `inner` and finally raises `c`.  If the
-interior is slide-free and can be re-run from `A'` (the "independent of
-`c` and its base" certificate, supplied as swapped-order plays for each
-of its letters), then the pull/raise bracket deletes: the play on
-`ρ₁ ++ inner ++ ρ₂` runs from the original origin to the original
-endpoint.
-
-The independence hypothesis is exactly `hbr` + `hsw`: `hbr` says the
-interior followed by the raise is a legal play from `S`, and `hsw` says
-each adjacent `(letter, raise c)` pair is legal in the swapped order, so
-`bubble_raise_left` walks the raise left until it is adjacent to the
-pull, where `valley_cancel_same` deletes both.
-
-The empty interior (`inner = []`) needs no swap certificate at all and is
-exactly `valley_cancel_same`; the one-letter (and longer) interior is the
-`bubble_raise_left` induction. -/
 theorem bracket_delete_at {A A' S C : State} {ρ₁ inner ρ₂ : List Move}
     {c : Card} {b : Base}
     (hwf : A.WF)
@@ -473,59 +410,6 @@ theorem bracket_delete_at {A A' S C : State} {ρ₁ inner ρ₂ : List Move}
     ValleyStep.valley_cancel_same (A := A) (A' := A') (B := S) (C := C)
       (ρ₁ := ρ₁) (ρ₂ := inner ++ ρ₂) (c := c) (b := b) hwf h₁ hpull hbubble
 
-/-- **Empty interior** — the `inner = []` base case: this is exactly
-`valley_cancel_same`. -/
-theorem bracket_delete_nil {A A' S C : State} {ρ₁ ρ₂ : List Move} {c : Card} {b : Base}
-    (hwf : A.WF) (h₁ : ShufflePlayW A ρ₁ A')
-    (hpull : State.step A' (Move.foundToTab c b) = some S)
-    (h₂ : ShufflePlayW S (Move.tabToFound c :: ρ₂) C) :
-    ShufflePlayW A (ρ₁ ++ ρ₂) C :=
-  ValleyStep.valley_cancel_same hwf h₁ hpull h₂
-
-/-- **One-letter interior** — the inductive step in the smallest case:
-one slide-free letter `m` between the pull and the raise, with the
-swapped-order certificate `∃ e, ShufflePlayW S [raise c, m] e` saying `m`
-is independent of `c` and its base. -/
-theorem bracket_delete_one {A A' S C : State} {ρ₁ ρ₂ : List Move} {c : Card} {b : Base}
-    {m : Move}
-    (hwf : A.WF) (h₁ : ShufflePlayW A ρ₁ A')
-    (hpull : State.step A' (Move.foundToTab c b) = some S)
-    (hbr : ShufflePlayW S (m :: Move.tabToFound c :: ρ₂) C)
-    (hnsl : NoSlide m)
-    (hcert : ∃ e, ShufflePlayW S [Move.tabToFound c, m] e) :
-    ShufflePlayW A (ρ₁ ++ [m] ++ ρ₂) C := by
-  refine bracket_delete_at (inner := [m]) hwf h₁ hpull hbr ?_ ?_
-  · intro x hx
-    rw [List.mem_singleton] at hx
-    subst hx
-    exact hnsl
-  · intro pre mid q post hsplit hpre
-    cases pre with
-    | nil =>
-        simp only [List.nil_append] at hsplit
-        injection hsplit with hq hpost
-        subst hq
-        subst hpost
-        have hmid : mid = S := by
-          have hrun : S.run [] = some mid := Walk_run _ hpre
-          have hS : S.run [] = some S := rfl
-          exact Option.some.inj (hrun.symm.trans hS)
-        subst hmid
-        exact hcert
-    | cons a as =>
-        simp only [List.cons_append] at hsplit
-        exact absurd hsplit (by simp)
-
-/-! ## §7b. The inversion measure for the raise/pull alphabet
-
-Target 3 asks for a well-founded measure: the number of `pull ; raise`
-inversions.  The sorting *proof* below (§5) is by structural recursion
-(equivalent termination, no `Nat` measure needed), but the measure and
-the decrease lemma are recorded here: they certify that the licensed
-rewrite `pull ; raise → raise ; pull` is terminating, and hence that the
-normal form of §5 is what a measure-guided bubble sort would reach. -/
-
-/-- Shape test for the raise letter. -/
 def isRaiseB : Move → Bool
   | Move.tabToFound _ => true
   | _ => false
@@ -535,82 +419,13 @@ def isPullB : Move → Bool
   | Move.foundToTab _ _ => true
   | _ => false
 
-theorem isPullB_eq_true {m : Move} (h : IsPull m) : isPullB m = true := by
-  obtain ⟨c, b, rfl⟩ := h
-  rfl
-
-theorem isRaiseB_eq_true {m : Move} (h : IsRaise m) : isRaiseB m = true := by
-  obtain ⟨c, rfl⟩ := h
-  rfl
-
-theorem isPullB_eq_false_of_raise {m : Move} (h : IsRaise m) : isPullB m = false := by
-  obtain ⟨c, rfl⟩ := h
-  rfl
-
-theorem isRaiseB_eq_false_of_pull {m : Move} (h : IsPull m) : isRaiseB m = false := by
-  obtain ⟨c, b, rfl⟩ := h
-  rfl
-
-/-- Number of letters satisfying a shape test. -/
 def countTrue (p : Move → Bool) : List Move → Nat
   | [] => 0
   | m :: t => (if p m then 1 else 0) + countTrue p t
 
-theorem countTrue_append (p : Move → Bool) : ∀ (a b : List Move),
-    countTrue p (a ++ b) = countTrue p a + countTrue p b := by
-  intro a
-  induction a with
-  | nil => intro b; simp [countTrue]
-  | cons c cs ih =>
-      intro b
-      simp only [List.cons_append, countTrue, ih]
-      omega
-
-/-- `countTrue` is invariant under swapping two adjacent letters. -/
-theorem countTrue_swap (p : Move → Bool) : ∀ (pre : List Move) (a b : Move) (post : List Move),
-    countTrue p (pre ++ a :: b :: post) = countTrue p (pre ++ b :: a :: post) := by
-  intro pre
-  induction pre with
-  | nil =>
-      intro a b post
-      simp only [List.nil_append, countTrue]
-      rcases hpa : p a with _ | _ <;> rcases hpb : p b with _ | _ <;>
-        simp [hpa, hpb, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-  | cons c cs ih =>
-      intro a b post
-      simp only [List.cons_append, countTrue, ih]
-
-/-- **THE INVERSION COUNT**: ordered pairs `pull ; raise`. -/
 def invCount : List Move → Nat
   | [] => 0
   | m :: t => (if isPullB m then countTrue isRaiseB t else 0) + invCount t
-
-/-- **THE MEASURE DECREASES.**  Swapping an adjacent `pull ; raise` into
-`raise ; pull` lowers the inversion count by exactly one — so the
-licensed rewrite is terminating and every maximal rewrite chain reaches
-the raise-block/pull-block normal form. -/
-theorem invCount_swap_adj : ∀ (pre : List Move) {p r : Move} {post : List Move},
-    IsPull p → IsRaise r →
-    invCount (pre ++ p :: r :: post) = invCount (pre ++ r :: p :: post) + 1 := by
-  intro pre
-  induction pre with
-  | nil =>
-      intro p r post hp hr
-      have hp' : isPullB p = true := isPullB_eq_true hp
-      have hr' : isRaiseB r = true := isRaiseB_eq_true hr
-      have hpr : isPullB r = false := isPullB_eq_false_of_raise hr
-      have hrp : isRaiseB p = false := isRaiseB_eq_false_of_pull hp
-      simp only [List.nil_append, invCount, countTrue]
-      rw [hp', hr', hpr, hrp]
-      simp
-      omega
-  | cons a as ih =>
-      intro p r post hp hr
-      simp only [List.cons_append, invCount]
-      rw [countTrue_swap isRaiseB, ih (p := p) (r := r) (post := post) hp hr]
-      omega
-
-/-! ## §8. Axiom profiles -/
 
 #print axioms walk_split
 #print axioms swap_at_aux
@@ -623,14 +438,6 @@ theorem invCount_swap_adj : ∀ (pre : List Move) {p r : Move} {post : List Move
 #print axioms raisesPullsPlay_of_play
 #print axioms sort_raises
 #print axioms mountain_of_sorted
-#print axioms mountain_of_shuffle
-#print axioms mountain_of_raiseBlock
-#print axioms mountain_of_pullBlock
 #print axioms bracket_delete_at
-#print axioms bracket_delete_nil
-#print axioms bracket_delete_one
-#print axioms countTrue_append
-#print axioms countTrue_swap
-#print axioms invCount_swap_adj
 
 end Bubble

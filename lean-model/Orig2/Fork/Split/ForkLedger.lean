@@ -209,23 +209,6 @@ theorem raise_of_rung_gt {u v : State} {ρ : List Move} {σ : Suit}
     @rungAt_ledger u v ρ σ hplay
   exact raisesOf_pos_iff.mp (by omega)
 
-/-- Either some suit drops from `u` to `v` or some suit rises. -/
-theorem drop_or_rise_of_diff {u v : State}
-    (hdiff : ∃ σ : Suit, rungAt u σ ≠ rungAt v σ) :
-    (∃ σ : Suit, rungAt v σ < rungAt u σ) ∨
-      (∃ σ : Suit, rungAt u σ < rungAt v σ) := by
-  obtain ⟨σ, hσ⟩ := hdiff
-  rcases Nat.lt_or_gt_of_ne hσ with hlt | hgt
-  · exact Or.inr ⟨σ, hlt⟩
-  · exact Or.inl ⟨σ, hgt⟩
-
-/-! ## §2. First passage: the repository rows -/
-
-/-- **THE FIRST FALL IS A `σ`-PULL, AND ITS CARD IS THE EXODUS CARD.**
-Wrapper of `SatDifferCensus.FirstFall.shape` (`Orig2/Fork/Split/FirstPassage.lean:772`)
-at `k = rungAt u σ`: the first time the `σ`-rung leaves `≥ rungAt u σ`
-it pulls the foundation top `c`, whose rank index is `rungAt u σ - 1`,
-and `c` is vanilla- and S-raisable at the landing. -/
 theorem exodus_of_rung_lt {u v : State} {ρ : List Move} {σ : Suit}
     (huwf : u.WF) (hplay : ShufflePlayW u ρ v)
     (hlt : rungAt v σ < rungAt u σ) :
@@ -413,21 +396,6 @@ theorem raise_in_rest_of_exodus {u v : State} {ρ pre rest : List Move}
         exists_first_raise rest ⟨d, hmemTail⟩
       exact ⟨d', γ, β', hdecomp⟩
 
-/-- **THE TAIL OF THE EXODUS IS NOT FREE.**  The exodus card `c` is
-S-live at the landing `post`; were `rest` free, `CanRaiseS` would be
-transported to `v` (`Bridge.canRaiseS_of_free_play_iff`), contradicting
-`SSaturated v`.  So some non-free letter occurs after the exodus pull. -/
-theorem rest_has_nonfree_of_exodus {post v : State} {rest : List Move} {c : Card}
-    (hpost : post.WF) (hplay : ShufflePlayW post rest v)
-    (hlive : CanRaiseS post c) (hsat : SSaturated v) :
-    ∃ m ∈ rest, ¬ FreeMove m := by
-  apply exists_nonfree_of_not_all_free
-  intro hall
-  have h := (Bridge.canRaiseS_of_free_play_iff hplay hall hpost c).mp hlive
-  exact hsat c h
-
-/-! ## §4. Axiom battery -/
-
 #print axioms LedgerKit.rungAt_pos_of_foundTop
 #print axioms LedgerKit.raisesOf_pos_iff
 #print axioms LedgerKit.pullsOf_pos_iff
@@ -435,7 +403,6 @@ theorem rest_has_nonfree_of_exodus {post v : State} {rest : List Move} {c : Card
 #print axioms LedgerKit.sigma_letter_of_rung_ne
 #print axioms LedgerKit.pull_of_rung_lt
 #print axioms LedgerKit.raise_of_rung_gt
-#print axioms LedgerKit.drop_or_rise_of_diff
 #print axioms LedgerKit.exodus_of_rung_lt
 #print axioms LedgerKit.twin_raise_of_rung_gt
 #print axioms LedgerKit.exists_nonfree_of_rung_ne
@@ -444,6 +411,5 @@ theorem rest_has_nonfree_of_exodus {post v : State} {rest : List Move} {c : Card
 #print axioms LedgerKit.not_ssaturated_of_fork
 #print axioms LedgerKit.not_fork_of_free_play
 #print axioms LedgerKit.raise_in_rest_of_exodus
-#print axioms LedgerKit.rest_has_nonfree_of_exodus
 
 end LedgerKit

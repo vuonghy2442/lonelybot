@@ -33,8 +33,6 @@ non-free letters are exactly the pulls (`foundToTab`) and raises
 def FreeMove (m : Move) : Prop :=
   m = Move.draw ∨ ∃ (c : Card) (b : Base), m = Move.tabToTab c b
 
-theorem free_draw : FreeMove Move.draw := Or.inl rfl
-
 theorem free_slide (c : Card) (b : Base) : FreeMove (Move.tabToTab c b) :=
   Or.inr ⟨c, b, rfl⟩
 
@@ -278,19 +276,12 @@ theorem shuffle_letter_not_wasteToTab {u v : State} {ρ : List Move}
 
 /-! ## §1. Saturation invariance under free plays -/
 
-/-- Cargo steps are transitive (local copy of `steps_trans`). -/
-theorem cargo_steps_trans {Q : State → State → Prop} {w z u : State}
-    (h₁ : Steps Q w z) : Steps Q z u → Steps Q w u := by
-  induction h₁ with
-  | refl _ => exact fun h₂ => h₂
-  | cons h _ ih => exact fun h₂ => Steps.cons h (ih h₂)
-
 /-- Saturation propagates forward along a cargo path. -/
 theorem ssaturated_of_cargoPath' {a b : State} (h : CargoPath a b)
     (hs : SSaturated a) : SSaturated b := by
   intro c hc
   obtain ⟨z, hbz, hz⟩ := hc
-  exact hs c ⟨z, cargo_steps_trans h hbz, hz⟩
+  exact hs c ⟨z, steps_trans h hbz, hz⟩
 
 /-- Saturation is invariant under a step that preserves foundations and
 piles: `CanRaiseS` only reads those two components (via the flat
@@ -870,26 +861,6 @@ def ValleyCrossingLocator : Prop :=
     c ≠ d → c.suit ≠ d.suit →
     CrossingBlock u v ρ
 
-/-- The crossing branch of valley elimination, conditional on the named
-locator.  The locator places the four-letter block; `crossing_block_delete`
-then shortens the play. -/
-theorem valley_elim_pull_raise_cross_of_locator (hloc : ValleyCrossingLocator)
-    {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base} {tail : List Move}
-    (huwf : u.WF) (hplay : ShufflePlayW u ρ v)
-    (hdecomp : ρ = left ++ [Move.foundToTab c b, Move.tabToFound d] ++ right)
-    (hleft : ShufflePlayW u left F)
-    (hcd : c ≠ d) (hsuit : c.suit ≠ d.suit) :
-    ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length < ρ.length :=
-  crossing_block_delete huwf (hloc u v ρ F left right c d b tail
-    huwf hplay hdecomp hleft hcd hsuit)
-
-/-- **ADJACENT VALLEY ELIMINATION.**  The combined pull/raise turn:
-either the same card (`c = d`, unconditional) or a genuine crossing
-(`c ≠ d` and different suits, conditional on `ValleyCrossingLocator`).
-In both cases the two-letter turn is deleted and the play strictly
-shortens.  Free letters at the turn are handled by the caller; this is
-the adjacent-turn core. -/
 theorem valley_elim_pull_raise (hloc : ValleyCrossingLocator)
     {u v F : State} {left right : List Move} {c d : Card} {b : Base}
     (huwf : u.WF)
@@ -927,7 +898,6 @@ end ValleyElim
 #print axioms ValleyElim.valley_elim_pull_raise_same
 #print axioms ValleyElim.valley_exists
 #print axioms ValleyElim.satDifferForkWF_of_valleyElimNonfork
-#print axioms ValleyElim.valley_elim_pull_raise_cross_of_locator
 
 #print axioms ValleyElim.exists_nonfree_of_not_all_free
 #print axioms ValleyElim.rungAt_eq_of_free_play

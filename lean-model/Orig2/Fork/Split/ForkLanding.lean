@@ -61,45 +61,6 @@ namespace Landing
 
 /-! ## §1. The third-suit exclusion at a fork -/
 
-/-- At a fork, no third-suit card is S-live: the fork's live set is exactly
-the two suits of its twin pair. -/
-theorem not_live_third_of_fork {F : State} {x e : Card}
-    (hx : ForkWitness F x) (he : CanRaiseS F e)
-    (h1 : e.suit ≠ x.suit) (h2 : e.suit ≠ x.twin.suit) : False := by
-  rcases (hx.1 e).mpr he with h | h
-  · exact h1 (congrArg Card.suit h)
-  · exact h2 (congrArg Card.suit h)
-
-/-- At a fork, the twin of a live card is live. -/
-theorem fork_pair_live_twin {F : State} {x c : Card}
-    (hx : ForkWitness F x) (hc : CanRaiseS F c) : CanRaiseS F c.twin := by
-  have hc' := (hx.1 c).mpr hc
-  rcases hc' with h | h
-  · rw [h]
-    exact (hx.1 x.twin).mp (Or.inr rfl)
-  · rw [h, card_twin_twin]
-    exact (hx.1 x).mp (Or.inl rfl)
-
-/-- At a fork, every live card has one of the two suits of the fork's pair. -/
-theorem fork_pair_live_suits {F : State} {x c e : Card}
-    (hx : ForkWitness F x) (hc : CanRaiseS F c) (he : CanRaiseS F e) :
-    e.suit = c.suit ∨ e.suit = c.twin.suit := by
-  have hc' := (hx.1 c).mpr hc
-  have he' := (hx.1 e).mpr he
-  rcases hc' with h | h
-  · subst h
-    rcases he' with h' | h'
-    · subst h'; exact Or.inl rfl
-    · subst h'; exact Or.inr rfl
-  · subst h
-    rcases he' with h' | h'
-    · subst h'
-      exact Or.inr (by rw [card_twin_twin])
-    · subst h'
-      exact Or.inl rfl
-
-/-- A live card at a forked bottom, together with the fork, gives the live
-pair at that card (the pivot may be either twin). -/
 theorem twinLivePair_of_fork {F : State} {x c : Card}
     (hx : ForkWitness F x) (hc : CanRaiseS F c) : TwinLivePair F c := by
   have hpair : TwinLivePair F x := fun e => (hx.1 e).symm
@@ -225,73 +186,6 @@ theorem landingAll_iff_parts :
       · exact (hf u v ρ F left right c d b pre post tail hs A' B hpre hstep
           e he h1 h2).elim
 
-/-- **The bottom-fork existence residual**: at every split, the bottom `F` is
-a `ForkWitness`.  This is exactly the fork branch of
-`ValleyElim.ValleyElimNonfork` after the split's minimality kills the
-shortening branch. -/
-def BottomForkExists : Prop :=
-  ∀ (u v : State) (ρ : List Move) (F : State)
-    (left right : List Move) (c d : Card) (b : Base)
-    (pre post tail : List Move),
-    SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
-    ∀ (A' B : State), ShufflePlayW u pre A' →
-      State.step A' (Move.foundToTab c b) = some B →
-      ∃ x : Card, ForkWitness F x
-
-/-- The first landing clause from a forked bottom. -/
-theorem landingTwinLive_of_bottomFork (hb : BottomForkExists) :
-    LandingTwinLive := by
-  intro u v ρ F left right c d b pre post tail h A' B hpre hstep
-  have hk := h
-  obtain ⟨hpost, hB⟩ := post_play_of_landing h hpre hstep
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, hshape, hfree, -⟩ := h
-  obtain ⟨x, hx⟩ :=
-    hb u v ρ F left right c d b pre post tail hk A' B hpre hstep
-  have hcF : CanRaiseS F c := Bridge.bottom_pull_live huwf hleft hshape hfree
-  exact (landingLivePair_of_bottomFork hB hpost hfree hx hcF).1
-
-/-- **THE THIRD-SUIT EXCLUSION AT A FORKED BOTTOM.**  This is the strategy's
-step 2 done unconditionally once the bottom carries a fork: the landing live
-set is transported to `F`, where the fork's live set is exactly its twin
-pair, so the pull card and `e` are both in `{x, x.twin}`. -/
-theorem landingThirdSuitFree_of_bottomFork (hb : BottomForkExists) :
-    LandingThirdSuitFree := by
-  intro u v ρ F left right c d b pre post tail h A' B hpre hstep e he h1 h2
-  have hk := h
-  obtain ⟨hpost, hB⟩ := post_play_of_landing h hpre hstep
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, hshape, hfree, -⟩ := h
-  obtain ⟨x, hx⟩ :=
-    hb u v ρ F left right c d b pre post tail hk A' B hpre hstep
-  have hcF : CanRaiseS F c := Bridge.bottom_pull_live huwf hleft hshape hfree
-  have hland := landingLivePair_of_bottomFork hB hpost hfree hx hcF
-  rcases hland.2 e he with h' | h'
-  · exact h1 h'
-  · exact h2 h'
-
-/-- The landing live pair from a forked bottom. -/
-theorem landingAll_of_bottomFork (hb : BottomForkExists) : LandingAll :=
-  landingAll_iff_parts.mpr
-    ⟨landingTwinLive_of_bottomFork hb, landingThirdSuitFree_of_bottomFork hb⟩
-
-/-- **`ValleyElimNonfork` supplies the forked bottom** (the shortening branch
-is killed by the split's minimality). -/
-theorem bottomFork_of_valleyElim (helim : ValleyElim.ValleyElimNonfork) :
-    BottomForkExists := by
-  intro u v ρ F left right c d b pre post tail h A' B hpre hstep
-  have hk := h
-  rcases LiveKit.valleyElimForkAtRaise_of_valleyElim helim
-      u v ρ F left right c d b pre post tail hk with hx | ⟨ρ', hρ', hlen⟩
-  · exact ⟨d, hx⟩
-  · exfalso
-    obtain ⟨-, -, -, -, -, hmin, -, -, -, -, -, -⟩ := hk
-    exact absurd hlen (Nat.not_lt.mpr (hmin ρ' hρ'))
-
-/-! ## §4. The exact equivalence with `SplitKit.SplitLivePair` -/
-
-/-- **THE MECHANISM'S LIVE-PAIR CLAUSE, in `SplitMechanism`'s ∃-form**
-(`Orig2/Fork/Local/ForkMechanism.lean:376`): every split has a pull landing whose live
-set is `LandingLivePair`.  This is the first conjunct of `SplitMechanism`
-with the `CoverEvent` conjunct removed. -/
 def MechanismLivePair : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base)
@@ -386,36 +280,20 @@ theorem bracket_of_landingThirdSuitFree (hf : LandingThirdSuitFree) :
   exact (hf u v ρ F left right c d b pre post tail h A' B hpre hstep
     e he h1 h2).elim
 
-/-- **`ThirdSuitBracket` is exactly the third-suit exclusion.** -/
-theorem thirdSuitBracket_iff_landingThirdSuitFree :
-    ThirdSuitBracket ↔ LandingThirdSuitFree :=
-  ⟨landingThirdSuitFree_of_bracket, bracket_of_landingThirdSuitFree⟩
-
-/-- **`LandingLivePair` FROM THE TWO NAMED PIECES**: the first clause
-(`c.twin` live at the landing) and the exact bracket lemma for the
-third-suit exclusion. -/
 theorem landingAll_of_twinLive_and_bracket
     (ht : LandingTwinLive) (hb : ThirdSuitBracket) : LandingAll :=
   landingAll_iff_parts.mpr ⟨ht, landingThirdSuitFree_of_bracket hb⟩
 
 /-! ## §6. Axiom battery -/
 
-#print axioms not_live_third_of_fork
-#print axioms fork_pair_live_twin
-#print axioms fork_pair_live_suits
 #print axioms twinLivePair_of_fork
 #print axioms landingLivePair_of_twinLivePair_F
 #print axioms landingLivePair_of_bottomFork
 #print axioms post_play_of_landing
 #print axioms landingAll_iff_parts
-#print axioms landingTwinLive_of_bottomFork
-#print axioms landingThirdSuitFree_of_bottomFork
-#print axioms landingAll_of_bottomFork
-#print axioms bottomFork_of_valleyElim
 #print axioms mechanismLivePair_iff_landingAll
 #print axioms landingThirdSuitFree_of_bracket
 #print axioms bracket_of_landingThirdSuitFree
-#print axioms thirdSuitBracket_iff_landingThirdSuitFree
 #print axioms landingAll_of_twinLive_and_bracket
 
 end Landing

@@ -199,123 +199,6 @@ theorem fork_at_the_meet_of_parts {F G H : State} {x : Card}
       ((Nat.le_min).mpr ⟨by rw [← hpair.2]; exact hG2,
         by rw [← hpair.2]; exact hH2⟩) ht2
 
-/-- The `≤` half of the pair meet, at the same hypotheses (this one is
-UNCONDITIONAL given `PairFloorLocal`): the fork's pair rank is at most the
-pairwise minimum. -/
-theorem fork_pair_rank_le_meet {F G H : State} {x : Card}
-    (hF : F.WF) (hG : G.WF) (hH : H.WF)
-    (hFG : sameOrbitSetoid.r F G) (hFH : sameOrbitSetoid.r F H)
-    (hx : ForkWitness F x) (hsG : SSaturated G) (hsH : SSaturated H)
-    (hfloor : PairFloorLocal F x) :
-    x.rank.toIdx ≤ min (rungAt G x.suit) (rungAt H x.suit) ∧
-      x.rank.toIdx ≤ min (rungAt G x.twin.suit) (rungAt H x.twin.suit) := by
-  have hpair := forkState_witness_rungs hx
-  obtain ⟨hG1, hG2⟩ := fork_pair_floor_of_local hF hG hFG hx hsG hfloor
-  obtain ⟨hH1, hH2⟩ := fork_pair_floor_of_local hF hH hFH hx hsH hfloor
-  exact ⟨(Nat.le_min).mpr ⟨by rw [← hpair.1]; exact hG1,
-      by rw [← hpair.1]; exact hH1⟩,
-    (Nat.le_min).mpr ⟨by rw [← hpair.2]; exact hG2,
-      by rw [← hpair.2]; exact hH2⟩⟩
-
-/-! ## §2. The arm-dichotomy reduction (re-export of the proved row) -/
-
-/-- The proved arm reduction (`Orig2/Fiber/ArmFiber.lean:180`): the arm dichotomy —
-which is NOT proved — implies the campaign residue.  Recorded so the exact
-consumer is visible in this card; `ArmDichotomy` itself is the unproved input. -/
-theorem armDichotomy_imp_satDifferFork (h : ArmDichotomy) : SatDifferFork :=
-  armDichotomy_to_satDifferFork h
-
-/-! ## §3. The positional dichotomy (PROVED) -/
-
-/-- **THE SPECTRUM IS POSITIONAL** — same-position representatives agree on
-`forkLikePos` (`FreeOrbit.canRaiseS_orbit_rung`, descended in `Position.spec`). -/
-theorem forkLikePos_positional {p p' : WFState} (h : orbitRungSetoid.r p p') :
-    forkLikePos (Quotient.mk orbitRungSetoid p) ↔
-      forkLikePos (Quotient.mk orbitRungSetoid p') := by
-  rw [Quotient.sound h]
-
-/-- `ForkLive` (the state-level weak grade) is positional too. -/
-theorem forkLive_positional {p p' : WFState} (h : orbitRungSetoid.r p p') :
-    ForkLive p.1 ↔ ForkLive p'.1 := by
-  rw [← forkLikePos_mk p, ← forkLikePos_mk p']
-  exact forkLikePos_positional h
-
-/-- **A FORK STATE CANNOT LIVE AT A NON-FORK-LIKE POSITION** — the
-contrapositive of the proved detection implication. -/
-theorem not_forkState_of_not_forkLikePos {p : WFState}
-    (h : ¬ forkLikePos (Quotient.mk orbitRungSetoid p)) : ¬ forkState p.1 :=
-  fun hf => h (forkState_forkLikePos hf)
-
-/-- A `forkState` at one member certifies the position of every mate. -/
-theorem forkState_implies_forkLikePos_mate {p q : WFState}
-    (hcls : orbitRungSetoid.r p q) (hf : forkState p.1) :
-    forkLikePos (Quotient.mk orbitRungSetoid q) :=
-  (forkLikePos_positional hcls).mp (forkState_forkLikePos hf)
-
-/-- **THE DICHOTOMY OF A FIBRE IS POSITIONAL.**  On a same-position fibre the
-fork-or-not split is a function of the Position: fork-likeness is constant, a
-fork state forces its mates' positions fork-like, and a non-fork-like position
-carries no fork state at all.  (This is the positional content; it does NOT say
-`forkLikePos -> forkState` — that fails pointwise, §5.) -/
-theorem fibre_dichotomy_positional {p p' : WFState}
-    (h : orbitRungSetoid.r p p') :
-    (forkLikePos (Quotient.mk orbitRungSetoid p) ↔
-      forkLikePos (Quotient.mk orbitRungSetoid p')) ∧
-    (forkState p.1 → forkLikePos (Quotient.mk orbitRungSetoid p')) ∧
-    (¬ forkLikePos (Quotient.mk orbitRungSetoid p) → ¬ forkState p'.1) :=
-  ⟨forkLikePos_positional h,
-    fun hf => forkState_implies_forkLikePos_mate h hf,
-    fun hnf hf => hnf ((forkLikePos_positional h).mpr (forkState_forkLikePos hf))⟩
-
-/-! ## §4. The gated existential iff (PROVED) -/
-
-/-- **THE EXISTENTIAL IFF, GATED BY THE FIBRE PIN.**  At a representative whose
-fibre carries `FibreBlockData`, being fork-like is exactly the existence of a
-same-position member that is a FULL fork state.  Forward:
-`BlockMin.forkWitness_of_data` (through `exists_blocked_twin_of_data`) produces
-the blocked-twin representative; reverse: `forkState_forkLikePos` plus
-position transport.
-
-The gate is load-bearing, not cosmetic: it is FALSE at `BlockMin.gFin` (§5). -/
-theorem forkLikePos_iff_exists_forkState_of_data (p : WFState)
-    (hd : BlockMin.FibreBlockData p.1) :
-    forkLikePos (Quotient.mk orbitRungSetoid p) ↔
-      ∃ p' : WFState, orbitRungSetoid.r p p' ∧ forkState p'.1 := by
-  constructor
-  · intro hfl
-    have hlive : ForkLive p.1 := (forkLikePos_mk p).mp hfl
-    obtain ⟨x, hx⟩ := hlive
-    have hl : TwinLivePair p.1 x := fun c => (hx c).symm
-    obtain ⟨F', z, hrev, hrung, hfork⟩ :=
-      BlockMin.forkWitness_of_data p.2 hd hl
-    have hF' : F'.WF := by
-      obtain ⟨σ, hσ, -⟩ := hrev
-      exact walk_wf p.2 hσ
-    refine ⟨⟨F', hF'⟩, ?_, forkState_iff.mpr ⟨z, hfork⟩⟩
-    exact ⟨RevEqW_symm hrev, fun σ => (hrung σ).symm⟩
-  · rintro ⟨p', hpos, hfs⟩
-    exact (forkLikePos_positional hpos).mpr (forkState_forkLikePos hfs)
-
-/-- The same iff read at a Position `q` (any representative presenting it). -/
-theorem forkLikePos_iff_exists_forkState_of_position_data
-    (q : Position) (p : WFState) (hq : (Quotient.mk orbitRungSetoid p : Position) = q)
-    (hd : BlockMin.FibreBlockData p.1) :
-    forkLikePos q ↔
-      ∃ p' : WFState, (Quotient.mk orbitRungSetoid p' : Position) = q ∧
-        forkState p'.1 := by
-  rw [← hq]
-  constructor
-  · intro hfl
-    obtain ⟨p', hpos, hfs⟩ :=
-      (forkLikePos_iff_exists_forkState_of_data p hd).mp hfl
-    exact ⟨p', (Quotient.sound hpos).symm, hfs⟩
-  · rintro ⟨p', hp', hfs⟩
-    exact (forkLikePos_iff_exists_forkState_of_data p hd).mpr
-      ⟨p', Setoid.symm (Quotient.exact hp'), hfs⟩
-
-/-! ## §5. The ungated form is FALSE: the `TwinPin` gadget (PROVED) -/
-
-/-- `BlockMin.gFin`'s spectrum is the twin pair `{5H, 5D}` (the weak grade). -/
 theorem gFin_forkLive : ForkLive BlockMin.gFin :=
   ⟨BlockMin.H5, fun c => (BlockMin.gFin_twinLivePair c).symm⟩
 
@@ -377,14 +260,6 @@ of `forkLikePos` (`forkLikePos_iff_exists_forkLiveAt`, definitional). -/
 def ForkLiveAt (q : Position) (x : Card) : Prop :=
   ∀ c, (c = x ∨ c = x.twin) ↔ spec q c
 
-/-- `forkLikePos` is the existential closure of `ForkLiveAt` (definitional). -/
-theorem forkLikePos_iff_exists_forkLiveAt (q : Position) :
-    forkLikePos q ↔ ∃ x, ForkLiveAt q x := Iff.rfl
-
-/-- **`PairMeetAt q u v x` — THE PAIR-MEET LOCATOR READ AT A POSITION.**
-On the fork's own twin pair the position's rungs are the pairwise minima of the
-two differing saturated endpoints.  This is the Position-level spelling of §1's
-`fork_pair_meet` (and nothing more: the full vector is not asserted). -/
 def PairMeetAt (q : Position) (u v : State) (x : Card) : Prop :=
   rungsOf q x.suit = min (rungAt u x.suit) (rungAt v x.suit) ∧
     rungsOf q x.twin.suit = min (rungAt u x.twin.suit) (rungAt v x.twin.suit)
@@ -472,27 +347,6 @@ theorem satDifferFork_of_meetConstancy
   obtain ⟨y, hy⟩ := forkState_iff.mp hfs
   exact ⟨F, y, hclsF, hy⟩
 
-/-- **THE DATA ROUTE (no constancy conjecture).**  `MeetPositionForkLike` plus
-the weaker meet-gate `MeetFibreBlock` discharge `SatDifferFork` through the
-PROVED gated existential (§4). -/
-theorem satDifferFork_of_meet_of_data
-    (hM : MeetPositionForkLike) (hgate : MeetFibreBlock) : SatDifferFork := by
-  intro u v hsu hsv hcls hdiff
-  obtain ⟨F, hF, x, hclsF, hfl, hmeet⟩ := hM u v hsu hsv hcls hdiff
-  have hd : BlockMin.FibreBlockData F :=
-    hgate u v x (Quotient.mk orbitRungSetoid ⟨F, hF⟩) ⟨F, hF⟩
-      hsu hsv hcls hdiff hmeet rfl hclsF
-  have hflpos : forkLikePos (Quotient.mk orbitRungSetoid ⟨F, hF⟩) := ⟨x, hfl⟩
-  obtain ⟨p', hpos, hfs⟩ :=
-    (forkLikePos_iff_exists_forkState_of_data ⟨F, hF⟩ hd).mp hflpos
-  have hcls' : sameOrbitSetoid.r u p'.1 :=
-    sameOrbitSetoid.iseqv.trans hclsF hpos.1
-  obtain ⟨y, hy⟩ := forkState_iff.mp hfs
-  exact ⟨p'.1, y, hcls', hy⟩
-
-/-! ## §7. The exact consumer chain -/
-
-/-- `SatDifferFork` implies its `WF`-gated form (drop the binder). -/
 theorem satDifferForkWF_of_satDifferFork (h : SatDifferFork) : SatDifferForkWF :=
   fun u v _ hsu hsv hcls hdiff => h u v hsu hsv hcls hdiff
 
@@ -509,17 +363,6 @@ theorem forkless_found_unique_of_meet
   forkless_found_unique_wf (satDifferForkWF_of_satDifferFork
     (satDifferFork_of_meetConstancy hM hc)) hwf hwf' hclass hfrk hsat hsat'
 
-/-- **THE CAMPAIGN THEOREM FROM THE DATA ROUTE.** -/
-theorem forkless_found_unique_of_meet_data
-    (hM : MeetPositionForkLike) (hgate : MeetFibreBlock)
-    {s s' : State} (hwf : s.WF) (hwf' : s'.WF)
-    (hclass : sameOrbitSetoid.r s s')
-    (hfrk : ∀ u, sameOrbitSetoid.r s u → ¬ forkState u)
-    (hsat : SSaturated s) (hsat' : SSaturated s') :
-    s.found = s'.found :=
-  forkless_found_unique_wf (satDifferForkWF_of_satDifferFork
-    (satDifferFork_of_meet_of_data hM hgate)) hwf hwf' hclass hfrk hsat hsat'
-
 end ForkFib
 
 /-! ## §8. Axiom battery -/
@@ -527,16 +370,6 @@ end ForkFib
 #print axioms ForkFib.floor_coordinate
 #print axioms ForkFib.fork_pair_floor_of_local
 #print axioms ForkFib.fork_at_the_meet_of_parts
-#print axioms ForkFib.fork_pair_rank_le_meet
-#print axioms ForkFib.armDichotomy_imp_satDifferFork
-#print axioms ForkFib.forkLikePos_positional
-#print axioms ForkFib.forkLive_positional
-#print axioms ForkFib.not_forkState_of_not_forkLikePos
-#print axioms ForkFib.forkState_implies_forkLikePos_mate
-#print axioms ForkFib.fibre_dichotomy_positional
-#print axioms ForkFib.forkLikePos_iff_exists_forkLiveAt
-#print axioms ForkFib.forkLikePos_iff_exists_forkState_of_data
-#print axioms ForkFib.forkLikePos_iff_exists_forkState_of_position_data
 #print axioms ForkFib.gFin_forkLive
 #print axioms ForkFib.gFin_forkLike
 #print axioms ForkFib.gFin_canRaise_H5
@@ -545,10 +378,8 @@ end ForkFib
 #print axioms ForkFib.not_forkLikePos_implies_forkState
 #print axioms ForkFib.gFin_not_fibreBlockData
 #print axioms ForkFib.satDifferFork_of_meetConstancy
-#print axioms ForkFib.satDifferFork_of_meet_of_data
 #print axioms ForkFib.satDifferForkWF_of_satDifferFork
 #print axioms ForkFib.forkless_found_unique_of_meet
-#print axioms ForkFib.forkless_found_unique_of_meet_data
 
 #check @ForkFib.ForkLiveAt
 #check @ForkFib.PairMeetAt

@@ -1,4 +1,5 @@
 import Orig2.Fork.Class.ForkOneColourClosure
+import Orig2.Substrate.PairClassSeed
 
 set_option autoImplicit false
 
@@ -131,12 +132,6 @@ inductive RaiseSSeqLicensed : State → List Card → State → Prop
 
 /-! ## §2. Suit bookkeeping (proved) -/
 
-/-- Two suits of the same colour are equal or twins. -/
-theorem suit_eq_or_twin_of_color {s t : Suit} (h : s.color = t.color) :
-    s = t ∨ s = t.twin := by
-  revert h
-  cases s <;> cases t <;> simp [Suit.color, Suit.twin]
-
 /-- The `nextUp` half of `SpecShift`: a raise in one suit never disturbs the
 next-up condition of a card of another suit. -/
 theorem nextUp_raise_ne {z z' : State} {c d : Card}
@@ -197,14 +192,6 @@ theorem tabToFoundR_iff_canRaise (st : State) (c : Card) :
         | cons x xs => simp [hc, hh]
       | cons x xs => simp [hc]
 
-/-- **A licensed raise passes the reversible-first oracle.** -/
-theorem canRaise_reversibleOf {st : State} {c : Card} (h : CanRaise st c) :
-    reversibleOf st (Move.tabToFound c) = true :=
-  (tabToFoundR_iff_canRaise st c).mpr h
-
-/-- **A reversible raise is licensed** (the converse, at `WF`).  So at a
-well-formed state "licensed raise" and "reversible raise" are the *same*
-predicate — this is what puts the whole lane in the reversible space. -/
 theorem canRaise_of_reversibleAtW {z : State} {c : Card} (hz : z.WF)
     (h : reversibleAtW z (Move.tabToFound c)) : CanRaise z c :=
   (tabToFoundR_iff_canRaise z c).mp ((tabToFoundR_iff_reversibleAtW hz c).mpr h)
@@ -254,7 +241,7 @@ theorem cover_seats {x c y : Card}
     rcases hxy : y.suit.color with _ | _ <;>
       rcases hcx : c.suit.color with _ | _ <;>
       rcases hxx : x.suit.color with _ | _ <;> simp_all
-  rcases suit_eq_or_twin_of_color hcol with hs | hs
+  rcases SeedKit.suit_family hcol with hs | hs
   · left
     cases y; cases c; simp_all
   · right
@@ -482,12 +469,10 @@ def RankFront : Prop :=
 
 end OneColourClosure
 
-#print axioms OneColourClosure.suit_eq_or_twin_of_color
 #print axioms OneColourClosure.nextUp_raise_ne
 #print axioms OneColourClosure.cover_seats
 #print axioms OneColourClosure.cover_seats_cases
 #print axioms OneColourClosure.tabToFoundR_iff_canRaise
-#print axioms OneColourClosure.canRaise_reversibleOf
 #print axioms OneColourClosure.canRaise_of_reversibleAtW
 #print axioms OneColourClosure.not_canRaise_of_not_reversibleAtW
 #print axioms OneColourClosure.canRaiseS_iff_cargoPath_reversibleAtW

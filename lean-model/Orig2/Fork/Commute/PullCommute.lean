@@ -35,15 +35,6 @@ namespace OneColourClosure
 carries the scratch copy). -/
 theorem card_twin_ne_self (c : Card) : c.twin ≠ c := card_twin_ne c
 
-/-- Membership in `sortByRank P` is membership in `P`. -/
-theorem mem_sortByRank_iff {P : List Card} {d : Card} :
-    d ∈ sortByRank P ↔ d ∈ P :=
-  (sortByRank_perm P).mem_iff
-
-/-- **THE PRE-TWIN GOOD ARM, BY COMMUTATION.**  From the low rescue at the
-pre-twin state (both twins vanilla at its endpoint), the original twin letter
-and the ascending high tail, build a licensed raise play from `z` that contains
-`c` and dominates the tail endpoint. -/
 theorem preTwin_goodArm
     {z t v : State} {c : Card} {rescue post : List Card} {zs : State}
     (hz : z.WF)
@@ -656,13 +647,6 @@ theorem raiseSSeqLicensed_eq_nil_of_ssaturated {u w : State} {ws : List Card}
         canRaiseS_of_raiseSSeqLicensed_head (by simpa [playWord] using hsingle)
       exact absurd hd (hsat d)
 
-/-- A class-mate of a `WF` state is `WF` (local copy of the one row the final
-chain used from `ForklessTop_Main`). -/
-theorem wf_of_sameOrbit {u v : State} (hcls : sameOrbitSetoid.r u v)
-    (hu : u.WF) : v.WF := by
-  obtain ⟨σ, hσ, τ, hτ⟩ := hcls
-  exact run_wf hu (Walk_run _ hτ)
-
 /-- **`SatDifferForkWF` FROM `raises_or_fork`.**  At saturated endpoints the
 only licensed raise word is empty, so the join from `u` forces `v ≤ u` and the
 join from `v` forces `u ≤ v`; differing rungs make that impossible, leaving the
@@ -689,7 +673,6 @@ theorem satDifferForkWF_proved : SatDifferForkWF := by
 
 end OneColourClosure
 
-#print axioms OneColourClosure.mem_sortByRank_iff
 #print axioms OneColourClosure.preTwin_goodArm
 #print axioms OneColourClosure.commute_pairwise_append_right_tail
 #print axioms OneColourClosure.play_fired_rung_floor

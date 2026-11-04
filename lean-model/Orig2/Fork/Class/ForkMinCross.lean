@@ -143,29 +143,9 @@ theorem shorter_of_readBracket
 
 /-! ## §2. The gated residual is exactly "minimal bottoms are forks" -/
 
-/-- `ReadBracketElimMin` forces the fork at every minimal valley split: the
-bracket branch would delete and contradict minimality. -/
-theorem forkAtMin_of_readBracketMin (h : ReadBracketElimMin) : ValleyForkAtMin := by
-  intro u v ρ F huwf hsu hsv hplay hmin hsplit
-  rcases h u v ρ F huwf hsu hsv hplay hmin hsplit with
-    hf | ⟨α, γ, β, z, bz, P, Q, hρ, hα, hstep, hcan, hread⟩
-  · exact hf
-  · exfalso
-    obtain ⟨ρ', hρ'play, hρ'len⟩ :=
-      shorter_of_readBracket huwf hplay hρ hα hstep hcan hread
-    exact absurd (hmin ρ' hρ'play) (by omega)
-
 theorem readBracketMin_of_forkAtMin (h : ValleyForkAtMin) : ReadBracketElimMin := by
   intro u v ρ F huwf hsu hsv hplay hmin hsplit
   exact Or.inl (h u v ρ F huwf hsu hsv hplay hmin hsplit)
-
-/-- **THE CORRECTION.**  At minimal plays the read-safe-bracket residual is
-EQUIVALENT to the fork statement: the bracket branch is never the content. -/
-theorem readBracketElimMin_iff_forkAtMin :
-    ReadBracketElimMin ↔ ValleyForkAtMin :=
-  ⟨forkAtMin_of_readBracketMin, readBracketMin_of_forkAtMin⟩
-
-/-! ## §3. The gated elimination and the campaign reduction -/
 
 theorem valleyElimNonforkMin_of_readBracketMin (h : ReadBracketElimMin) :
     ValleyElimNonforkMin := by
@@ -205,9 +185,7 @@ end ExistKit
 
 #print axioms ExistKit.bracket_of_samecard_window
 #print axioms ExistKit.shorter_of_readBracket
-#print axioms ExistKit.forkAtMin_of_readBracketMin
 #print axioms ExistKit.readBracketMin_of_forkAtMin
-#print axioms ExistKit.readBracketElimMin_iff_forkAtMin
 #print axioms ExistKit.valleyElimNonforkMin_of_readBracketMin
 #print axioms ExistKit.satDifferForkWF_of_valleyElimNonforkMin
 #print axioms ExistKit.satDifferForkWF_of_forkAtMin

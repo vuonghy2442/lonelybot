@@ -595,19 +595,6 @@ def ReadOK (z : Card) (q : Move) : Prop :=
   | Move.foundToTab c b => c.suit ≠ z.suit ∧ b ≠ Sum.inr z
   | Move.tabToTab c b => c ≠ z ∧ b ≠ Sum.inr z
 
-theorem readOK_raise_of_ne {z w : Card} (h : w.suit ≠ z.suit) :
-    ReadOK z (Move.tabToFound w) := h
-
-theorem readOK_pull_of_ne {z c : Card} {b : Base}
-    (hsu : c.suit ≠ z.suit) (hbz : b ≠ Sum.inr z) :
-    ReadOK z (Move.foundToTab c b) := ⟨hsu, hbz⟩
-
-theorem readOK_slide_of_ne {z c : Card} {b : Base}
-    (hcz : c ≠ z) (hbz : b ≠ Sum.inr z) :
-    ReadOK z (Move.tabToTab c b) := ⟨hcz, hbz⟩
-
-theorem readOK_draw (z : Card) : ReadOK z Move.draw := trivial
-
 theorem local_swap_of_read {st : State} {z : Card} {q : Move}
     (hst : st.WF) (hcan : CanRaise st z)
     (hrev : reversibleAtW st q) (hread : ReadOK z q) :

@@ -31,14 +31,6 @@ theorem top_unique {st : State} (hwf : st.WF) {z : Card} {a a' : Anchor}
     exact (mem_faceUp_unique hwf (Pile.mem_of_top h) a' (fun hc => hne hc.symm)).1
       (Pile.mem_of_top h')
 
-/-- The top search is pinned at `WF`: two answers agree. -/
-theorem pileOfTop_pin {st : State} (hwf : st.WF) {z : Card} {a a' : Anchor}
-    (h : st.pileOfTop z = some a) (h' : st.pileOfTop z = some a') : a = a' := by
-  have ht := (pileOfTop_eq_some_iff hwf).mp h
-  have ht' := (pileOfTop_eq_some_iff hwf).mp h'
-  exact top_unique hwf ht ht'
-
-/-- A founded card is no pile top. -/
 theorem not_top_of_found {st : State} (hwf : st.WF) {c : Card}
     (h : c ∈ st.found c.suit) : ∀ a, (st.piles a).top ≠ some c := by
   intro a ht
@@ -52,33 +44,8 @@ def tgt (u : State) (b : Base) : Option Anchor :=
   | .inl a => some a
   | .inr z => u.pileOfTop z
 
-@[simp] theorem tgt_inl (u : State) (a : Anchor) : tgt u (.inl a) = some a := rfl
 @[simp] theorem tgt_inr (u : State) (z : Card) : tgt u (.inr z) = u.pileOfTop z := rfl
 
-/-- `setFound` does not touch the target pile. -/
-theorem tgt_setFound (u : State) (s : Suit) (l : List Card) (b : Base) :
-    tgt (u.setFound s l) b = tgt u b := by
-  cases b with
-  | inl a => rfl
-  | inr z => rfl
-
-/-- The pile value written at a located base. -/
-def placeVal (u : State) (c : Card) (b : Base) (k : Anchor) : Pile :=
-  match b with
-  | .inl _ => Pile.mk [] [c]
-  | .inr _ => { u.piles k with faceUp := (u.piles k).faceUp ++ [c] }
-
-/-- `placeVal` reads only the written pile. -/
-theorem placeVal_congr {u v : State} {c : Card} {b : Base} {k : Anchor}
-    (h : v.piles k = u.piles k) : placeVal v c b k = placeVal u c b k := by
-  cases b with
-  | inl a => rfl
-  | inr z =>
-      show ({ v.piles k with faceUp := (v.piles k).faceUp ++ [c] } : Pile) = _
-      rw [h]
-      rfl
-
-/-- The pile written by `putCard` at a located base. -/
 theorem putCard_piles_at {u : State} {c : Card} {b : Base} {k : Anchor}
     (hk : tgt u b = some k) :
     (u.putCard c b).piles =
@@ -158,19 +125,6 @@ theorem pullSt_drawStep (u : State) (c : Card) (b : Base) :
     (pullSt u c b).drawStep = u.drawStep := by
   rw [pullSt_eq, setFound_drawStep, putCard_drawStep]
 
-/-- The pull's written piles at a located base. -/
-theorem pullSt_piles_at {u : State} {c : Card} {b : Base} {k : Anchor}
-    (hk : tgt u b = some k) :
-    (pullSt u c b).piles =
-      (fun a' => if a' = k then
-        (match b with
-          | .inl _ => Pile.mk [] [c]
-          | .inr _ => { u.piles k with faceUp := (u.piles k).faceUp ++ [c] })
-        else u.piles a') := by
-  rw [pullSt_piles]
-  exact putCard_piles_at hk
-
-/-- The pull only writes its target pile. -/
 theorem pullSt_piles_ne {u : State} {c : Card} {b : Base} {k a : Anchor}
     (hk : tgt u b = some k) (hne : a ≠ k) :
     (pullSt u c b).piles a = u.piles a := by
@@ -488,38 +442,6 @@ theorem step_comm_raise_raise {st s1 s2 s12 s21 : State} {c1 c2 : Card}
 
 /-! ## 0. `setFound` commutation at different suits -/
 
-theorem setFound_setFound_ne {u : State} {s1 s2 : Suit} (h : s1 ≠ s2)
-    (l1 l2 : List Card) :
-    (u.setFound s1 l1).setFound s2 l2 = (u.setFound s2 l2).setFound s1 l1 := by
-  apply State.ext
-  · funext s
-    by_cases hs1 : s = s1
-    · simp only [hs1, setFound_found_self,
-        setFound_found_ne (show ¬ (s1 = s2) from h)]
-    · by_cases hs2 : s = s2
-      · simp only [hs2, setFound_found_self,
-          setFound_found_ne (show ¬ (s2 = s1) from fun hh => h hh.symm)]
-      · simp only [setFound_found_ne hs1, setFound_found_ne hs2]
-  · rw [setFound_piles, setFound_piles, setFound_piles, setFound_piles]
-  · rw [setFound_stock, setFound_stock, setFound_stock, setFound_stock]
-  · rw [setFound_waste, setFound_waste, setFound_waste, setFound_waste]
-  · rw [setFound_drawStep, setFound_drawStep, setFound_drawStep, setFound_drawStep]
-
-/-- Two disjoint pile edits commute (pointwise form). -/
-theorem piles_swap_if {u : State} {a k : Anchor} (hne : k ≠ a) (Qa Qk : Pile) :
-    (fun x => if x = a then Qa else if x = k then Qk else u.piles x)
-      = (fun x => if x = k then Qk else if x = a then Qa else u.piles x) := by
-  funext x
-  by_cases h1 : x = a
-  · have h2 : ¬ x = k := fun h => hne (h.symm.trans h1)
-    simp only [ite_eq_left h1, ite_eq_right h2]
-  · by_cases h2 : x = k
-    · simp only [ite_eq_left h2, ite_eq_right h1]
-    · simp only [ite_eq_right h2, ite_eq_right h1]
-
-/-! ## 1. Search stability under a raise -/
-
-/-- A raise of `d` at pile `a` leaves every other base's target alone. -/
 theorem tgt_raise_stable {u r : State} (hwf : u.WF) {d : Card} {a : Anchor} {b : Base}
     {k : Anchor} (hs : State.step u (Move.tabToFound d) = some r)
     (hda : u.pileOfTop d = some a)

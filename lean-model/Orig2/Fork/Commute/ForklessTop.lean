@@ -70,12 +70,6 @@ def ForklessSatRungsAgree : Prop :=
 
 /-! ## §2. Basic orbit and raise kit -/
 
-/-- A class-mate of a `WF` state is `WF`. -/
-theorem wf_of_sameOrbit {u v : State} (hcls : sameOrbitSetoid.r u v)
-    (hu : u.WF) : v.WF := by
-  obtain ⟨σ, hσ, τ, hτ⟩ := hcls
-  exact run_wf hu (Walk_run _ hτ)
-
 /-- **An S-licensed card raises to a same-orbit `WF` landing.**  The
 raised suit increments by one, every other rung is fixed. -/
 theorem exists_armRaise_sameOrbit {F : State} {c : Card} (hF : F.WF)
@@ -106,13 +100,6 @@ theorem rungSum_eq_of_rung_eq {u v : State}
 
 /-! ## §3. The decidable saturation frontier -/
 
-/-- `rankSatB` is the certified Bool decision procedure for `RankSat`
-(`Orig2/Substrate/CargoRaise.lean:880`). -/
-theorem rankSatB_true_iff {st : State} (hwf : st.WF) (k : Nat) :
-    rankSatB k st = true ↔ RankSat k st :=
-  rankSatB_iff hwf k
-
-/-- At `WF`, the full frontier `rankSatB 13` is `SSaturated`. -/
 theorem ssaturated_of_rankSatB_true {st : State} (hwf : st.WF)
     (h : rankSatB 13 st = true) : SSaturated st := by
   have hRank : RankSat 13 st := (rankSatB_iff hwf 13).mp h
@@ -415,7 +402,6 @@ end ForklessTop
 
 /-! ## §7. Axiom battery -/
 
-#print axioms ForklessTop.wf_of_sameOrbit
 #print axioms ForklessTop.exists_armRaise_sameOrbit
 #print axioms ForklessTop.rungSum_eq_of_rung_eq
 #print axioms ForklessTop.ssaturated_of_rankSatB_true

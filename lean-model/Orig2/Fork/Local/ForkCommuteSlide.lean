@@ -202,22 +202,6 @@ theorem afterRunRemoved_eq_faceUp {p : Pile} {pre : List Card}
         subst hh
         rfl
 
-/-- The `faceUp` of the edited source. -/
-theorem afterRunRemoved_faceUp_eq {p : Pile} {pre : List Card}
-    (h : pre ≠ [] ∨ (pre = [] ∧ p.hidden = [])) :
-    (p.afterRunRemoved pre).faceUp = pre := by
-  rw [afterRunRemoved_eq_faceUp h]
-
-/-- The `hidden` of the edited source is unchanged in the reversible cell. -/
-theorem afterRunRemoved_hidden_eq {p : Pile} {pre : List Card}
-    (h : pre ≠ [] ∨ (pre = [] ∧ p.hidden = [])) :
-    (p.afterRunRemoved pre).hidden = p.hidden := by
-  rw [afterRunRemoved_eq_faceUp h]
-
-/-! ## 3. The target resolution survives the source edit -/
-
-/-- **THE RE-RESOLUTION ROW**: editing the source pile of a slide does
-not move the top search of any other pile's top card. -/
 theorem setPile_afterRunRemoved_pileOfTop {st : State} (hwf : st.WF)
     {z : Card} {k a : Anchor} (hk : st.pileOfTop z = some k) (hak : k ≠ a)
     (c : Card) :
@@ -357,14 +341,6 @@ theorem slideSt_drawStep (u : State) (c : Card) (b : Base) (a : Anchor) :
     (slideSt u c b a).drawStep = u.drawStep := by
   rw [slideSt, putRun_drawStep, setPile_drawStep]
 
-/-- `setPile`'s pile map reads only the input piles. -/
-theorem setPile_piles_congr {u v : State} (hp : u.piles = v.piles) (a : Anchor) (Q : Pile) :
-    (u.setPile a Q).piles = (v.setPile a Q).piles := by
-  funext a'
-  show (if a' = a then Q else u.piles a') = (if a' = a then Q else v.piles a')
-  rw [hp]
-
-/-- `putRun`'s pile map reads only the input piles. -/
 theorem putRun_piles_congr {u v : State} (hp : u.piles = v.piles) (run : List Card) (b : Base) :
     (u.putRun run b).piles = (v.putRun run b).piles := by
   cases b with
@@ -379,14 +355,6 @@ theorem putRun_piles_congr {u v : State} (hp : u.piles = v.piles) (run : List Ca
           have hz' : v.pileOfTop z = some k := by rw [← hpq]; exact hz
           rw [putRun_piles_inr _ _ _ _ hz, putRun_piles_inr _ _ _ _ hz', hp]
 
-/-- The slide's piles read only the input piles. -/
-theorem slideSt_piles_congr {u v : State} (hp : u.piles = v.piles) (c : Card) (b : Base)
-    (a : Anchor) :
-    (slideSt u c b a).piles = (slideSt v c b a).piles := by
-  rw [slideSt, slideSt, hp]
-  exact putRun_piles_congr (setPile_piles_congr hp a _) _ b
-
-/-- A legal `.tabToTab` lands on `slideSt`. -/
 theorem step_tabToTab_slideSt {u s : State} {c : Card} {b : Base}
     (hs : State.step u (Move.tabToTab c b) = some s) :
     ∃ a, u.pileHolding c = some a ∧ u.canPlace c b = true ∧
@@ -510,55 +478,6 @@ theorem slideSt_piles_at {st : State} {c : Card} {b : Base} {a k : Anchor}
 
 /-! ## 6. Search transfer across `putRun` / `putCard` / `pullSt` -/
 
-/-- `putRun` onto an empty seat leaves every other pile's top search
-alone. -/
-theorem putRun_inl_pileOfTop_ne {u : State} (hwf : u.WF) {run : List Card}
-    (hrun : run ≠ []) {a : Anchor} {z : Card} {m : Anchor}
-    (hz : u.pileOfTop z = some m) (ham : a ≠ m) (hzrun : z ∉ run) :
-    (u.putRun run (Sum.inl a)).pileOfTop z = some m := by
-  obtain ⟨-, hzlast⟩ := pileOfTop_top hz
-  have hzmem : z ∈ (u.piles m).faceUp := lastOf_mem hzlast
-  have htopm : (u.piles m).top = some z := (pileOfTop_eq_some_iff hwf).mp hz
-  have hno : ∀ j : Anchor, j ≠ m → ((u.putRun run (Sum.inl a)).piles j).top ≠ some z := by
-    intro j hjm ht
-    by_cases hja : j = a
-    · rw [hja] at ht
-      rw [putRun_piles_inl_self] at ht
-      have ht' : lastOf run = some z := ht
-      exact hzrun (lastOf_mem ht')
-    · rw [putRun_piles_inl_ne u run a j hja] at ht
-      exact (mem_faceUp_unique hwf hzmem j hjm).1 (Pile.mem_of_top ht)
-  have htopm' : ((u.putRun run (Sum.inl a)).piles m).top = some z := by
-    rw [putRun_piles_inl_ne u run a m (Ne.symm ham)]
-    exact htopm
-  exact pileOfTop_of_top_unique htopm' hno
-
-/-- `putRun` onto a located card leaves every other pile's top search
-alone. -/
-theorem putRun_inr_pileOfTop_ne {u : State} (hwf : u.WF) {run : List Card}
-    (hrun : run ≠ []) {w : Card} {k : Anchor} (hk : u.pileOfTop w = some k)
-    {z : Card} {m : Anchor} (hz : u.pileOfTop z = some m) (hkm : k ≠ m)
-    (hzrun : z ∉ run) :
-    (u.putRun run (Sum.inr w)).pileOfTop z = some m := by
-  obtain ⟨-, hzlast⟩ := pileOfTop_top hz
-  have hzmem : z ∈ (u.piles m).faceUp := lastOf_mem hzlast
-  have htopm : (u.piles m).top = some z := (pileOfTop_eq_some_iff hwf).mp hz
-  have hno : ∀ j : Anchor, j ≠ m → ((u.putRun run (Sum.inr w)).piles j).top ≠ some z := by
-    intro j hjm ht
-    by_cases hjk : j = k
-    · rw [hjk] at ht
-      rw [putRun_piles_inr_self _ _ _ _ hk] at ht
-      have ht' : lastOf ((u.piles k).faceUp ++ run) = some z := ht
-      rw [lastOf_append_of_ne_nil hrun] at ht'
-      exact hzrun (lastOf_mem ht')
-    · rw [putRun_piles_inr_ne _ _ _ _ hk hjk] at ht
-      exact (mem_faceUp_unique hwf hzmem j hjm).1 (Pile.mem_of_top ht)
-  have htopm' : ((u.putRun run (Sum.inr w)).piles m).top = some z := by
-    rw [putRun_piles_inr_ne _ _ _ _ hk (Ne.symm hkm)]
-    exact htopm
-  exact pileOfTop_of_top_unique htopm' hno
-
-/-- `putCard` onto an empty seat leaves every other top search alone. -/
 theorem putCard_inl_pileOfTop_ne {u : State} (hwf : u.WF) {c : Card} {a : Anchor}
     (hfound : c ∈ u.found c.suit) {z : Card} {m : Anchor}
     (hz : u.pileOfTop z = some m) (ham : a ≠ m) :

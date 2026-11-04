@@ -422,7 +422,7 @@ theorem state_relabelTwin_seat_other {st : State} {x y : Card} (_hwf : st.WF)
 
 /-- A list all of whose entries are fixed by `f` is unchanged by
 `List.map f`. -/
-private theorem map_eq_self {α : Type} (f : α → α) :
+theorem map_eq_self {α : Type} (f : α → α) :
     ∀ {l : List α}, (∀ a ∈ l, f a = a) → l.map f = l
   | [], _ => rfl
   | a :: t, h => by

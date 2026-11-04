@@ -40,8 +40,6 @@ raise).  `playWord P` is the word whose chronological play is the list `P`. -/
 /-- The word whose chronological play is `P`. -/
 def playWord (P : List Card) : List Card := P.reverse
 
-@[simp] theorem playWord_nil : playWord ([] : List Card) = [] := rfl
-
 theorem playWord_append (P Q : List Card) :
     playWord (P ++ Q) = playWord Q ++ playWord P := by
   simp [playWord]
@@ -1599,7 +1597,6 @@ end OneColourClosure
 
 /-! ## §17. The battery (rest of the deck) -/
 
-#print axioms OneColourClosure.playWord_nil
 #print axioms OneColourClosure.playWord_append
 #print axioms OneColourClosure.playWord_snoc
 #print axioms OneColourClosure.cargoLeg_rungAt

@@ -250,23 +250,6 @@ theorem FirstPassage.classification {u v : State} {ρ : List Move} {σ : Suit}
   exact ⟨pre, m, rest, mid, post, hplay, hpre, hstep, hrest,
     step_rung_classification hstep hlet hrung hchange⟩
 
-/-- **EVERY PREFIX BEFORE THE PASSAGE READS THE ORIGIN RUNG.** -/
-theorem FirstPassage.pre_rung {u v : State} {ρ : List Move} {σ : Suit}
-    (fp : FirstPassage u v ρ σ) :
-    ∃ (pre : List Move) (m : Move) (rest : List Move) (mid post : State),
-      ρ = pre ++ m :: rest ∧ ShufflePlayW u pre mid ∧
-      rungAt mid σ = rungAt u σ ∧
-      (∀ (a b : List Move), pre = a ++ b → ∀ y : State,
-        u.run a = some y → rungAt y σ = rungAt u σ) := by
-  obtain ⟨pre, m, rest, mid, post, hplay, hpre, hstep, hrest, hlet, hstable,
-    hchange⟩ := fp
-  exact ⟨pre, m, rest, mid, post, hplay, hpre,
-    hstable pre [] (List.append_nil pre).symm mid (Walk_run _ hpre), hstable⟩
-
-/-! ## §3. The local shapes at the passage -/
-
-/-- `tabToFoundR` is the decidability shape of `CanRaise`: the seat
-clause of `CanRaise` is exactly the chop/king clause of the shape. -/
 theorem canRaise_of_tabToFoundR {st : State} {c : Card}
     (h : tabToFoundR st c = true) : CanRaise st c := by
   unfold tabToFoundR at h
@@ -298,23 +281,6 @@ theorem step_raise_live {mid post : State} {c : Card} (hwf : mid.WF)
   CanRaiseS.now c
     (canRaise_of_tabToFoundR ((tabToFoundR_iff_reversibleAtW hwf c).mpr hlet))
 
-/-- **THE FLAT SEAT SHAPE AT A RAISE** — the `canRaiseS_flat_necessity`
-row (`Orig2/Substrate/CargoRaise.lean:329`) instantiated at the passage state:
-`c` is next-up, sits face-up as `bs ++ c :: run`, has company below or
-the bare-king cell, and either no run above or its twin tops a pile.
-These are exactly the two escapes the `SSaturated` endpoints bar (the
-cover's own raise; the covered card's slide cascade). -/
-theorem step_raise_flat {mid post : State} {c : Card} (hwf : mid.WF)
-    (hstep : State.step mid (Move.tabToFound c) = some post)
-    (hlet : reversibleAtW mid (Move.tabToFound c)) :
-    mid.nextUp c = true ∧
-      ∃ a bs run, (mid.piles a).faceUp = bs ++ c :: run ∧
-        (bs ≠ [] ∨ ((mid.piles a).hidden = [] ∧ c.rank = Rank.king)) ∧
-        (run = [] ∨ mid.pileOfTop c.twin ≠ none) :=
-  canRaiseS_flat_necessity hwf (step_raise_live hwf hstep hlet)
-
-/-- **AT A PULL THE PULLED CARD IS THE FOUNDATION TOP** and the rung
-lands on its rank index (`foundTop_rank_succ`). -/
 theorem step_pull_shape {mid post : State} {c : Card} {b : Base} {σ : Suit}
     (hwf : mid.WF) (hstep : State.step mid (Move.foundToTab c b) = some post)
     (hchange : rungAt post σ ≠ rungAt mid σ) :
@@ -368,49 +334,6 @@ theorem FirstPassage.shape {u v : State} {ρ : List Move} {σ : Suit}
     · exact (step_pull_shape hmid (hm ▸ hstep) hchange).1
     · exact (step_pull_shape hmid (hm ▸ hstep) hchange).2
 
-/-- **THE DIP FEED, FLAT-SEAT FORM** — the same census with the raise
-arm expanded by `canRaiseS_flat_necessity` (`Orig2/Substrate/CargoRaise.lean:329`):
-the raised `σ`-card is next-up, its face-up seat is `bs ++ c :: run`,
-it has company below (or is the bare king), and either no run above it
-or its twin tops a pile.  These are exactly the two escapes the
-`SSaturated` endpoints bar (the cover's own raise; the covered card's
-slide cascade). -/
-theorem FirstPassage.shape_flat {u v : State} {ρ : List Move} {σ : Suit}
-    (hwf : u.WF) (fp : FirstPassage u v ρ σ) :
-    ∃ (pre : List Move) (m : Move) (rest : List Move) (mid post : State),
-      ρ = pre ++ m :: rest ∧
-      ShufflePlayW u pre mid ∧ State.step mid m = some post ∧
-      ShufflePlayW post rest v ∧
-      (∀ (a b : List Move), pre = a ++ b → ∀ y : State,
-        u.run a = some y → rungAt y σ = rungAt u σ) ∧
-      ((∃ (c : Card) (a : Anchor) (bs run : List Card),
-          m = Move.tabToFound c ∧ c.suit = σ ∧ mid.nextUp c = true ∧
-          (mid.piles a).faceUp = bs ++ c :: run ∧
-          (bs ≠ [] ∨ ((mid.piles a).hidden = [] ∧ c.rank = Rank.king)) ∧
-          (run = [] ∨ mid.pileOfTop c.twin ≠ none) ∧
-          rungAt post σ = rungAt u σ + 1) ∨
-        (∃ (c : Card) (b : Base), m = Move.foundToTab c b ∧ c.suit = σ ∧
-          mid.foundTop σ = some c ∧ c.rank.toIdx = rungAt post σ ∧
-          rungAt post σ = rungAt u σ - 1)) := by
-  obtain ⟨pre, m, rest, mid, post, hplay, hpre, hstep, hrest, hstable,
-    hdisj⟩ := FirstPassage.shape hwf fp
-  have hmid : mid.WF := Walk_wf_end hpre hwf
-  refine ⟨pre, m, rest, mid, post, hplay, hpre, hstep, hrest, hstable, ?_⟩
-  rcases hdisj with ⟨c, hm, hs, hS, hr⟩ | ⟨c, b, hm, hs, htop, hidx, hr⟩
-  · obtain ⟨hn, a, bs, run, hface, hseat, hrun⟩ :=
-      canRaiseS_flat_necessity hmid hS
-    exact Or.inl ⟨c, a, bs, run, hm, hs, hn, hface, hseat, hrun, hr⟩
-  · exact Or.inr ⟨c, b, hm, hs, htop, hidx, hr⟩
-
-/-! ## §4. The first rise above a level (the dip's "first raise") -/
-
-/-- **A FIRST RISE of suit `σ` above the level `k`** along `ρ : u → v`:
-a longest prefix all of whose states read `≤ k`, then a single legal
-`tabToFound` of a `σ`-card of rank index exactly `k` at a state whose
-`σ`-rung is exactly `k`, landing at `k + 1`.  This is the frozen
-`lowslab_rung_walk` (`Orig/LowSlab.lean:1239`) restated over the
-registry's `rungAt`; it is the dip's "first raise of the twin at the
-rung exactly". -/
 def FirstRise (u v : State) (ρ : List Move) (σ : Suit) (k : Nat) : Prop :=
   ∃ (pre : List Move) (m : Move) (rest : List Move) (mid post : State)
       (c : Card),
@@ -880,13 +803,10 @@ theorem firstRise_or_firstFall_of_rung_ne {u v : State} {ρ : List Move} {σ : S
 #print axioms firstPassage_exists
 #print axioms step_rung_classification
 #print axioms FirstPassage.classification
-#print axioms FirstPassage.pre_rung
 #print axioms canRaise_of_tabToFoundR
 #print axioms step_raise_live
-#print axioms step_raise_flat
 #print axioms step_pull_shape
 #print axioms FirstPassage.shape
-#print axioms FirstPassage.shape_flat
 #print axioms step_rise_classification
 #print axioms firstRise_head
 #print axioms firstRise_carry

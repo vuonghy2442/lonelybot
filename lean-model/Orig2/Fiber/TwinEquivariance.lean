@@ -497,14 +497,6 @@ Integrity kit since its dedup pass; this chapter's `_relabel` private
 copies were struck at the 2026-10-31 shared-kit sweep (the cites
 re-point at Integrity's rows). -/
 
-/-- A list all of whose entries are fixed by `f` is unchanged by `List.map f`. -/
-private theorem map_eq_self_generic {α : Type} (f : α → α) :
-    ∀ {l : List α}, (∀ a ∈ l, f a = a) → l.map f = l
-  | [], _ => rfl
-  | a :: t, h => by
-      rw [List.map_cons, h a (by simp)]
-      exact congrArg (a :: ·) (map_eq_self_generic f (fun b hb => h b (by simp [hb])))
-
 /-- At a both-seated `WF` state the foundations are untouched by the pair
 transposition. -/
 theorem state_relabelTwin_found_eq {st : State} {x : Card} (hwf : st.WF)
@@ -514,7 +506,7 @@ theorem state_relabelTwin_found_eq {st : State} {x : Card} (hwf : st.WF)
   obtain ⟨-, -, -, hxfo⟩ := off_zones_of_seat hwf hx
   obtain ⟨-, -, -, hxtfo⟩ := off_zones_of_seat hwf hxt
   simp only [state_relabelTwin_found]
-  exact map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
+  exact map_eq_self (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (fun h => hxfo s (h ▸ hc)) (fun h => hxtfo s (h ▸ hc)))
 
 /-- At a both-seated `WF` state the hidden decks are untouched. -/
@@ -525,7 +517,7 @@ theorem state_relabelTwin_hidden_eq {st : State} {x : Card} (hwf : st.WF)
   obtain ⟨hxhid, -, -, -⟩ := off_zones_of_seat hwf hx
   obtain ⟨hxthid, -, -, -⟩ := off_zones_of_seat hwf hxt
   simp only [state_relabelTwin_piles_hidden]
-  exact map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
+  exact map_eq_self (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (fun h => hxhid a (h ▸ hc)) (fun h => hxthid a (h ▸ hc)))
 
 /-- At a both-seated `WF` state the stock is untouched. -/
@@ -535,7 +527,7 @@ theorem state_relabelTwin_stock_eq {st : State} {x : Card} (hwf : st.WF)
   obtain ⟨-, hxst, -, -⟩ := off_zones_of_seat hwf hx
   obtain ⟨-, hxtst, -, -⟩ := off_zones_of_seat hwf hxt
   simp only [state_relabelTwin_stock]
-  exact map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
+  exact map_eq_self (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (fun h => hxst (h ▸ hc)) (fun h => hxtst (h ▸ hc)))
 
 /-- At a both-seated `WF` state the waste is untouched. -/
@@ -545,7 +537,7 @@ theorem state_relabelTwin_waste_eq {st : State} {x : Card} (hwf : st.WF)
   obtain ⟨-, -, hxwa, -⟩ := off_zones_of_seat hwf hx
   obtain ⟨-, -, hxtwa, -⟩ := off_zones_of_seat hwf hxt
   simp only [state_relabelTwin_waste]
-  exact map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
+  exact map_eq_self (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (fun h => hxwa (h ▸ hc)) (fun h => hxtwa (h ▸ hc)))
 /-! ## §8. The draw pipeline -/
 
@@ -755,7 +747,7 @@ def NotFoundPair (x : Card) (m : Move) : Prop :=
 /-- A list all of whose cards are off the pair is fixed by the transposition. -/
 private theorem map_eq_self_off (x : Card) {l : List Card}
     (h : ∀ c ∈ l, c ≠ x ∧ c ≠ x.twin) : l.map (Card.relabelTwin x) = l :=
-  map_eq_self_generic (Card.relabelTwin x) (fun c hc =>
+  map_eq_self (Card.relabelTwin x) (fun c hc =>
     card_relabelTwin_ne (h c hc).1 (h c hc).2)
 
 /-- The step commutation at a move that does not raise or pull either twin. -/

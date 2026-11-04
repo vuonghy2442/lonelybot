@@ -75,11 +75,6 @@ theorem cargoPath_flatPath {a b : State} (h : CargoPath a b) : FlatPath a b := b
   | refl w => exact Steps.refl w
   | cons hleg _ ih => exact Steps.cons (cargoLeg_flatStep hleg) ih
 
-/-- Bare cargo equivalence is flat reachability. -/
-theorem bareCargo_flatPath {a b : State} (h : BareCargoEquiv a b) : FlatPath a b :=
-  cargoPath_flatPath h.1
-
-/-- A flat step fixes every rung. -/
 theorem rungAt_flatStep {a b : State} (h : FlatStep a b) (σ : Suit) :
     rungAt a σ = rungAt b σ := by
   cases h with
@@ -121,15 +116,6 @@ theorem arms_never_flatJoin {F A B : State} {c d : Card}
     exact h
   omega
 
-/-- The same obstruction against the bare-cargo currency. -/
-theorem arms_never_bareCargo {F A B : State} {c d : Card}
-    (hA : ArmRaise F c A) (hB : ArmRaise F d B) (hsu : c.suit ≠ d.suit) :
-    ¬ BareCargoEquiv A B :=
-  fun h => arms_never_flatJoin hA hB hsu (bareCargo_flatPath h)
-
-/-! ## §3. The two-raise square (the join in the non-fork case) -/
-
-/-- The explicit raise landing state. -/
 def raiseSt (u : State) (c : Card) (a : Anchor) : State :=
   (u.setFound c.suit (u.found c.suit ++ [c])).setPile a
     (Pile.afterRunRemoved (u.piles a) (chop (u.piles a).faceUp))
@@ -367,18 +353,6 @@ theorem no_raise_after_twin_raise {F A : State} {x y d : Card}
 
 /-! ## §5. The assembled dichotomy -/
 
-/-- The fork arm's second leg never fires: no cargo accommodation of the
-landing state of `raise x` can raise the covered twin `y`. -/
-theorem fork_second_leg_dead {F A : State} {x y : Card}
-    (hwf : F.WF) (hxy : y = x.twin)
-    (hx : State.step F (Move.tabToFound x) = some A)
-    (hd : CoveredAt F y) :
-    ¬ ∃ Z, CargoPath A Z ∧ CanRaise Z y := by
-  rintro ⟨Z, hZ, hcan⟩
-  obtain ⟨d, hdseat⟩ := hd
-  exact no_raise_after_twin_raise hwf hxy hx hdseat Z hZ hcan
-
-/-- `below` keeps the prefix when the target is absent from it. -/
 theorem below_append_notmem {t : Card} : ∀ {xs : List Card}, t ∉ xs → ∀ ys,
     below t (xs ++ ys) = xs ++ below t ys := by
   intro xs
@@ -553,79 +527,16 @@ theorem canRaise_of_reversible_raise {st : State} (hwf : st.WF) {c : Card}
       · exact hn
   exact ⟨hn, a, ha, hseat⟩
 
-/-- The S-grade version: a witness raise at `WF` makes the card S-live. -/
-theorem canRaiseS_of_reversible_raise {st : State} (hwf : st.WF) {c : Card}
-    (h : reversibleAtW st (Move.tabToFound c)) : CanRaiseS st c :=
-  CanRaiseS.now c (canRaise_of_reversible_raise hwf h)
-
-/-- **A saturated `WF` state has no undoable raise letter.**  Hence the first
-letter of any witness play from a saturated `WF` state is a draw, a pull, or a
-slide — never a raise. -/
-theorem not_reversible_raise_of_ssaturated {st : State} (hwf : st.WF)
-    (hs : SSaturated st) {c : Card} :
-    ¬ reversibleAtW st (Move.tabToFound c) :=
-  fun h => hs c (canRaiseS_of_reversible_raise hwf h)
-
-/-! ## §2. The census corollary -/
-
-/-- **No raise letters ⇒ the rung cannot rise.**  Immediate from the additive
-census `rungAt w σ + pullsOf ρ σ = rungAt st σ + raisesOf ρ σ`. -/
-theorem rung_le_of_raises_zero {st w : State} {ρ : List Move}
-    (h : ShufflePlayW st ρ w) {σ : Suit} (hz : raisesOf ρ σ = 0) :
-    rungAt w σ ≤ rungAt st σ := by
-  have hc := shuffle_rung_census h σ
-  omega
-
-/-- **Rung equality from two raise-free witness plays.**  This is the exact
-arithmetic shape the forkless route wants: one play each way, each free of
-raises, forces every rung to agree. -/
-theorem rungEq_of_no_raise_shuffles {u v : State} {ρ τ : List Move}
-    (h1 : ShufflePlayW u ρ v) (h2 : ShufflePlayW v τ u)
-    (hz1 : ∀ σ : Suit, raisesOf ρ σ = 0)
-    (hz2 : ∀ σ : Suit, raisesOf τ σ = 0) : RungEq u v := by
-  intro σ
-  have a : rungAt v σ ≤ rungAt u σ := rung_le_of_raises_zero h1 (hz1 σ)
-  have b : rungAt u σ ≤ rungAt v σ := rung_le_of_raises_zero h2 (hz2 σ)
-  omega
-
-/-- **The first letter of a witness play from a saturated `WF` state is not a
-raise.**  Direct from `not_reversible_raise_of_ssaturated`. -/
-theorem first_letter_ne_raise {st s1 : State} (hwf : st.WF) (hs : SSaturated st)
-    {m : Move} (hstep : State.step st m = some s1) (hrev : reversibleAtW st m) :
-    ¬ ∃ c : Card, m = Move.tabToFound c := by
-  rintro ⟨c, rfl⟩
-  exact not_reversible_raise_of_ssaturated hwf hs hrev
-
-/-- **The first letter of a witness play from a saturated `WF` state cannot
-raise any rung.**  The letter is a draw or a slide (rung fixed) or a pull
-(rung drops); a raise is excluded by the saturation bridge, and the two waste
-letters are excluded by reversibility.  This is the local "no climb out of a
-saturated endpoint" fact behind the dip's first passage. -/
-theorem first_step_rung_le {st s1 : State} (hwf : st.WF) (hs : SSaturated st)
-    {m : Move} (hstep : State.step st m = some s1) (hrev : reversibleAtW st m) :
-    ∀ σ : Suit, rungAt s1 σ ≤ rungAt st σ := by
-  intro σ
-  rcases m with _ | cf | ⟨cf, bf⟩ | cf | ⟨cf, bf⟩ | ⟨cf, bf⟩
-  · rw [rungAt_draw hstep σ]
-    omega
-  · exact absurd hrev (wasteToFound_not_reversibleAtW st cf)
-  · exact absurd hrev (wasteToTab_not_reversibleAtW st cf bf)
-  · exact absurd hrev (not_reversible_raise_of_ssaturated hwf hs)
-  · rw [rungAt_foundToTab hstep σ]
-    by_cases hσ : σ = cf.suit
-    · rw [ite_eq_left hσ]; omega
-    · rw [ite_eq_right hσ]
-      omega
-  · rw [rungAt_tabToTab hstep σ]
-    omega
-
-/-! ## §3. A pull creates a live card -/
-
-/-- **SAME ORBIT SUPPLIES THE PLAY.** -/
 theorem sameOrbit_reachable {u v : State} (h : sameOrbitSetoid.r u v) :
     ∃ ρ : List Move, ShufflePlayW u ρ v := by
   obtain ⟨ρ, _, ρ', hρ'⟩ := h
   exact ⟨ρ', hρ'⟩
+
+/-- A class-mate of a `WF` state is `WF`. -/
+theorem wf_of_sameOrbit {u v : State} (hcls : sameOrbitSetoid.r u v)
+    (hu : u.WF) : v.WF := by
+  obtain ⟨σ, hσ, τ, hτ⟩ := hcls
+  exact run_wf hu (Walk_run _ hτ)
 
 /-- Two raises of the same suit cannot both fire in both orders. -/
 theorem raise_same_suit_contra {u s1 s2 s12 : State} (hwf : u.WF) {c1 c2 : Card}
@@ -669,7 +580,6 @@ theorem raise_same_suit_contra {u s1 s2 s12 : State} (hwf : u.WF) {c1 c2 : Card}
 
 #print axioms forkWitness_iff
 #print axioms arms_never_flatJoin
-#print axioms arms_never_bareCargo
 #print axioms twin_raise_square
 #print axioms raiseSt_commute
 #print axioms both_vanilla_twin_join
@@ -681,14 +591,8 @@ theorem raise_same_suit_contra {u s1 s2 s12 : State} (hwf : u.WF) {c1 c2 : Card}
 #print axioms not_canRaise_of_covered
 #print axioms forkWitness_iff_covered
 #print axioms join_of_not_covered
-#print axioms fork_second_leg_dead
 
 #print axioms canRaise_of_reversible_raise
-#print axioms canRaiseS_of_reversible_raise
-#print axioms not_reversible_raise_of_ssaturated
-#print axioms rung_le_of_raises_zero
-#print axioms rungEq_of_no_raise_shuffles
-#print axioms first_letter_ne_raise
-#print axioms first_step_rung_le
 #print axioms raise_same_suit_contra
 #print axioms sameOrbit_reachable
+#print axioms wf_of_sameOrbit

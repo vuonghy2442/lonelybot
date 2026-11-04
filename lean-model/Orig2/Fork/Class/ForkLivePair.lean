@@ -37,50 +37,6 @@ open SplitKit
 
 /-! ## §1. The geometric core: two seats of one card pin the twin -/
 
-/-- **THE FITTING-PARENT PIN.**  If one card `x` fits on both `c` and `z`,
-then `z` is `c` or `c.twin`.  (`tfc_fitting_parent`,
-`Orig2/Substrate/CargoKit.lean:929`.) -/
-theorem parent_eq_or_twin {x c z : Card}
-    (h1 : canSitOn x c = true) (h2 : canSitOn x z = true) :
-    z = c ∨ z = c.twin := by
-  rcases tfc_fitting_parent h2 h1 with h | h
-  · exact Or.inl h
-  · exact Or.inr h
-
-/-- **A SEATED CARD FITS ON ITS PARENT.**  (`tfc_seatOf_of_inr` +
-`tfc_seat_parent`, `Orig2/Substrate/CargoKit.lean:976`.) -/
-theorem canSitOn_of_seat {st : State} (hwf : st.WF) {x p : Card}
-    (h : seatOf st x = some (Sum.inr p)) : canSitOn x p = true := by
-  obtain ⟨a, hhold, -, hlast⟩ := tfc_seatOf_of_inr h
-  exact (tfc_seat_parent hwf hhold hlast).1
-
-/-- **TWO SEATS OF THE SAME CARD PIN THE PARENT.**  If `x` sits on `c` at a
-`WF` state `F` and on `z` at a `WF` state `B`, then `z = c ∨ z = c.twin`.
-This is the card arithmetic of the probe's cover slide. -/
-theorem seat_parents_eq_or_twin {F B : State} (hF : F.WF) (hB : B.WF)
-    {x c z : Card}
-    (hc : seatOf F x = some (Sum.inr c))
-    (hz : seatOf B x = some (Sum.inr z)) :
-    z = c ∨ z = c.twin :=
-  parent_eq_or_twin (canSitOn_of_seat hF hc) (canSitOn_of_seat hB hz)
-
-/-- **THE TWIN-SOURCE COVER PIN.**  If the card `x` covering `c` at the
-bottom `F` was seated on `d` at an earlier `WF` state `B` of the play, and
-`c ≠ d`, then `d = c.twin`.  This is the exact kernel shape suggested by
-`Temp/SplitProbe_Report.md:415-422`. -/
-theorem eq_twin_of_cover_seat {F B : State} (hF : F.WF) (hB : B.WF)
-    {c d x : Card}
-    (hcov : seatOf F x = some (Sum.inr c))
-    (hsrc : seatOf B x = some (Sum.inr d))
-    (hne : c ≠ d) : d = c.twin := by
-  rcases seat_parents_eq_or_twin hF hB hcov hsrc with h | h
-  · exact absurd h.symm hne
-  · exact h
-
-/-! ## §2. The live set at the bottom is the live set at the pull landing -/
-
-/-- The live set is unchanged by the free tail `post`
-(`Bridge.canRaiseS_of_free_play_iff`, `Orig2/Fork/Split/ForkBridge.lean:85`). -/
 theorem live_iff_of_free_tail {B F : State} {post : List Move}
     (hpost : ShufflePlayW B post F)
     (hfree : ∀ m ∈ post, ValleyElim.FreeMove m) (hB : B.WF) (e : Card) :
@@ -232,18 +188,6 @@ theorem slide_slide_identity_pair {A B : State} {c : Card} {b1 b2 : Base}
     IdentityPair A B (Move.tabToTab c b1) (Move.tabToTab c b2) :=
   ⟨h1, h2⟩
 
-/-- A slide/slide loop at the seam deletes both slides. -/
-theorem slide_slide_pair_shortens
-    {u v : State} {ρ α β : List Move} {c : Card} {b1 b2 : Base} {A B : State}
-    (hplay : ShufflePlayW u ρ v)
-    (hρ : ρ = α ++ Move.tabToTab c b1 :: Move.tabToTab c b2 :: β)
-    (hα : ShufflePlayW u α A)
-    (h1 : State.step A (Move.tabToTab c b1) = some B)
-    (h2 : State.step B (Move.tabToTab c b2) = some A) :
-    ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length < ρ.length :=
-  identity_pair_delete hplay hρ hα (slide_slide_identity_pair h1 h2)
-
-/-- A same-card pull/raise pair at the seam deletes both letters. -/
 theorem pull_raise_pair_shortens
     {u v : State} {ρ α β : List Move} {c : Card} {b : Base} {A B : State}
     (hplay : ShufflePlayW u ρ v)
@@ -366,17 +310,12 @@ theorem splitBlock_of_valleyElim_postCommutes
 
 /-! ## §7. Axiom battery -/
 
-#print axioms parent_eq_or_twin
-#print axioms canSitOn_of_seat
-#print axioms seat_parents_eq_or_twin
-#print axioms eq_twin_of_cover_seat
 #print axioms live_iff_of_free_tail
 #print axioms contained_at_F_of_landing
 #print axioms valleyElimForkAtRaise_of_valleyElim
 #print axioms identity_pair_delete
 #print axioms pull_raise_identity_pair
 #print axioms slide_slide_identity_pair
-#print axioms slide_slide_pair_shortens
 #print axioms pull_raise_pair_shortens
 #print axioms shortest_no_identity_pair
 #print axioms splitHyp_no_identity_pair

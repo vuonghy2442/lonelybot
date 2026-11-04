@@ -424,63 +424,6 @@ theorem splitBlock_of_mechanismResidual (h : MechanismResidual) :
   intro u v ρ F left right c d b pre post tail hh
   exact (mechanism_yields hh (h u v ρ F left right c d b pre post tail hh)).2.2.1
 
-/-- `MechanismResidual` gives `SplitFloor`. -/
-theorem splitFloor_of_mechanismResidual (h : MechanismResidual) :
-    SplitKit.SplitFloor := by
-  intro u v ρ F left right c d b pre post tail hh
-  exact (mechanism_yields hh (h u v ρ F left right c d b pre post tail hh)).2.2.2
-
-/-! ## §6. The identity-pair rule (W3) and the shortest split
-
-`Temp/FullCancel_Report.md` §5.1: the complete local cancellation rule deletes
-an adjacent pair `m1 ; m2` whenever `step (step s m1) m2 = s`.  The row below
-formalises it for witness plays.  Its consequence is the *minimality
-discriminator*: a shortest split contains no adjacent identity pair anywhere
-in its free tail. -/
-
-/-- **IDENTITY-PAIR DELETION (W3).**  An adjacent pair whose composite is the
-identity on states deletes from a witness play, strictly shortening it. -/
-theorem identity_pair_shortens {u v : State} {α β : List Move} {m1 m2 : Move}
-    (huwf : u.WF) (hplay : ShufflePlayW u (α ++ m1 :: m2 :: β) v)
-    (hid : ∀ (A A' : State), ShufflePlayW u α A →
-        State.step A m1 = some A' → State.step A' m2 = some A) :
-    ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧
-      ρ'.length < (α ++ m1 :: m2 :: β).length := by
-  obtain ⟨A, hα, hrest⟩ :=
-    ValleyElim.ShufflePlayW_split hplay α (m1 :: m2 :: β) rfl
-  cases hrest with
-  | cons hrev1 hstep1 hrest1 =>
-    rename_i A1
-    cases hrest1 with
-    | cons hrev2 hstep2 hβ =>
-      rename_i A2
-      have hback : State.step A1 m2 = some A := hid A A1 hα hstep1
-      have hA2 : A2 = A := Option.some.inj (hstep2.symm.trans hback)
-      subst hA2
-      refine ⟨α ++ β, ShufflePlayW_append hα hβ, ?_⟩
-      simp only [List.length_append, List.length_cons]
-      omega
-
-/-- **NO ADJACENT IDENTITY PAIR IN A SHORTEST SPLIT'S FREE TAIL.**  This is
-the contrapositive of `identity_pair_shortens` on the split's minimality. -/
-theorem split_no_free_tail_identity {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base} {pre post tail : List Move}
-    (h : SplitKit.SplitHyp u v ρ F left right c d b pre post tail)
-    {s1 s2 : List Move} {m1 m2 : Move}
-    (hpost : post = s1 ++ m1 :: m2 :: s2)
-    (hid : ∀ (A A' : State),
-        ShufflePlayW u (pre ++ Move.foundToTab c b :: s1) A →
-        State.step A m1 = some A' → State.step A' m2 = some A) :
-    False := by
-  obtain ⟨huwf, -, -, hplay, -, hmin, hρ, hleft, -, hshape, hfree, -⟩ := h
-  have heq : ρ =
-      (pre ++ Move.foundToTab c b :: s1) ++ m1 :: m2 :: (s2 ++ right) := by
-    rw [hρ, hshape, hpost]
-    simp only [List.append_assoc, List.cons_append]
-  rw [heq] at hplay hmin
-  obtain ⟨ρ', hρ', hlen⟩ := identity_pair_shortens huwf hplay hid
-  exact absurd hlen (Nat.not_lt.mpr (hmin ρ' hρ'))
-
 #print axioms Mech.mover_seat_twin_of_slide_into_card
 #print axioms Mech.seat_of_nonmover_slide
 #print axioms Mech.seat_eq_of_free_play_no_mover
@@ -500,8 +443,5 @@ theorem split_no_free_tail_identity {u v : State} {ρ : List Move} {F : State}
 #print axioms Mech.floor_of_livePair_twin
 #print axioms Mech.mechanism_yields
 #print axioms Mech.splitBlock_of_mechanismResidual
-#print axioms Mech.splitFloor_of_mechanismResidual
-#print axioms Mech.identity_pair_shortens
-#print axioms Mech.split_no_free_tail_identity
 
 end Mech

@@ -64,21 +64,6 @@ open ForkFib
 
 /-! ## §1. The local engine: spectrum + cover ⇒ fork state -/
 
-/-- **THE SPECTRUM BRIDGE** — `ForkLiveAt` at a `Position` reads the
-`CanRaiseS` spectrum of every representative of that position. -/
-theorem forkLiveAt_twinLivePair {q : Position} {x : Card}
-    (h : ForkLiveAt q x) {p : WFState}
-    (hp : (Quotient.mk orbitRungSetoid p : Position) = q) :
-    TwinLivePair p.1 x := by
-  intro c
-  have h1 : spec (Quotient.mk orbitRungSetoid p) c ↔ CanRaiseS p.1 c :=
-    spec_mk p c
-  rw [hp] at h1
-  exact h1.symm.trans (h c).symm
-
-/-- **A COVERED TWIN FORCES THE FORK STATE.**  With the exact twin-pair
-spectrum in hand one covered twin is enough: the fork card is the other twin,
-whose orientation pin is `¬ CanRaise` of the covered card. -/
 theorem forkState_of_covered_twin {p : WFState} {x : Card}
     (hl : TwinLivePair p.1 x)
     (hcov : CoveredAt p.1 x ∨ CoveredAt p.1 x.twin) :
@@ -140,49 +125,6 @@ theorem forkState_of_same_position {F : State} (hF : F.WF) {x : Card}
     exact (h1.symm.trans h2).trans (hx.1 c).symm
   exact forkState_of_covered_twin hlP hcovP
 
-/-- **FORKNESS IS CONSTANT ON A POSITION (the biconditional form).**  The row
-above is one direction; the other is the same row with the roles of the two
-states swapped, so no extra hypothesis is needed — and neither end has to be
-known a fork. -/
-theorem forkState_iff_of_rungEq {p q : WFState} (h : orbitRungSetoid.r p q) :
-    forkState p.1 ↔ forkState q.1 := by
-  have hp : (Quotient.mk orbitRungSetoid p : Position) =
-      (Quotient.mk orbitRungSetoid q : Position) := Quotient.sound h
-  constructor
-  · intro hf
-    obtain ⟨x, hx⟩ := forkState_iff.mp hf
-    exact forkState_of_same_position p.2 hx hp.symm
-  · intro hf
-    obtain ⟨y, hy⟩ := forkState_iff.mp hf
-    exact forkState_of_same_position q.2 hy hp
-
-/-- The `Quotient.mk` spelling of `forkState_iff_of_rungEq`. -/
-theorem forkState_iff_of_same_position {p q : WFState}
-    (h : (Quotient.mk orbitRungSetoid p : Position) =
-      (Quotient.mk orbitRungSetoid q : Position)) :
-    forkState p.1 ↔ forkState q.1 :=
-  forkState_iff_of_rungEq (Quotient.exact h)
-
--- PACKAGING NOTE (deliberately NOT landed — no consumer yet): the strong grade
--- descends to a `Position` predicate by the house `fiberFork` pattern,
---   `posFork : Position → Prop :=
---      Quotient.lift (fun p : WFState => forkState p.1)
---        (fun _ _ h => propext (forkState_iff_of_rungEq h))`
--- with `posFork_mk : posFork (mk p) ↔ forkState p.1 := Iff.rfl`, mirroring
--- `fiberFork` (CargoFiber) and `forkLikePos` (Position); the `exists ↔ forall`
--- fibre row then follows from `Quot.exists_rep`.  Land it when a consumer
--- appears; until then this iff is the whole interface.
-
-/-! ## §3. `MeetConstancy` from a fork AT the meet -/
-
-/-- **`ForkAtMeet` — THE REMAINING OBLIGATION, AND IT IS A LOCATOR.**  At the
-pair-meet position of a differing-rung saturated pair, there is a `forkState`
-in `u`'s orbit presenting the SAME named twin pair `x`, sitting AT that
-position.
-
-Empirically this is the 11 064 / 11 064 row of `Temp/Meet_Report.md`.  Its two
-halves are `PairFloorLocal + PairMeetTight` (the locator, `Orig2/Fork/Class/ForkFibMeet.lean`
-§1) plus "a fork exists at that position". -/
 def ForkAtMeet : Prop :=
   ∀ (u v : State) (x : Card) (q : Position),
     SSaturated u → SSaturated v → sameOrbitSetoid.r u v →
@@ -232,15 +174,6 @@ def MeetTwinCover : Prop :=
     (Quotient.mk orbitRungSetoid p : Position) = q →
       CoveredAt p.1 x ∨ CoveredAt p.1 x.twin
 
-/-- `MeetTwinCover` implies `MeetConstancy` (via §1). -/
-theorem meetConstancy_of_meetTwinCover (hcov : MeetTwinCover) : MeetConstancy := by
-  intro u v x q hsu hsv hcls hdiff hmeet hfl p hp _hpu
-  exact forkState_of_covered_twin (forkLiveAt_twinLivePair hfl hp)
-    (hcov u v x q p hsu hsv hcls hdiff hmeet hfl hp)
-
-/-! ## §5. The gate is load-bearing (the ungated cover form is FALSE) -/
-
-/-- The twin names agree (`5H.twin = 5D`), recorded so the next row reads. -/
 theorem H5_twin : BlockMin.H5.twin = BlockMin.D5 := rfl
 
 /-- **THE POINTWISE COVER FORM IS FALSE.**  `BlockMin.gFin` has the exact
@@ -261,16 +194,12 @@ end MeetCoverTwo
 
 /-! ## §6. Axiom battery -/
 
-#print axioms MeetCoverTwo.forkLiveAt_twinLivePair
 #print axioms MeetCoverTwo.forkState_of_covered_twin
 #print axioms MeetCoverTwo.fork_cover_on_pair
 #print axioms MeetCoverTwo.forkState_of_same_position
-#print axioms MeetCoverTwo.forkState_iff_of_rungEq
-#print axioms MeetCoverTwo.forkState_iff_of_same_position
 #print axioms MeetCoverTwo.meetConstancy_of_forkAtMeet
 #print axioms MeetCoverTwo.satDifferFork_of_forkAtMeet
 #print axioms MeetCoverTwo.forkless_found_unique_of_forkAtMeet
-#print axioms MeetCoverTwo.meetConstancy_of_meetTwinCover
 #print axioms MeetCoverTwo.not_pointwise_twinCover
 #print axioms MeetCoverTwo.H5_twin
 

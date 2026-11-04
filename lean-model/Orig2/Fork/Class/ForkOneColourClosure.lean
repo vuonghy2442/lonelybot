@@ -322,11 +322,6 @@ def SliceMeet : Prop :=
             (fun σ => Nat.max (rungAt s σ) (rungAt s' σ)) t v ∧
           RungLe v v1 ∧ RungLe v v2
 
-/-- The gated statement is a corollary of the ungated one. -/
-theorem forklessSliceMeet_of_sliceMeet (h : SliceMeet) : ForklessSliceMeet :=
-  fun u hu _ s s' hs hs' t v1 v2 h1 h2 => h u hu s s' hs hs' t v1 v2 h1 h2
-
-/-- A slice LUB is a meet witness: it lies below both exact upper bounds. -/
 theorem sliceLUB_meet {u : State} {z : Suit → Nat} {t : Suit} {w v1 v2 : State}
     (hw : SliceLUB u z t w)
     (h1 : InSlice u z t v1)
@@ -670,25 +665,6 @@ theorem forklessSliceMeet_of_gapDescent (h : ForklessSliceGapDescent) :
   intro u hu hfl s s' hs hs' t v1 v2 h1 h2
   exact sliceMeet_of_gapDescent h1 h2 (h u hu hfl s s' hs hs' t v1 v2 h1 h2)
 
-/-- **END-TO-END SLICE ROUTE.**  The gap descent + a finite enumeration give the
-slice LUB; with top, closure and domination that is the exact minimal join.
-This is the slice alternative to the climb route: one measured local step law,
-one finiteness input, and the three structural inputs. -/
-theorem minimalFullJoin_of_gapDescent
-    (hgap : ForklessSliceGapDescent)
-    (hfin : ∀ u z t, SliceFinite u z t)
-    (htop : ForklessHasTop)
-    (hcl : ForklessOneColourClosure)
-    (hdom : ForklessSliceDominatesUpper)
-    {s s' : State} (hs : s.WF) (hfl : Forkless s)
-    (hcls : sameOrbitSetoid.r s s') :
-    ∃ w, MinimalFullJoin s s' w :=
-  minimalFullJoin_of_sliceLUB_and_dominates htop hcl
-    (forklessSliceLUB_of_meet_and_finite
-      (forklessSliceMeet_of_gapDescent hgap) hfin)
-    hdom hs hfl hcls
-
-
 end OneColourClosure
 
 #print axioms OneColourClosure.fullJoinAtLeastOneColourOrFork_of_top_and_closure
@@ -705,5 +681,4 @@ end OneColourClosure
 #print axioms OneColourClosure.rungLe_of_sliceGap_zero
 #print axioms OneColourClosure.sliceMeet_of_gapDescent
 #print axioms OneColourClosure.forklessSliceMeet_of_gapDescent
-#print axioms OneColourClosure.minimalFullJoin_of_gapDescent
 #print axioms OneColourClosure.sliceGapDescent_of_singlePull

@@ -342,17 +342,6 @@ theorem not_mem_bs_of_floor {u : State} {x c : Card} (huwf : u.WF)
   have hge : x.rank.toIdx ≤ c.rank.toIdx := hfloor c hcS
   omega
 
-/-- `c.twin ≠ x` from `c ≠ x.twin`. -/
-theorem twin_ne_of_ne {c x : Card} (h : c ≠ x.twin) : c.twin ≠ x := by
-  intro h2
-  have h3 : c.twin.twin = x.twin := congrArg Card.twin h2
-  rw [card_twin_twin] at h3
-  exact h h3
-
-/-- **The twin stays blocked across the slide.**  Either it rides inside the
-moved run (then `twin_run_keeps_cover` keeps a card above it on the target
-pile), or its pile is untouched, in which case any raise certificate at the
-endpoint would already be one at the origin. -/
 theorem not_canRaise_slide_twin {u z : State} {x c : Card} {u1 : Card}
     {a k : Anchor} {bs rest : List Card}
     (huwf : u.WF) (hT : CanRaiseS u x.twin) (hcS : CanRaiseS u c)
@@ -754,36 +743,6 @@ theorem fork_exists_of_asymmetry {st : State} {x : Card}
 
 /-! ## §I. Closed forms: the frame rows and the `drain_to_fork` corollary -/
 
-/-- **R1, top row.**  The source pile's new top is the covered card `c`. -/
-theorem slide_frame_top {st z : State} {c u1 : Card} {rest bs : List Card}
-    {a k : Anchor} (hwf : st.WF)
-    (hshape : (st.piles a).faceUp = bs ++ c :: u1 :: rest)
-    (htwinTop : st.pileOfTop c.twin = some k)
-    (hstep : st.step (Move.tabToTab u1 (Sum.inr c.twin)) = some z) :
-    (z.piles a).top = some c := by
-  obtain ⟨hpa, -⟩ := slide_frame hwf hshape htwinTop hstep
-  rw [hpa]
-  exact lastOf_snoc
-
-/-- **`drain_step_other_live`, CLOSED.**  The two-letter drain of a blocked
-live card outside the protected pair preserves the whole invariant at the
-raised endpoint (no frame or floor hypotheses left open). -/
-theorem drain_step_other_live_closed {u : State} {x c : Card}
-    (huwf : u.WF) (hinv : Drain.DrainInvariant u x)
-    (hcS : CanRaiseS u c) (hcB : ¬ CanRaise u c)
-    (hcx : c ≠ x) (hct : c ≠ x.twin) :
-    ∃ u', sameOrbitSetoid.r u u' ∧
-      CanRaiseS u' x.twin ∧ ¬ CanRaise u' x.twin ∧ CanRaise u' x ∧
-      (∀ d, CanRaiseS u' d → x.rank.toIdx ≤ d.rank.toIdx) ∧
-      Drain.rungSum u' = Drain.rungSum u + 1 := by
-  obtain ⟨u', -, hrel, ⟨h1, h2, h3, h4⟩, hsum⟩ :=
-    drain_step_blocked huwf hinv hcS hcB hcx hct
-  exact ⟨u', hrel, h2, h3, h1, h4, hsum⟩
-
-/-- **`drain_to_fork` with `hstep` discharged.**  The mission's
-`Drain.drain_to_fork` conclusion, with the step provider supplied by the two
-drain letters and the termination measure `52 - rungSum`.  `WF` is carried
-along the induction (each letter is a `State.step`). -/
 theorem drain_to_fork_discharged {st : State} {x : Card}
     (hwf : st.WF) (h : Drain.DrainInvariant st x) :
     ∃ F, sameOrbitSetoid.r st F ∧ forkState F := by
@@ -792,15 +751,12 @@ theorem drain_to_fork_discharged {st : State} {x : Card}
 
 end DrainClose
 
-#print axioms DrainClose.slide_frame_top
-#print axioms DrainClose.drain_step_other_live_closed
 #print axioms DrainClose.drain_to_fork_discharged
 
 /-! ## Battery -/
 
 #print axioms OneSlide.one_slide_of_blocked_live
 #print axioms DrainClose.slide_frame
-#print axioms DrainClose.slide_frame_top
 #print axioms DrainClose.floor_slide
 #print axioms DrainClose.floor_raise
 #print axioms DrainClose.not_canRaise_slide_twin
@@ -808,7 +764,6 @@ end DrainClose
 #print axioms DrainClose.invariant_after_slide
 #print axioms DrainClose.drain_step_raisable
 #print axioms DrainClose.drain_step_blocked
-#print axioms DrainClose.drain_step_other_live_closed
 #print axioms DrainClose.drain_to_fork_discharged
 #print axioms DrainClose.fork_exists_of_asymmetry
 

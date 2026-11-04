@@ -124,46 +124,6 @@ theorem valleyCrossingPartnerLocator : ValleyCrossingPartnerLocator := by
   rw [hρ, hleft, hright]
   simp only [List.cons_append, List.nil_append, List.append_assoc]
 
-/-- The shortening corollary, exactly parallel to
-`ValleyElim.valley_elim_pull_raise_cross_of_locator`. -/
-theorem valley_elim_pull_raise_cross_of_partnerLocator
-    (hloc : ValleyCrossingPartnerLocator)
-    {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base} {tail : List Move}
-    {α γ : List Move} {bd : Base}
-    (huwf : u.WF) (hplay : ShufflePlayW u ρ v)
-    (hdecomp : ρ = left ++ [Move.foundToTab c b, Move.tabToFound d] ++ right)
-    (hpartL : left = α ++ [Move.foundToTab d bd])
-    (hpartR : right = Move.tabToFound c :: γ)
-    (hleft : ShufflePlayW u left F)
-    (hcd : c ≠ d) (hsuit : c.suit ≠ d.suit) :
-    ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length < ρ.length :=
-  crossing_block_delete huwf (hloc u v ρ F left right c d b tail α γ bd
-    huwf hplay hdecomp hpartL hpartR hleft hcd hsuit)
-
-/-! ## §1. The named residual: non-adjacent bracket normalization -/
-
-/-- **THE NAMED RESIDUAL.**  The partner letters may sit anywhere around
-the turn:
-
-```text
-ρ = α ++ [pull d bd] ++ β ++ [pull c b ; raise d] ++ γ ++ [raise c] ++ δ ++ ε
-```
-
-The conclusion is a **re-run play `ρ'` of the same length** containing a
-crossing block.  It cannot be `CrossingBlock u v ρ` (defect 2 of the
-refuted locator); the block only becomes contiguous after the interior
-letters are commuted away.  This is the smallest honest replacement: it
-assumes the partner letters exist (defect 1) and leaves only the
-reordering.
-
-The reordering itself is the play-level bubble of `Temp/Bubble_Core.lean`
-(`swap_at`, `bubble_raise_left`, `bracket_delete_at`); the required
-local squares are `step_comm_pull_pull`, `step_comm_pull_raise`,
-`step_comm_raise_raise`, the draw squares, and the (still-unassembled)
-slide/pull and slide/raise squares.  `step_comm_slide_slide` is *not*
-needed (the reordering only crosses pulls and raises, never a slide
-past another slide), so the `c1 ≠ c2` side condition does not enter. -/
 def CrossingBracketNormalizer : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State)
     (left right : List Move) (c d : Card) (b : Base) (tail : List Move)
@@ -196,27 +156,11 @@ theorem normalizer_shortens (h : CrossingBracketNormalizer)
   obtain ⟨ρ'', hplay'', hlt⟩ := crossing_block_delete huwf hblock
   exact ⟨ρ'', hplay'', by omega⟩
 
-/-- **THE IDENTITY CASE IS PROVED.**  When the interior segments are
-empty, the block already lies in `ρ`, so the normalizer holds with
-`ρ' = ρ`.  This connects the normalizer to the repaired locator's
-kernel. -/
-theorem normalizer_identity {u v : State} {ρ α γ : List Move}
-    {c d : Card} {b bd : Base} {F : State}
-    {left right tail : List Move}
-    (huwf : u.WF) (hplay : ShufflePlayW u ρ v)
-    (hρ : ρ = α ++ [Move.foundToTab d bd, Move.foundToTab c b,
-        Move.tabToFound d, Move.tabToFound c] ++ γ) :
-    ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length = ρ.length ∧
-      CrossingBlock u v ρ' :=
-  ⟨ρ, hplay, rfl, crossingBlock_of_block_decomp huwf hplay hρ⟩
-
 end LocatorCorrected
 
 #print axioms LocatorCorrected.crossingBlock_of_block_decomp
 #print axioms LocatorCorrected.valleyCrossingPartnerLocator
-#print axioms LocatorCorrected.valley_elim_pull_raise_cross_of_partnerLocator
 #print axioms LocatorCorrected.normalizer_shortens
-#print axioms LocatorCorrected.normalizer_identity
 
 
 set_option autoImplicit false
@@ -586,13 +530,6 @@ theorem slideRaiseRow_holds : SlideRaiseRow := by
 def PullRaiseSlide (m : Move) : Prop :=
   IsPull m ∨ IsRaise m ∨ ∃ (c : Card) (b : Base), m = Move.tabToTab c b
 
-theorem pullRaiseSlide_of_mem {l : List Move} (h : ∀ m ∈ l, PullRaiseSlide m) {m : Move}
-    (hm : m ∈ l) : PullRaiseSlide m :=
-  h m hm
-
-/-- **THE SLIDE-ROW REDUCTION (right window).**  A window whose letters are
-pulls/raises/slides has its endpoint rows: pulls and raises for free
-(`commutes_noslide`), slides by `SlidePullRow`. -/
 theorem commutesRight_of_slideRows (hsp : SlidePullRow)
     {u : State} (huwf : u.WF) (p : Move) (hp : IsPull p) (hpns : NoSlide p) {w : List Move}
     (hw : ∀ m ∈ w, PullRaiseSlide m) : CommutesRight u p w := by

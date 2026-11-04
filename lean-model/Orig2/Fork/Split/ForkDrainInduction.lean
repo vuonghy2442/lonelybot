@@ -79,21 +79,6 @@ def DrainRaisable (st : State) (x : Card) : Prop :=
 
 /-! ## §2. Elementary projections -/
 
-theorem drain_canRaise {st : State} {x : Card} (h : DrainInvariant st x) :
-    CanRaise st x := h.1
-
-theorem drain_twinS {st : State} {x : Card} (h : DrainInvariant st x) :
-    CanRaiseS st x.twin := h.2.1
-
-theorem drain_twinBlocked {st : State} {x : Card} (h : DrainInvariant st x) :
-    ¬ CanRaise st x.twin := h.2.2.1
-
-theorem drain_rank_floor {st : State} {x : Card} (h : DrainInvariant st x) :
-    ∀ c, CanRaiseS st c → x.rank.toIdx ≤ c.rank.toIdx := h.2.2.2
-
-/-! ## §3. TARGET 1 — the terminal state is a fork -/
-
-/-- A `ForkWitness` is the existential detection. -/
 theorem forkState_of_forkWitness {st : State} {x : Card}
     (h : ForkWitness st x) : forkState st :=
   forkState_iff.mpr ⟨x, h⟩

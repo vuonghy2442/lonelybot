@@ -95,14 +95,6 @@ theorem canRaiseS_below_form {st : State} (hwf : st.WF) {c : Card} :
 
 /-! ## §1. The pile edit of a pull -/
 
-/-- **THE PULL MOVES NO OTHER PILE.** -/
-theorem pullSt_piles_of_ne {A : State} {c : Card} {b : Base} {k j : Anchor}
-    (hk : CommuteStep.tgt A b = some k) (hj : j ≠ k) :
-    (CommuteStep.pullSt A c b).piles j = A.piles j :=
-  CommuteStep.pullSt_piles_ne hk hj
-
-/-- **THE PULL ONLY WRITES `c` ON ITS TARGET PILE'S TOP.**  Hence no other
-card can become — or stop being — a pile top, except that `c` becomes one. -/
 theorem pileOfTop_twin_prev_of_pull {A B : State} {c : Card} {b : Base} {k : Anchor}
     (hA : A.WF) (hB : B.WF) (hBpull : B = CommuteStep.pullSt A c b)
     (hk : CommuteStep.tgt A b = some k) {e : Card} (het : e.twin ≠ c)
@@ -354,76 +346,6 @@ whole alphabet of the prefix `pre` of a genuine valley split. -/
 def FreeOrPull (m : Move) : Prop :=
   ValleyElim.FreeMove m ∨ ∃ (c : Card) (b : Base), m = Move.foundToTab c b
 
-/-- **A PULL CREATION SCAN.**  Along a witness play whose letters are free or
-pull, an S-live card at the end is either S-live at the start or is one of the
-cards pulled along the way (or its twin).  Free letters preserve the S-license
-exactly; a pull creates nothing but the pulled card and its twin
-(`canRaiseS_of_pull_of_ne_twin`). -/
-theorem live_of_play_creation {u A' : State} {pre : List Move}
-    (hplay : ShufflePlayW u pre A') :
-    ∀ (_ : u.WF) (_ : ∀ m ∈ pre, FreeOrPull m) (e : Card), CanRaiseS A' e →
-      CanRaiseS u e ∨
-        ∃ (α : List Move) (z : Card) (bz : Base) (β : List Move),
-          pre = α ++ Move.foundToTab z bz :: β ∧ (e = z ∨ e = z.twin) := by
-  induction hplay with
-  | nil st => intro _ _ e he; exact Or.inl he
-  | @cons st s1 W m ρ hrev hstep hrest ih =>
-      intro hwf hall e he
-      have hwfS : s1.WF := step_wf hwf hstep
-      have hallTail : ∀ x ∈ ρ, FreeOrPull x :=
-        fun x hx => hall x (List.mem_cons_of_mem m hx)
-      rcases ih hwfS hallTail e he with hpre | ⟨α, z, bz, β, heq, hmem⟩
-      · rcases hall m (List.mem_cons_self ..) with hfree | ⟨zc, bc, hm⟩
-        · have hlive : CanRaiseS st e := by
-            rcases hfree with rfl | ⟨cc, bb, rfl⟩
-            · exact (ValleyElim.canRaiseS_congr_found_piles hwf hwfS
-                (stepDraw_found hstep).symm (stepDraw_piles hstep).symm e).mpr hpre
-            · exact (Bridge.canRaiseS_cargoLeg_iff hwf ⟨cc, bb, hstep, hrev⟩ e).mpr hpre
-          exact Or.inl hlive
-        · subst hm
-          by_cases h1 : e = zc
-          · exact Or.inr ⟨[], zc, bc, ρ, rfl, Or.inl h1⟩
-          · by_cases h2 : e = zc.twin
-            · exact Or.inr ⟨[], zc, bc, ρ, rfl, Or.inr h2⟩
-            · exact Or.inl (canRaiseS_of_pull_of_ne_twin hwf hstep hpre h1 h2)
-      · exact Or.inr ⟨m :: α, z, bz, β, by rw [List.cons_append, heq], hmem⟩
-
-/-- **EVERY CARD LIVE BEFORE THE VALLEY PULL IS AN EARLIER-PULL CARD.**  From
-a saturated start, nothing is live; the only letters that create S-liveness
-are the pulls, and a pull creates only its own card and that card's twin.  So
-the live set just before the valley pull is a subset of `{z, z.twin}` over the
-earlier pulls `z` of `pre`. -/
-theorem live_before_valley_pull {u A' : State} {pre : List Move}
-    (hplay : ShufflePlayW u pre A') (huwf : u.WF) (hsat : SSaturated u)
-    (hall : ∀ m ∈ pre, FreeOrPull m) :
-    ∀ e, CanRaiseS A' e →
-      ∃ (α : List Move) (z : Card) (bz : Base) (β : List Move),
-        pre = α ++ Move.foundToTab z bz :: β ∧ (e = z ∨ e = z.twin) := by
-  intro e he
-  rcases live_of_play_creation hplay huwf hall e he with h | h
-  · exact absurd h (hsat e)
-  · exact h
-
-/-- **THE THIRD-SUIT VIOLATION IS ALWAYS AN EARLIER-PULL CARD.**  A third-suit
-S-live card at the landing is (i) already live before the valley pull
-(`local_dichotomy`) and hence (ii) the card of an earlier pull in `pre`, or its
-twin.  This is the exact shape the residual must kill. -/
-theorem landing_third_suit_earlier_pull
-    {u A' B : State} {pre : List Move} {c e : Card} {b : Base}
-    (hplay : ShufflePlayW u pre A') (huwf : u.WF) (hsat : SSaturated u)
-    (hall : ∀ m ∈ pre, FreeOrPull m)
-    (hstep : State.step A' (Move.foundToTab c b) = some B)
-    (he : CanRaiseS B e) (hec : e ≠ c) (het : e ≠ c.twin) :
-    ∃ (α : List Move) (z : Card) (bz : Base) (β : List Move),
-      pre = α ++ Move.foundToTab z bz :: β ∧ (e = z ∨ e = z.twin) := by
-  have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end hplay huwf
-  exact live_before_valley_pull hplay huwf hsat hall e
-    (canRaiseS_of_pull_of_ne_twin hA' hstep he hec het)
-
-/-- **THE THIRD-SUIT EXCLUSION IS FREE WHEN `pre` IS FREE.**  If every letter
-before the valley pull is a free letter, the start's saturation transports to
-`A'` (`Bridge.canRaiseS_of_free_play_iff`), so *nothing* is S-live just before
-the pull and the crossing condition is vacuous. -/
 theorem landingThirdFree_of_free_pre
     {u A' B : State} {pre : List Move} {c : Card} {b : Base}
     (huwf : u.WF) (hsat : SSaturated u) (hpre : ShufflePlayW u pre A')
@@ -528,44 +450,7 @@ def SplitLandingSurvivor : Prop :=
           pre = α ++ Move.foundToTab z bz :: β ∧ (e = z ∨ e = z.twin)) →
         e.suit = c.suit ∨ e.suit = c.twin.suit
 
-/-- **THE RESIDUAL FROM ITS TWO SHARPENED HALVES.**  `SplitLandingTwin` plus
-`SplitLandingSurvivor` (and the alphabet hypothesis on `pre`) give the full
-`SplitLandingResidual`; the third-suit half is only consulted on the
-earlier-pull cards. -/
-theorem splitLandingResidual_of_twin_survivor
-    (hall : ∀ (u v : State) (ρ : List Move) (F : State)
-      (left right : List Move) (c d : Card) (b : Base)
-      (pre post tail : List Move),
-      SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
-      ∀ m ∈ pre, FreeOrPull m)
-    (htwin : SplitLandingTwin) (hsurv : SplitLandingSurvivor) :
-    SplitLandingResidual := by
-  intro u v ρ F left right c d b pre post tail hs A' B hplay hstep
-  refine ⟨htwin u v ρ F left right c d b pre post tail hs A' B hplay hstep, ?_⟩
-  intro e hA' hB
-  by_cases h1 : e = c
-  · exact Or.inl (congrArg Card.suit h1)
-  · by_cases h2 : e = c.twin
-    · exact Or.inr (congrArg Card.suit h2)
-    · exact hsurv u v ρ F left right c d b pre post tail hs A' B hplay hstep e hB
-        (live_before_valley_pull hplay hs.1 hs.2.1
-          (hall u v ρ F left right c d b pre post tail hs) e hA')
-
-#check @canRaiseS_below_form
-#check @canRaiseS_of_pull_of_ne_twin
-#check @local_dichotomy
-#check @landingLivePair_iff_local
-#check @landingLivePair_landing_iff
-#check @live_of_play_creation
-#check @live_before_valley_pull
-#check @landing_third_suit_earlier_pull
-#check @landingThirdFree_of_free_pre
-#check @landingLivePair_of_free_pre
-#check @SplitLandingResidual
-#check @splitLandingResidual_iff_landingAll
-
 #print axioms canRaiseS_below_form
-#print axioms pullSt_piles_of_ne
 #print axioms pileOfTop_twin_prev_of_pull
 #print axioms below_form_transfer_eq
 #print axioms below_form_transfer_snoc
@@ -575,9 +460,6 @@ theorem splitLandingResidual_of_twin_survivor
 #print axioms landingLivePair_of_local
 #print axioms landingLivePair_iff_local
 #print axioms landingLivePair_landing_iff
-#print axioms live_of_play_creation
-#print axioms live_before_valley_pull
-#print axioms landing_third_suit_earlier_pull
 #print axioms landingThirdFree_of_free_pre
 #print axioms landingLivePair_of_free_pre
 #print axioms landingAll_of_splitLandingResidual
@@ -659,7 +541,6 @@ theorem canRaiseS_twin_of_landing {A B : State} {c : Card} {b : Base}
 #check @splitLandingResidual_of_free_pre_twin
 #print axioms splitLandingResidual_of_free_pre_twin
 #print axioms SplitLandingSurvivor
-#print axioms splitLandingResidual_of_twin_survivor
 #print axioms mechanismResidual_of_splitLanding_and_block
 #print axioms pull_card_not_pile_top
 #print axioms pull_card_pile_top_at_landing

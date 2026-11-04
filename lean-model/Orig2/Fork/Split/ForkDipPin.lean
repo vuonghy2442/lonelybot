@@ -349,46 +349,6 @@ theorem noEmptyTail_of_free_pre
     ValleyElim.ssaturated_free_prefix hpre hfreepre huwf hsatu
   exact hsatA' d (CanRaiseS.now d hcanA'd)
 
-/-- **THE COVER HALF IS THE NEGATION OF THE BLOCK.**  With the green facts
-(`CanRaiseS F c`), `CoveredAt F c` and `¬ CanRaise F c` are inter-derivable
-(`canRaise_or_covered`); so `TailCovers` is exactly the `¬ CanRaise F c` clause
-read at a split with nonempty free tail. -/
-theorem tailCovers_iff_not_canRaise :
-    BlockKit.TailCovers ↔
-      (∀ (u v : State) (ρ : List Move) (F : State)
-        (left right : List Move) (c d : Card) (b : Base)
-        (pre post tail : List Move),
-        SplitHyp u v ρ F left right c d b pre post tail → post ≠ [] →
-        ¬ CanRaise F c) := by
-  constructor
-  · intro hc u v ρ F left right c d b pre post tail h hpost
-    obtain ⟨hF, -, -, -⟩ := splitHyp_green h
-    exact not_canRaise_of_covered hF
-      (hc u v ρ F left right c d b pre post tail h hpost)
-  · intro hc u v ρ F left right c d b pre post tail h hpost
-    obtain ⟨hF, hSc, -, -⟩ := splitHyp_green h
-    exact covered_of_live_not_canRaise hF hSc
-      (hc u v ρ F left right c d b pre post tail h hpost)
-
-/-- **THE BLOCK FROM THE TWO GREEN HALVES** — `BlockKit.splitBlock_iff_parts`,
-restated with the free-prefix `NoEmptyTail` (the only shape `valley_exists`
-feeds) and the cover half. -/
-theorem splitBlock_of_freePre_noEmpty_and_cover
-    (h1 : ∀ (u v : State) (ρ : List Move) (F : State)
-      (left right : List Move) (c d : Card) (b : Base)
-      (pre post tail : List Move),
-      SplitHyp u v ρ F left right c d b pre post tail →
-      (∀ m ∈ pre, ValleyElim.FreeMove m) → post ≠ [])
-    (h2 : ∀ (u v : State) (ρ : List Move) (F : State)
-      (left right : List Move) (c d : Card) (b : Base)
-      (pre post tail : List Move),
-      SplitHyp u v ρ F left right c d b pre post tail → ¬ CanRaise F c) :
-    SplitBlock := by
-  intro u v ρ F left right c d b pre post tail h
-  exact h2 u v ρ F left right c d b pre post tail h
-
-/-! ## §6. The gating gadget: the pointwise form is FALSE -/
-
 def AH : Card := ⟨.heart, .ace⟩
 def H2 : Card := ⟨.heart, .two⟩
 def H3 : Card := ⟨.heart, .three⟩
@@ -586,8 +546,6 @@ theorem gFin_not_fibreBlockData : ¬ FibreBlockData gFin := by
 #print axioms BlockMin.bottomFibreBlock_of_bothRaisable
 #print axioms BlockMin.satDifferForkWF_of_dipPin
 #print axioms BlockMin.noEmptyTail_of_free_pre
-#print axioms BlockMin.tailCovers_iff_not_canRaise
-#print axioms BlockMin.splitBlock_of_freePre_noEmpty_and_cover
 #print axioms BlockMin.gFin_wf
 #print axioms BlockMin.gFin_twinLivePair
 #print axioms BlockMin.gFin_H5_not_covered

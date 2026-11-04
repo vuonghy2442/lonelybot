@@ -71,28 +71,6 @@ def PlayLenMin : Prop :=
       (∃ ρ : List Move, ShufflePlayW u ρ v ∧ ρ.length = m) ∧
         ∀ k : Nat, k < m → ¬ ∃ ρ : List Move, ShufflePlayW u ρ v ∧ ρ.length = k
 
-/-- The residual is an instance of the pure principle. -/
-theorem playLenMin_of_natHasMin (h : NatHasMin) : PlayLenMin := by
-  intro u v hex
-  obtain ⟨ρ, hρ⟩ := hex
-  exact h (fun n => ∃ ρ : List Move, ShufflePlayW u ρ v ∧ ρ.length = n)
-    ⟨ρ.length, ρ, hρ, rfl⟩
-
-/-- **THE REDUCTION.**  The residual gives the interface hypothesis.
-Note the proof never touches `huwf`, `hsu`, `hsv` or `hdiff`. -/
-theorem shortestPlayExists_of_playLenMin (h : PlayLenMin) :
-    ValleyElim.ShortestPlayExists := by
-  intro u v _huwf _hsu _hsv hcls _hdiff
-  obtain ⟨m, ⟨ρ, hρ, hlen⟩, hmin⟩ := h u v (sameOrbit_reachable hcls)
-  refine ⟨ρ, hρ, fun ρ' hρ' => ?_⟩
-  have hnot : ¬ ρ'.length < m :=
-    fun hlt => hmin ρ'.length hlt ⟨ρ', hρ', rfl⟩
-  rw [hlen]
-  exact Nat.le_of_not_lt hnot
-
-/-- The same conclusion without the gates and without the rung difference:
-the interface hypothesis is the *gated* shadow of a statement that needs no
-hypothesis at all beyond reachability. -/
 theorem shortestPlayExists_ungated (h : PlayLenMin) (u v : State)
     (hcls : sameOrbitSetoid.r u v) :
     ∃ ρ : List Move, ShufflePlayW u ρ v ∧
@@ -104,15 +82,6 @@ theorem shortestPlayExists_ungated (h : PlayLenMin) (u v : State)
   rw [hlen]
   exact Nat.le_of_not_lt hnot
 
-/-- Composed form: pure `Nat` well-ordering implies `ShortestPlayExists`. -/
-theorem shortestPlayExists_of_natHasMin (h : NatHasMin) :
-    ValleyElim.ShortestPlayExists :=
-  shortestPlayExists_of_playLenMin (playLenMin_of_natHasMin h)
-
-/-! ## 3. The residual is exactly excluded middle -/
-
-/-- **EXCLUDED MIDDLE.**  Stated as a definition because this file proves the
-equivalence with `NatHasMin` and nothing else. -/
 def ExcludedMiddle : Prop :=
   ∀ p : Prop, p ∨ ¬ p
 
@@ -153,32 +122,6 @@ derivable from `propext`/`Quot.sound` alone - the setoid model refutes it). -/
 theorem natHasMin_iff_em : NatHasMin ↔ ExcludedMiddle :=
   ⟨em_of_natHasMin, natHasMin_of_em⟩
 
-/-- **SHARPNESS.**  The shortest-play principle *uniformly in the play
-relation* already yields `NatHasMin`: instantiate at
-`R ρ := P ρ.length` and use that every natural is the length of some list
-(`List.replicate n Move.draw`).  So the campaign interface contains no chess
-content beyond the reachability of `RevEqW`. -/
-theorem natHasMin_of_uniformPlayLenMin
-    (h : ∀ (R : List Move → Prop), (∃ ρ : List Move, R ρ) →
-      ∃ ρ : List Move, R ρ ∧ ∀ ρ' : List Move, R ρ' → ρ.length ≤ ρ'.length) :
-    NatHasMin := by
-  intro P hne
-  obtain ⟨n, hn⟩ := hne
-  let R : List Move → Prop := fun ρ => P ρ.length
-  have hR : ∃ ρ : List Move, R ρ :=
-    ⟨List.replicate n Move.draw, by
-      show P (List.replicate n Move.draw).length
-      rw [List.length_replicate]
-      exact hn⟩
-  obtain ⟨ρ, hρ, hmin⟩ := h R hR
-  refine ⟨ρ.length, hρ, fun k hk hkP => ?_⟩
-  have hle : ρ.length ≤ k := by
-    have hh := hmin (List.replicate k Move.draw) (by
-      show P (List.replicate k Move.draw).length
-      rw [List.length_replicate]
-      exact hkP)
-    rwa [List.length_replicate] at hh
-  exact Nat.lt_irrefl ρ.length (Nat.lt_of_le_of_lt hle hk)
 end MinKit
 
 /-! ## Axiom battery
@@ -192,12 +135,8 @@ through the vocabulary, not through the proofs: `fun h => h` at type
 rows (`em_of_natHasMin`, `natHasMin_of_em`, `natHasMin_iff_em`) are exactly
 `[]`.  No row uses `Classical.choice` or `Quot.sound`. -/
 
-#print axioms MinKit.playLenMin_of_natHasMin
-#print axioms MinKit.shortestPlayExists_of_playLenMin
 #print axioms MinKit.shortestPlayExists_ungated
-#print axioms MinKit.shortestPlayExists_of_natHasMin
 #print axioms MinKit.em_of_natHasMin
 #print axioms MinKit.natHasMin_of_em
 #print axioms MinKit.natHasMin_iff_em
-#print axioms MinKit.natHasMin_of_uniformPlayLenMin
 #print axioms ValleyElim.ShortestPlayExists

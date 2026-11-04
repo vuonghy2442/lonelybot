@@ -120,68 +120,10 @@ theorem bottom_pull_live {u F : State} {left : List Move} {c : Card} {b : Base}
       exact (canRaiseS_of_free_play_iff hpost hfree (step_wf hA' hstep) c).mp
         (CanRaiseS.now c (ValleyStep.pull_card_canRaise hA' hstep))
 
-/-- The pulled card is not merely S-live: it is VANILLA-raisable at the bottom
-(the pull's landing, and the free tail preserves the vanilla license too —
-here we use that the card is live and the pull's own landing state is
-`found`/`piles`-congruent… instead we keep the sharp statement at the landing).
-
-NOTE: this row is stated at the pull's landing `B`; §2's no-go uses it there. -/
-theorem pull_landing_raisable {A' B : State} {c : Card} {b : Base}
-    (hA' : A'.WF) (hstep : State.step A' (Move.foundToTab c b) = some B) :
-    CanRaise B c :=
-  ValleyStep.pull_card_canRaise hA' hstep
-
-/-- **A REVERSIBLE RAISE IS VANILLA-RAISABLE.**  `tabToFoundR` at `WF` is the
-reversibility oracle and `canRaise_of_tabToFoundR` reads the license off it. -/
 theorem canRaise_of_reversible_raise {F : State} {d : Card} (hF : F.WF)
     (hrev : reversibleAtW F (Move.tabToFound d)) : CanRaise F d :=
   SatDifferCensus.canRaise_of_tabToFoundR ((tabToFoundR_iff_reversibleAtW hF d).mpr hrev)
 
-/-- **THE FIRST RAISE'S CARD IS S-LIVE AT THE BOTTOM** (indeed vanilla-live:
-the raise fires at the bottom itself). -/
-theorem bottom_raise_live {F v : State} {right tail : List Move} {d : Card}
-    (hF : F.WF) (hright : ShufflePlayW F right v)
-    (hshape : right = Move.tabToFound d :: tail) :
-    CanRaiseS F d := by
-  rw [hshape] at hright
-  cases hright with
-  | cons hrev hstep hrest =>
-      exact CanRaiseS.now d (canRaise_of_reversible_raise hF hrev)
-
-/-- **TARGET 1, BOTTOM FORM.**  At a valley split, both live cards are S-live
-at the bottom. -/
-theorem bottom_cards_live {u v : State} {ρ : List Move} {F : State}
-    (huwf : u.WF) (hsplit : ValleyElim.ValleySplitAt u v ρ F) :
-    ∃ c d : Card, CanRaiseS F c ∧ CanRaiseS F d := by
-  obtain ⟨left, right, c, d, b, pre, post, tail,
-    hρ, hleft, hright, hshape, hfree, hrightShape⟩ := hsplit
-  have hF : F.WF := SatDifferCensus.ShufflePlayW.wf_end hleft huwf
-  exact ⟨c, d, bottom_pull_live huwf hleft hshape hfree,
-    bottom_raise_live hF hright hrightShape⟩
-
-/-- **TARGET 1, SHARP FORM.**  At a valley split BOTH live cards are
-vanilla-raisable at the bottom: the pull's card by the pull, the raise's card
-by reversibility.  (The free tail `post` is not even needed for the raise, and
-the pull card is read at its landing then transported — see
-`valley_bottom_cards_raisable` for the bottom form.) -/
-theorem bottom_cards_raisable {u v : State} {ρ : List Move} {F : State}
-    (huwf : u.WF) (hsplit : ValleyElim.ValleySplitAt u v ρ F) :
-    ∃ c d : Card, CanRaiseS F c ∧ CanRaiseS F d ∧ CanRaise F d := by
-  obtain ⟨left, right, c, d, b, pre, post, tail,
-    hρ, hleft, hright, hshape, hfree, hrightShape⟩ := hsplit
-  have hF : F.WF := SatDifferCensus.ShufflePlayW.wf_end hleft huwf
-  rw [hrightShape] at hright
-  cases hright with
-  | cons hrev hstep hrest =>
-      exact ⟨c, d, bottom_pull_live huwf hleft hshape hfree,
-        CanRaiseS.now d (canRaise_of_reversible_raise hF hrev),
-        canRaise_of_reversible_raise hF hrev⟩
-
-/-! ## §2. TARGET 2 — a same-card adjacent turn strictly shortens -/
-
-/-- **ADJACENT SAME-CARD TURN SHORTENS.**  A contiguous
-`pull c ; raise c` inside a witness play deletes both letters
-(`valley_cancel_same`). -/
 theorem adjacent_same_turn_shortens {u v F : State} {pre post : List Move}
     {c : Card} {b : Base}
     (huwf : u.WF) (hpre : ShufflePlayW u pre F)
@@ -222,25 +164,6 @@ theorem shortest_adjacent_turn_ne {u v F : State} {pre post : List Move}
 
 /-! ## §3. TARGET 3 — the twin case -/
 
-/-- **THE TWIN CASE (packaged).**  If one twin is raisable, the other is
-S-live and vanilla-blocked, and nothing S-live sits below the pair's rank,
-then the twin asymmetry holds verbatim. -/
-theorem twin_asymmetry_pack {w : State} {x : Card}
-    (hcan : CanRaise w x) (hS : CanRaiseS w x.twin) (hblock : ¬ CanRaise w x.twin)
-    (hfloor : ∀ c, CanRaiseS w c → x.rank.toIdx ≤ c.rank.toIdx) :
-    CanRaise w x ∧ CanRaiseS w x.twin ∧ ¬ CanRaise w x.twin ∧
-      (∀ c, CanRaiseS w c → x.rank.toIdx ≤ c.rank.toIdx) :=
-  ⟨hcan, hS, hblock, hfloor⟩
-
-/-- **THE ORIENTATION NO-GO.**  At ANY valley bottom the raise card `d` is
-reversible there, hence vanilla-raisable: if `d = c.twin` then `c.twin` is
-raisable.  So the asymmetry can NEVER be oriented `x = c` (pull card),
-`x.twin = d` (raise card).
-
-The OTHER orientation (`x = d`, `x.twin = c`) survives exactly when the pull
-card `c` is blocked at the bottom — which is impossible at the pull's own
-LANDING (`valley_bottom_twins_both_raisable`), so the surviving dip needs a
-NONEMPTY free tail between the last pull and the bottom. -/
 theorem valley_bottom_no_twin_block {F : State} {c d : Card}
     (hF : F.WF) (hrev : reversibleAtW F (Move.tabToFound d))
     (htwin : d = c.twin) :
@@ -400,81 +323,6 @@ stated in §5, after `BottomAsymmetry`'s definition. -/
 
 /-! ## §3.5. What the residual must supply: a COVERED twin -/
 
-/-- **THE ASYMMETRY IN COVER VOCABULARY.**  At `WF`, "S-live but
-vanilla-blocked" is EXACTLY `CoveredAt` (the flat dichotomy per card,
-`Orig2/Fork/Local/ForkCriticalPair.lean:401` and `:451`).  So the bridge residual can be
-stated with the chart's cover read (`seatOf`/`CoveredAt`,
-`Orig2/Substrate/Vocab.lean:889,917`) instead of the negated license. -/
-theorem asymmetry_iff_covered {w : State} {x : Card} (hwf : w.WF) :
-    (CanRaise w x ∧ CanRaiseS w x.twin ∧ ¬ CanRaise w x.twin ∧
-        (∀ c, CanRaiseS w c → x.rank.toIdx ≤ c.rank.toIdx))
-      ↔ (CanRaise w x ∧ CanRaiseS w x.twin ∧ CoveredAt w x.twin ∧
-        (∀ c, CanRaiseS w c → x.rank.toIdx ≤ c.rank.toIdx)) := by
-  constructor
-  · rintro ⟨h1, h2, h3, h4⟩
-    exact ⟨h1, h2, covered_of_live_not_canRaise hwf h2 h3, h4⟩
-  · rintro ⟨h1, h2, h3, h4⟩
-    exact ⟨h1, h2, not_canRaise_of_covered hwf h3, h4⟩
-
-/-- **THE FORK FORM OF THE TWIN CASE.**  A live twin pair with the mate
-covered IS a fork (`forkWitness_iff_covered`,
-`Orig2/Fork/Local/ForkCriticalPair.lean:465`). -/
-theorem fork_of_twin_live_covered {w : State} {x : Card} (hwf : w.WF)
-    (hlive : TwinLivePair w x) (hcov : CoveredAt w x.twin) : ForkWitness w x :=
-  (forkWitness_iff_covered hwf rfl hlive ((hlive x.twin).mpr (Or.inr rfl))).mpr hcov
-
-/-- **THE MECHANISM: A PULL ONTO A CARD COVERS IT.**  If the pull's base is
-`inr e` (the card `e`), the pulled card lands directly ON `e`, so `e` is
-covered at the landing (`seatOf_foundToTab_mover`,
-`Orig2/Fiber/TwinSpliceComm.lean:810`).  This is the only way a *down*-leg letter
-can create the cover the asymmetry needs, and it pins the residual to the
-pull's BASE: the dip's covered card is the base card of the last pull. -/
-theorem covered_of_pull_onto_card {A' B : State} {c e : Card}
-    (hA' : A'.WF) (hstep : State.step A' (Move.foundToTab c (Sum.inr e)) = some B) :
-    CoveredAt B e :=
-  ⟨c, TwinSpliceComm.seatOf_foundToTab_mover hA' hstep⟩
-
-/-- The same row in `seatOf` form. -/
-theorem seatOf_mover_of_pull {A' B : State} {c : Card} {base : Base}
-    (hA' : A'.WF) (hstep : State.step A' (Move.foundToTab c base) = some B) :
-    seatOf B c = some base :=
-  TwinSpliceComm.seatOf_foundToTab_mover hA' hstep
-
-/-- **A BLOCKED S-LIVE TWIN IS COVERED.**  Unfolding the asymmetry's two
-conjuncts through the flat characterization (`ForkOneSlide`): the blocked
-twin is next-up and S-live, so it is not the top of its pile, i.e. a NONEMPTY
-run sits above it.  This is the exact shape a `BottomAsymmetry` producer has
-to exhibit. -/
-theorem covered_twin_of_block {w : State} {x : Card} (hwf : w.WF)
-    (hS : CanRaiseS w x.twin) (hblock : ¬ CanRaise w x.twin) :
-    ∃ (a : Anchor) (bs : List Card) (u1 : Card) (rest : List Card),
-      (w.piles a).faceUp = bs ++ x.twin :: u1 :: rest := by
-  obtain ⟨hnext, a, bs, run, hshape, hseat, hdisj⟩ :=
-    SafePathFiber.twin_flat_data hwf hS
-  have hrun : run ≠ [] := SafePathFiber.twin_run_ne_nil hwf hnext hblock hshape hseat
-  cases run with
-  | nil => exact absurd rfl hrun
-  | cons u1 rest => exact ⟨a, bs, u1, rest, hshape⟩
-
-/-- The cover's head is one rank below the pair: it fits the blocked twin
-(`runOK_adjacent_fit`, as in `Orig2/Fork/Local/ForkOneSlide.lean:128`), so the residual
-is a genuine one-slide statement.  Stated as the corollary the campaign
-needs: the head `u1` sits on the twin. -/
-theorem covered_twin_head_fits {w : State} {x : Card} (hwf : w.WF)
-    (hS : CanRaiseS w x.twin) (hblock : ¬ CanRaise w x.twin) :
-    ∃ (a : Anchor) (bs : List Card) (u1 : Card) (rest : List Card),
-      (w.piles a).faceUp = bs ++ x.twin :: u1 :: rest ∧ canSitOn u1 x.twin = true := by
-  obtain ⟨a, bs, u1, rest, hshape⟩ := covered_twin_of_block hwf hS hblock
-  refine ⟨a, bs, u1, rest, hshape, ?_⟩
-  have hok : runOK (bs ++ x.twin :: u1 :: rest) = true := by
-    rw [← hshape]; exact hwf.2.1 a
-  exact SeedKit.runOK_adjacent_fit x.twin u1 bs rest hok
-
-/-! ## §4. The drain half of the bridge -/
-
-/-- **`ForkExistenceFromAsymmetry`** — the drain half: any state carrying the
-twin asymmetry (with the rank floor) has a FORK in its class.  Named here, and
-discharged in `forkExistence_of_drainInputs` from the `Drain_Invariant` inputs. -/
 def ForkExistenceFromAsymmetry : Prop :=
   ∀ (w : State) (x : Card), w.WF →
     CanRaise w x → CanRaiseS w x.twin → ¬ CanRaise w x.twin →
@@ -546,18 +394,6 @@ theorem satDifferForkWF_of_bottom_asymmetry
   obtain ⟨F, y, hrF, hfork⟩ := hdrain w x hwwf hcan hS hblock hfloor
   exact ⟨F, y, sameOrbitSetoid.iseqv.trans huw hrF, hfork⟩
 
-/-- **THE REDUCTION FROM THE DRAIN INPUTS** — no named drain hypothesis
-beyond the `DrainInputs` bundle of `Temp/Drain_Invariant.lean`. -/
-theorem satDifferForkWF_of_drainInputs (hbridge : BottomAsymmetry) (hin : DrainInputs) :
-    SatDifferForkWF :=
-  satDifferForkWF_of_bottom_asymmetry hbridge (forkExistence_of_drainInputs hin)
-
-/-! ## §5b. The residual in cover vocabulary (the concrete obligation) -/
-
-/-- **`BottomCover`** — `BottomAsymmetry` with the blocked conjunct written as
-`CoveredAt`.  This is the form a campaign worker can discharge from the chart:
-exhibit a class-mate of the valley bottom where one twin of a live pair is
-COVERED (a card sits directly on it) and nothing is live below the pair. -/
 def BottomCover : Prop :=
   ∀ u v : State, u.WF → SSaturated u → SSaturated v → sameOrbitSetoid.r u v →
     (∃ σ : Suit, rungAt u σ ≠ rungAt v σ) →
@@ -565,44 +401,6 @@ def BottomCover : Prop :=
       CanRaise w x ∧ CanRaiseS w x.twin ∧ CoveredAt w x.twin ∧
       (∀ c, CanRaiseS w c → x.rank.toIdx ≤ c.rank.toIdx)
 
-theorem bottomAsymmetry_of_bottomCover (h : BottomCover) : BottomAsymmetry := by
-  intro u v huwf hsu hsv hcls hdiff
-  obtain ⟨w, x, huw, h1, h2, h3, h4⟩ := h u v huwf hsu hsv hcls hdiff
-  have hwwf : w.WF := by
-    obtain ⟨σ, hσ, τ, hτ⟩ := huw
-    exact wf_of_shuffle hτ huwf
-  exact ⟨w, x, huw, (asymmetry_iff_covered hwwf).mpr ⟨h1, h2, h3, h4⟩⟩
-
-/-- The reduction from the COVER residual. -/
-theorem satDifferForkWF_of_bottomCover (hbridge : BottomCover)
-    (hdrain : ForkExistenceFromAsymmetry) : SatDifferForkWF :=
-  satDifferForkWF_of_bottom_asymmetry (bottomAsymmetry_of_bottomCover hbridge) hdrain
-
-/-- The drain half in cover vocabulary. -/
-def ForkExistenceFromCover : Prop :=
-  ∀ (w : State) (x : Card), w.WF → CanRaise w x → CanRaiseS w x.twin →
-    CoveredAt w x.twin →
-    (∀ c, CanRaiseS w c → x.rank.toIdx ≤ c.rank.toIdx) →
-    ∃ (F : State) (y : Card), sameOrbitSetoid.r w F ∧ ForkWitness F y
-
-theorem forkExistenceFromAsymmetry_iff_cover :
-    ForkExistenceFromAsymmetry ↔ ForkExistenceFromCover := by
-  constructor
-  · intro h w x hwf h1 h2 h3 h4
-    obtain ⟨a1, a2, a3, a4⟩ := (asymmetry_iff_covered hwf).mpr ⟨h1, h2, h3, h4⟩
-    exact h w x hwf a1 a2 a3 a4
-  · intro h w x hwf h1 h2 h3 h4
-    obtain ⟨a1, a2, a3, a4⟩ := (asymmetry_iff_covered hwf).mp ⟨h1, h2, h3, h4⟩
-    exact h w x hwf a1 a2 a3 a4
-
-/-! ## §5c. The drain conversion
-
-`SplitResidual` is false as stated (see its docstring and
-`Orig2/Fork/Split/ForkSplitResidual.lean`); the corrected chain lives in that card. -/
-
-/-- **THE CAMPAIGN TARGET, DRAIN DISCHARGED.**  The drain half is
-`DrainClose.fork_exists_of_asymmetry`, so any bridge residual plus the
-choice-free shortest-play interface gives `SatDifferForkWF`. -/
 theorem forkExistenceFromAsymmetry_drainClosed : ForkExistenceFromAsymmetry := by
   intro w x hwf hcan hlive hblock hfloor
   obtain ⟨F, hrel, hfork⟩ :=
@@ -615,26 +413,12 @@ theorem forkExistenceFromAsymmetry_drainClosed : ForkExistenceFromAsymmetry := b
 #print axioms canRaiseS_cargoLeg_iff
 #print axioms canRaiseS_of_free_play_iff
 #print axioms bottom_pull_live
-#print axioms bottom_raise_live
-#print axioms bottom_cards_live
-#print axioms bottom_cards_raisable
 #print axioms adjacent_same_turn_shortens
 #print axioms shortest_adjacent_turn_ne
-#print axioms twin_asymmetry_pack
 #print axioms valley_bottom_no_twin_block
 #print axioms valley_bottom_twins_both_raisable
-#print axioms covered_of_pull_onto_card
-#print axioms seatOf_mover_of_pull
-#print axioms covered_twin_of_block
-#print axioms covered_twin_head_fits
-#print axioms asymmetry_iff_covered
-#print axioms fork_of_twin_live_covered
 #print axioms forkExistence_of_drainInputs
 #print axioms satDifferForkWF_of_bottom_asymmetry
-#print axioms satDifferForkWF_of_drainInputs
-#print axioms bottomAsymmetry_of_bottomCover
-#print axioms satDifferForkWF_of_bottomCover
-#print axioms forkExistenceFromAsymmetry_iff_cover
 #print axioms first_letter_of_play
 #print axioms raisable_of_pull_at_end
 #print axioms blocked_pull_needs_free_tail

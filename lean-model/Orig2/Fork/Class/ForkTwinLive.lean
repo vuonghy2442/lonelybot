@@ -99,17 +99,6 @@ theorem nextUp_true_iff {st : State} {c : Card} :
     (st.found c.suit).length = c.rank.toIdx
   rw [decide_eq_true_iff, eq_comm]
 
-/-- **THE `nextUp` HALF CAN NEVER BE DROPPED** — no-go form of
-`canRaiseS_rung`: a card that is not next-up on its rung is not S-live. -/
-theorem not_canRaiseS_of_not_nextUp {st : State} {c : Card}
-    (h : st.nextUp c = false) : ¬ CanRaiseS st c := by
-  intro hS
-  have hnext : st.nextUp c = true := nextUp_true_iff.mpr (canRaiseS_rung hS)
-  rw [h] at hnext
-  exact Bool.noConfusion hnext
-
-/-- A free play preserves `nextUp` (and hence the *twin-suit* rung pin along
-the valley's free tail). -/
 theorem nextUp_of_free_play_iff {B F : State} {post : List Move} {c : Card}
     (hplay : ShufflePlayW B post F) (hfree : ∀ m ∈ post, FreeMove m) :
     B.nextUp c = true ↔ F.nextUp c = true := by
@@ -158,20 +147,6 @@ theorem sited_of_canRaiseS {st : State} {c : Card} (hwf : st.WF)
   obtain ⟨-, a, hmem, hseat, -⟩ := (LandKit.canRaiseS_below_form hwf).mp h
   exact ⟨a, hmem, hseat⟩
 
-/-- **THE `seatOf` FORM OF THE RESIDUAL.**  "`c.twin` sits on a card"
-(`seatOf st c.twin = some (Sum.inr z)`) implies the siting datum.  This is
-the resting-place the `SplitProbe` census reads (the cover card sits on
-`c.twin` before the slide). -/
-theorem sited_of_seatOf_inr {st : State} {c z : Card} (hwf : st.WF)
-    (h : seatOf st c.twin = some (Sum.inr z)) : TwinSited st c := by
-  obtain ⟨a, hhold, hbelow, -⟩ := tfc_seatOf_of_inr h
-  exact ⟨a, (pileHolding_eq_some_iff hwf).1 hhold, Or.inl hbelow⟩
-
-/-! ## §2. The exact characterization of the twin conjunct -/
-
-/-- **`LandingTwinDatum st c`** — the exact residual: the twin-suit rung pin
-plus the static siting.  (This is `CanRaiseS st c.twin` with the cover clause
-removed; the cover clause is what the pull supplies.) -/
 def LandingTwinDatum (st : State) (c : Card) : Prop :=
   st.nextUp c.twin = true ∧ TwinSited st c
 
@@ -196,33 +171,6 @@ theorem canRaiseS_twin_of_datum {st : State} {c : Card} (hwf : st.WF)
     CanRaiseS st c.twin :=
   (canRaiseS_twin_iff hwf hctop).mpr h
 
-/-- **THE DATUM IS IMPLIED BY THE GOAL.**  `LandingLivePair` at a `WF` state
-gives the datum: `nextUp` from `canRaiseS_rung`, siting from the flat form.
-So `LandingTwinDatum` is a *lossless* repackaging of the first conjunct. -/
-theorem landingTwinDatum_of_landingLivePair {st : State} {c : Card}
-    (hwf : st.WF) (h : Mech.LandingLivePair st c) : LandingTwinDatum st c :=
-  ⟨nextUp_true_iff.mpr (canRaiseS_rung h.1), sited_of_canRaiseS hwf h.1⟩
-
-/-- **THE EXACT RESIDUAL OF `LandingLivePair`.**  At a `WF` state where `c`
-tops a pile, the whole landing pair is *exactly* the twin datum (pin +
-siting) plus the third-suit exclusion.  Nothing else is left. -/
-theorem landingLivePair_iff_datum_and_third {st : State} {c : Card}
-    (hwf : st.WF) (hctop : st.pileOfTop c ≠ none) :
-    Mech.LandingLivePair st c ↔
-      LandingTwinDatum st c ∧
-        (∀ e, CanRaiseS st e → e.suit = c.suit ∨ e.suit = c.twin.suit) := by
-  constructor
-  · intro h
-    exact ⟨landingTwinDatum_of_landingLivePair hwf h, h.2⟩
-  · rintro ⟨hd, hthird⟩
-    exact ⟨canRaiseS_twin_of_datum hwf hctop hd, hthird⟩
-
-/-! ## §3. The landing theorem: the pull manufactures the cover clause -/
-
-/-- **THE FIRST CONJUNCT AT THE PULL'S LANDING (Route A core).**  Pull `c`
-from `A` to `B`, free tail `B → F`, and the datum at `B`: then `c.twin` is
-S-live at `B`.  The cover clause is supplied by the pull, so unlike
-`canRaiseS_twin_iff` this needs no `pileOfTop` hypothesis. -/
 theorem canRaiseS_twin_at_landing {A B F : State} {post : List Move}
     {c : Card} {b : Base}
     (hB : B.WF) (hstep : State.step A (Move.foundToTab c b) = some B)
@@ -248,12 +196,6 @@ pair `{c, c.twin}` (as cards, not merely as suits). -/
 def PairExactLive (st : State) (c : Card) : Prop :=
   ∀ y : Card, (y = c.twin ∨ y = c) ↔ CanRaiseS st y
 
-/-- `c.twin.twin` is `c` inside a disjunction. -/
-theorem twin_disj_iff (c y : Card) :
-    (y = c.twin ∨ y = c.twin.twin) ↔ (y = c.twin ∨ y = c) := by
-  rw [card_twin_twin]
-
-/-- **`ForkWitness` AT THE TWIN IS "PAIR EXACT + BLOCK".** -/
 theorem forkWitness_twin_iff_pairExact {st : State} {c : Card} :
     ForkWitness st c.twin ↔ PairExactLive st c ∧ ¬ CanRaise st c := by
   unfold ForkWitness PairExactLive
@@ -287,39 +229,6 @@ theorem landingLivePair_iff_pairExact {F : State} {c : Card}
     · exact Or.inr (congrArg Card.suit h')
     · exact Or.inl (congrArg Card.suit h')
 
-/-- **THE FORK WITNESS FROM THE LANDING PAIR + THE BLOCK.** -/
-theorem forkWitness_twin_of_landingLivePair {F : State} {c : Card}
-    (hS : CanRaiseS F c) (h : Mech.LandingLivePair F c) (hblock : ¬ CanRaise F c) :
-    ForkWitness F c.twin :=
-  forkWitness_twin_iff_pairExact.mpr ⟨(landingLivePair_iff_pairExact hS).mp h, hblock⟩
-
-/-- **THE LANDING PAIR FROM THE FORK WITNESS.** -/
-theorem landingLivePair_of_forkWitness {F : State} {c : Card}
-    (hS : CanRaiseS F c) (h : ForkWitness F c.twin) : Mech.LandingLivePair F c :=
-  (landingLivePair_iff_pairExact hS).mpr (forkWitness_twin_iff_pairExact.mp h).1
-
-/-- **THE GOAL IMPLIES THE PIN.**  So the `nextUp` half of §2 is a
-consequence of the first conjunct, i.e. the datum loses nothing. -/
-theorem nextUp_twin_of_landingLivePair {F : State} {c : Card}
-    (h : Mech.LandingLivePair F c) : F.nextUp c.twin = true :=
-  nextUp_true_iff.mpr (canRaiseS_rung h.1)
-
-/-- **THE GOAL IMPLIES THE TWIN-SUIT RUNG PIN**, in `rungAt` form. -/
-theorem rungAt_twin_of_landingLivePair {F : State} {c : Card}
-    (h : Mech.LandingLivePair F c) : rungAt F c.twin.suit = c.rank.toIdx :=
-  canRaiseS_rung h.1
-
-/-! ## §5. Route B: the pin plus the containment clause, siting for free -/
-
-/-- **THE RAISE CARD IS THE TWIN.**  At the bottom, with `c` S-live and
-blocked, the third-suit exclusion in force and the twin-suit rung pin, any
-vanilla-raisable `d` is `c.twin`:
-
-* on `c`'s suit, the rung pin makes `d = c` (`Mech.live_eq_of_suit_left`),
-  contradicting the block;
-* on the twin suit, the pin makes `d = c.twin` (`Mech.live_eq_of_suit_twin`).
-
-No siting datum is consumed: `d`'s *vanilla* raisability supplies the seat. -/
 theorem raise_eq_twin_of_block_containment {F : State} {c d : Card}
     (hS : CanRaiseS F c) (hblock : ¬ CanRaise F c)
     (hcont : ∀ e, CanRaiseS F e → e.suit = c.suit ∨ e.suit = c.twin.suit)
@@ -375,25 +284,6 @@ def SplitContainment : Prop :=
     SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
     ∀ e, CanRaiseS F e → e.suit = c.suit ∨ e.suit = c.twin.suit
 
-/-- **`SplitLandingTwinSited`** — the Route A residual: at the pull's
-landing, `c.twin` is sited. -/
-def SplitLandingTwinSited : Prop :=
-  ∀ (u v : State) (ρ : List Move) (F : State)
-    (left right : List Move) (c d : Card) (b : Base)
-    (pre post tail : List Move),
-    SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
-    ∀ (A' B : State), ShufflePlayW u pre A' →
-      State.step A' (Move.foundToTab c b) = some B →
-      TwinSited B c
-
-/-! ## §5b. The pin is a PAIR-RUNG EQUALITY (the ledger form of the residual) -/
-
-/-- **THE PIN IS SYMMETRY OF THE PAIR SUITS' RUNGS.**  Given `CanRaiseS F c`
-(which pins `c`'s own suit at `c.rank.toIdx`), the twin-suit pin is *exactly*
-`rungAt F c.twin.suit = rungAt F c.suit`.  So the residual is a statement
-about two coordinates of the bottom's rung vector — precisely the "dip is
-symmetric on the twin pair" row of the mountain/ledger programme — and not a
-statement about licences, seats or cargo. -/
 theorem pin_iff_pairRungEq {F : State} {c : Card} (hS : CanRaiseS F c) :
     F.nextUp c.twin = true ↔ rungAt F c.twin.suit = rungAt F c.suit := by
   rw [nextUp_true_iff]
@@ -452,34 +342,6 @@ theorem splitLandingTwin_of_block_containment_of_pin
     shufflePlayW_tail_of_step (hshape ▸ hleft) hpre hstep
   exact (Mech.canRaiseS_landing_iff hB hpost hfree c.twin).mpr htwinF
 
-/-- **THE FIRST CONJUNCT AT EVERY SPLIT, WITHOUT THE OTHER CLAUSE.**  Route A:
-`SplitBlock` + the pin + `SplitLandingTwinSited` ⟹ `LandKit.SplitLandingTwin`.
-This route does not touch the containment clause, but it must assume the
-siting. -/
-theorem splitLandingTwin_of_pin_of_sited
-    (hb : SplitKit.SplitBlock) (hp : SplitTwinRungPin)
-    (hs : SplitLandingTwinSited) : LandKit.SplitLandingTwin := by
-  intro u v ρ F left right c d b pre post tail h A' B hpre hstep
-  have hk := h
-  obtain ⟨huwf, -, -, -, -, -, -, hleft, -, hshape, hfree, -⟩ := h
-  obtain ⟨hF, hSc, -, -⟩ := SplitKit.splitHyp_green hk
-  have hblock : ¬ CanRaise F c := hb u v ρ F left right c d b pre post tail hk
-  have hpin : F.nextUp c.twin = true :=
-    hp u v ρ F left right c d b pre post tail hk
-  have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end hpre huwf
-  have hB : B.WF := step_wf hA' hstep
-  have hpost : ShufflePlayW B post F :=
-    shufflePlayW_tail_of_step (hshape ▸ hleft) hpre hstep
-  have hpinB : B.nextUp c.twin = true :=
-    (nextUp_of_free_play_iff hpost hfree).mpr hpin
-  have hsit : TwinSited B c :=
-    hs u v ρ F left right c d b pre post tail hk A' B hpre hstep
-  exact canRaiseS_twin_at_landing hB hstep hpost hfree hSc hblock ⟨hpinB, hsit⟩
-
-/-- **THE FINAL CHAIN.**  `SplitBlock` + `SplitContainment` + `SplitTwinRungPin`
-give `Mech.MechanismResidual`.  The landing live pair is *derived* (Route B)
-and the cover event is `Mech.coverEvent_of_block`; the twin clause is no
-longer an assumption. -/
 theorem mechanismResidual_of_block_containment_of_pin
     (hb : SplitKit.SplitBlock) (hc : SplitContainment) (hp : SplitTwinRungPin) :
     Mech.MechanismResidual := by
@@ -509,25 +371,6 @@ theorem mechanismResidual_of_block_containment_of_pin
       exact ⟨A', B, hpre, hstep, hpost, ⟨htwinB, hcontB⟩,
         Mech.coverEvent_of_block hB hpost hfree hcanB hSc hblock⟩
 
-/-- **THE PIN IS THE ONLY EXTRA INPUT.**  Route B's hypothesis set is exactly
-`SplitBlock + SplitContainment + SplitTwinRungPin`, and the pin is *implied*
-by the target (`rungAt_twin_of_landingLivePair`), so it is a genuine
-restriction of the first conjunct to a rung equation. -/
-theorem splitLandingTwin_iff_of_block_containment
-    (hb : SplitKit.SplitBlock) (hc : SplitContainment) :
-    (∀ (u v : State) (ρ : List Move) (F : State)
-        (left right : List Move) (c d : Card) (b : Base)
-        (pre post tail : List Move),
-        SplitKit.SplitHyp u v ρ F left right c d b pre post tail →
-        F.nextUp c.twin = true) →
-      LandKit.SplitLandingTwin :=
-  fun hp => splitLandingTwin_of_block_containment_of_pin hb hc hp
-
-/-! ## §6b. Exactness of the residual: the pin is *implied* by the target -/
-
-/-- **THE PIN IS NOT A WEAKENING.**  `LandKit.SplitLandingTwin` implies
-`SplitTwinRungPin`: clause 1 at the landing is `CanRaiseS`, whose rung pin
-(`canRaiseS_rung`) transported down the free tail is exactly the pin. -/
 theorem splitTwinRungPin_of_splitLandingTwin (h : LandKit.SplitLandingTwin) :
     SplitTwinRungPin := by
   intro u v ρ F left right c d b pre post tail hh
@@ -588,58 +431,20 @@ theorem splitResidualData_of_block_containment_of_pin_floor
   SplitKit.splitResidualData_of_parts
     (splitTwin_of_block_containment_of_pin hb hc hp) hb hfloor
 
-/-- **THE CAMPAIGN FROM FOUR CLAUSES.**  `SplitBlock` + `SplitContainment` +
-`SplitTwinRungPin` + `SplitFloor`, with the choice-free shortest-play
-interface, give `SatDifferForkWF`. -/
-theorem satDifferForkWF_of_block_containment_of_pin_floor
-    (hb : SplitKit.SplitBlock) (hc : SplitContainment) (hp : SplitTwinRungPin)
-    (hfloor : SplitKit.SplitFloor) (hmin : ValleyElim.ShortestPlayExists) :
-    SatDifferForkWF :=
-  SplitKit.satDifferForkWF_of_splitResidualData_drainClosed
-    (splitResidualData_of_block_containment_of_pin_floor hb hc hp hfloor) hmin
-
-/-! ## §7. Battery -/
-
-#check @TwinKit.nextUp_true_iff
-#check @TwinKit.nextUp_of_free_play_iff
-#check @TwinKit.shufflePlayW_tail_of_step
-#check @TwinKit.TwinSited
-#check @TwinKit.landingTwinDatum_of_landingLivePair
-#check @TwinKit.canRaiseS_twin_iff
-#check @TwinKit.canRaiseS_twin_at_landing
-#check @TwinKit.landingLivePair_iff_datum_and_third
-#check @TwinKit.PairExactLive
-#check @TwinKit.landingLivePair_iff_pairExact
-#check @TwinKit.forkWitness_twin_iff_pairExact
-#check @TwinKit.raise_eq_twin_of_block_containment
-#check @TwinKit.SplitTwinRungPin
-#check @TwinKit.splitLandingTwin_of_block_containment_of_pin
-#check @TwinKit.mechanismResidual_of_block_containment_of_pin
-
 #print axioms TwinKit.nextUp_true_iff
-#print axioms TwinKit.not_canRaiseS_of_not_nextUp
 #print axioms TwinKit.nextUp_of_free_play_iff
 #print axioms TwinKit.shufflePlayW_tail_of_step
 #print axioms TwinKit.sited_of_canRaiseS
-#print axioms TwinKit.sited_of_seatOf_inr
 #print axioms TwinKit.canRaiseS_twin_iff
 #print axioms TwinKit.canRaiseS_twin_of_datum
-#print axioms TwinKit.landingTwinDatum_of_landingLivePair
-#print axioms TwinKit.landingLivePair_iff_datum_and_third
 #print axioms TwinKit.canRaiseS_twin_at_landing
 #print axioms TwinKit.canRaiseS_twin_at_landing_iff
-#print axioms TwinKit.twin_disj_iff
 #print axioms TwinKit.forkWitness_twin_iff_pairExact
 #print axioms TwinKit.landingLivePair_iff_pairExact
-#print axioms TwinKit.forkWitness_twin_of_landingLivePair
-#print axioms TwinKit.landingLivePair_of_forkWitness
-#print axioms TwinKit.nextUp_twin_of_landingLivePair
-#print axioms TwinKit.rungAt_twin_of_landingLivePair
 #print axioms TwinKit.raise_eq_twin_of_block_containment
 #print axioms TwinKit.canRaise_twin_of_block_containment
 #print axioms TwinKit.canRaiseS_twin_of_block_containment
 #print axioms TwinKit.splitLandingTwin_of_block_containment_of_pin
-#print axioms TwinKit.splitLandingTwin_of_pin_of_sited
 #print axioms TwinKit.mechanismResidual_of_block_containment_of_pin
 #print axioms TwinKit.splitTwinRungPin_of_splitLandingTwin
 #print axioms TwinKit.splitLandingTwin_iff_splitTwinRungPin
