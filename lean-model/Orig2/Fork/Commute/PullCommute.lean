@@ -603,13 +603,20 @@ theorem raiseSSeqLicensed_eq_nil_of_ssaturated {u w : State} {ws : List Card}
         canRaiseS_of_raiseSSeqLicensed_head (by simpa [playWord] using hsingle)
       exact absurd hd (hsat d)
 
+/-- A class-mate of a `WF` state is `WF` (local copy of the one row the final
+chain used from `ForklessTop_Main`). -/
+theorem wf_of_sameOrbit {u v : State} (hcls : sameOrbitSetoid.r u v)
+    (hu : u.WF) : v.WF := by
+  obtain ⟨σ, hσ, τ, hτ⟩ := hcls
+  exact run_wf hu (Walk_run _ hτ)
+
 /-- **`SatDifferForkWF` FROM `raises_or_fork`.**  At saturated endpoints the
 only licensed raise word is empty, so the join from `u` forces `v ≤ u` and the
 join from `v` forces `u ≤ v`; differing rungs make that impossible, leaving the
 fork arm. -/
 theorem satDifferForkWF_proved : SatDifferForkWF := by
   intro u v hu hsu hsv hcls hdiff
-  have hv : v.WF := ForklessTop.wf_of_sameOrbit hcls hu
+  have hv : v.WF := wf_of_sameOrbit hcls hu
   rcases raises_or_fork u v hu hcls with ⟨ws, w, hplay, huw, hvw⟩ | hfork
   · have hws : ws = [] := raiseSSeqLicensed_eq_nil_of_ssaturated hsu hplay
     subst hws
