@@ -41,8 +41,9 @@ The two cheap extension producers are proved:
 The single remaining shape is isolated as `TwinRescue`: `c.twin` occurs in the
 word and `c` dies at the endpoint, so the extension must first revive `c` by
 raising the cards covering it.  `pull_case_existential` turns `TwinRescue` into
-the existential pull case, and `fullJoinAtLeastOrFork_of_twinRescue` feeds it to
-the path induction of `RaisesOrForkMain`.
+the existential pull case, and `raises_or_fork_of_twinRescue` feeds it to the
+path induction of `RaisesOrForkMain`; `PullCommute` later discharges `TwinRescue`
+by commutation.
 
 House rules: no `sorry`, no `Classical`, no `noncomputable`, no new axioms.
 -/
@@ -87,128 +88,9 @@ theorem raiseExtension_of_noTwin {u v : State} {c : Card} {ws : List Card}
     RaiseExtension u c v :=
   raiseExtension_of_end_live hρ (canRaiseS_of_word_notMem hρ hu hc hself htwin)
 
-/-! ## §1b. The word-carrying raise climb
-
-`ForklessTop.exists_saturated_above` gives a saturated class-mate but forgets
-the raises that produced it.  The same `52 - rungSum` recursion, with the word
-accumulated, gives the object the rescue needs: a licensed raise-only play to a
-saturated state above the start. -/
-
-/-- **THE WORD-CARRYING RAISE CLIMB.**  Every `WF` state has a licensed
-raise-only play to a saturated class-mate whose rungs dominate the start. -/
-theorem exists_raiseClimb_saturated (u : State) (hu : u.WF) :
-    ∃ ws w, RaiseSSeqLicensed u ws w ∧ w.WF ∧ SSaturated w ∧ RungLe u w := by
-  have key : ∀ N (u : State), u.WF → 52 - Drain.rungSum u = N →
-      ∃ ws w, RaiseSSeqLicensed u ws w ∧ w.WF ∧ SSaturated w ∧ RungLe u w := by
-    intro N
-    induction N using Nat.strongRecOn with
-    | ind N ih =>
-      intro u hu hN
-      by_cases hb : rankSatB 13 u = true
-      · exact ⟨[], u, RaiseSSeqLicensed.nil u, hu,
-          ForklessTop.ssaturated_of_rankSatB_true hu hb, fun _ => Nat.le_refl _⟩
-      · have hfalse : rankSatB 13 u = false := by
-          cases h : rankSatB 13 u with
-          | false => rfl
-          | true => exact absurd h hb
-        obtain ⟨c, -, hcS⟩ := ForklessTop.exists_live_of_rankSatB_false hu hfalse
-        obtain ⟨z, hpath, hcan⟩ := hcS
-        obtain ⟨A, hstep⟩ := step_tabToFound_of_canRaise hcan
-        have hsingle : RaiseSSeqLicensed u [c] A :=
-          RaiseSSeqLicensed.cons (RaiseSSeqLicensed.nil u)
-            ⟨z, hpath, hcan⟩ hpath hstep
-        have hzWF : z.WF := cargoPath_wf hu hpath
-        have hAwf : A.WF := step_wf hzWF hstep
-        have hsumA : Drain.rungSum A = Drain.rungSum u + 1 := by
-          have hz : Drain.rungSum z = Drain.rungSum u :=
-            ForklessTop.rungSum_eq_of_rung_eq
-              (fun σ => (rungAt_cargoPath hpath σ).symm)
-          rw [DrainClose.rungSum_raise hstep, hz]
-        have hN' : 52 - Drain.rungSum A < N := by
-          have hleA52 := Drain.rungSum_le_52 hAwf
-          have hr : Drain.rungSum u < 52 := by omega
-          have hlt : 52 - (Drain.rungSum u + 1) < 52 - Drain.rungSum u :=
-            Nat.sub_lt_sub_left hr (Nat.lt_succ_self (Drain.rungSum u))
-          rw [hsumA, ← hN]
-          exact hlt
-        obtain ⟨wsA, w, hρA, hwwf, hwsat, hleA⟩ :=
-          ih (52 - Drain.rungSum A) hN' A hAwf rfl
-        refine ⟨wsA ++ [c], w, RaiseSSeqLicensed.append hsingle hρA, hwwf, hwsat, ?_⟩
-        obtain ⟨hon, hoff⟩ :=
-          RungMono.rungAt_raiseStepS (z := u) (z' := A) (c := c) ⟨z, hpath, hstep⟩
-        intro σ
-        have huA : rungAt u σ ≤ rungAt A σ := by
-          by_cases hσ : σ = c.suit
-          · subst hσ
-            rw [hon]
-            exact Nat.le_succ _
-          · rw [hoff σ hσ]
-            exact Nat.le_refl _
-        exact Nat.le_trans huA (hleA σ)
-  exact key (52 - Drain.rungSum u) u hu rfl
-
-/-! ## §1c. Merging a lower-rank word with a strictly higher-rank word
-
-This is the rank-based `HigherReplay`: if `L` is ascending and every card of `L`
-is strictly below every card of the ascending word `H`, then a licensed play of
-`L` and a licensed play of `H` from the same state can be concatenated as
-`L ; H`.  The proof inserts the letters of `L` one at a time with
-`BlockHousing.suffix_insert`, aligning the two single-letter `l` landings by
-`replay_of_orbit_rung` (they are equal-rung orbit mates). -/
-
-theorem merge_lower_higher :
-    ∀ (L : List Card) {s u v : State} {H : List Card},
-      L.Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx) →
-      H.Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx) →
-      (∀ l ∈ L, ∀ h ∈ H, l.rank.toIdx < h.rank.toIdx) →
-      s.WF →
-      RaiseSSeqLicensed s (playWord L) u →
-      RaiseSSeqLicensed s (playWord H) v →
-      ∃ w, RaiseSSeqLicensed s (playWord (L ++ H)) w := by
-  intro L
-  induction L with
-  | nil =>
-      intro s u v H _ _ _ hs _ hH
-      exact ⟨v, by simpa using hH⟩
-  | cons l L' ih =>
-      intro s u v H hLasc hHasc hrank hs hL hH
-      obtain ⟨s1, h_l, hL'⟩ :=
-        RaiseSSeqLicensed.split_chron (A := [l]) (R := L') (s := s) (z := u)
-          (by simpa [playWord, List.append_assoc] using hL)
-      have h_l' : RaiseSSeqLicensed s [l] s1 := by simpa [playWord] using h_l
-      have hl : CanRaiseS s l := canRaiseS_of_raiseSSeqLicensed_head h_l'
-      have hs1 : s1.WF := RaiseSSeqLicensed.wf h_l hs
-      have hr : ∀ d ∈ H, l.rank.toIdx < d.rank.toIdx :=
-        fun d hd => hrank l (by simp) d hd
-      obtain ⟨z, h_lH⟩ := suffix_insert hs hHasc hH hl hr
-      obtain ⟨s1', h_l2, hH'⟩ :=
-        RaiseSSeqLicensed.split_chron (A := [l]) (R := H) (s := s) (z := z)
-          (by simpa [playWord, List.append_assoc] using h_lH)
-      have h_l2' : RaiseSSeqLicensed s [l] s1' := by simpa [playWord] using h_l2
-      have hs1' : s1'.WF := RaiseSSeqLicensed.wf h_l2 hs
-      have horb_eq : RevEqW s1' s1 := revEqW_of_raise_plays hs h_l2' h_l'
-      have horb' : sameOrbitSetoid.r s1' s1 := RevEqW_symm horb_eq
-      have hrung : ∀ σ, rungAt s1 σ = rungAt s1' σ :=
-        rungAt_eq_of_perm h_l' h_l2' (List.Perm.refl [l])
-      have hrung' : ∀ σ, rungAt s1' σ = rungAt s1 σ := fun σ => (hrung σ).symm
-      obtain ⟨u', hL'', -, -⟩ := replay_of_orbit_rung hs1' horb' hrung' hL'
-      have hL'asc : L'.Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx) :=
-        (List.pairwise_cons.mp hLasc).2
-      have hrank' : ∀ l' ∈ L', ∀ h ∈ H, l'.rank.toIdx < h.rank.toIdx :=
-        fun l' hl' h hh => hrank l' (List.mem_cons_of_mem l hl') h hh
-      obtain ⟨w, hmerge⟩ :=
-        ih (s := s1') (u := u') (v := z) hL'asc hHasc hrank' hs1' hL'' hH'
-      refine ⟨w, ?_⟩
-      have hfin : RaiseSSeqLicensed s (playWord (L' ++ H) ++ playWord [l]) w :=
-        RaiseSSeqLicensed.append h_l2 hmerge
-      simpa [playWord, List.append_assoc] using hfin
-
 /-! ## §1c'. The twin-free merge (no rank separation)
 
-`merge_lower_higher` needs every card of `L` to be strictly below every card of
-`H`; the insertion of the head `l` relies on `suffix_insert`, whose `tieFree`
-step requires the target `l :: H` to be ascending.  If instead `H` merely avoids
-`l` and `l.twin`, then `l`'s licence survives `H`
+If `H` merely avoids `l` and `l.twin`, then `l`'s licence survives `H`
 (`canRaiseS_of_word_notMem`), so a play of `H` can be extended by `l` at the end;
 bubbling `l` back to the front uses the adjacent swaps `asc_swap` /
 `tie_swap` / `swap_inversion`, none of which needs `H` to be ascending. -/
@@ -292,8 +174,8 @@ theorem suffix_insert_notwin {u z : State} {c : Card} {H : List Card}
 
 /-- **The twin-free merge.**  If `L` and `H` are ascending, card-disjoint from
 each other and from each other's twins, and both are playable from `s`, then
-`L ; H` is playable from `s`.  Unlike `merge_lower_higher` there is no rank
-separation between `L` and `H`. -/
+`L ; H` is playable from `s`.  There is no rank separation between `L` and
+`H`. -/
 theorem merge_notwin :
     ∀ (L : List Card) {s u v : State} {H : List Card},
       L.Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx) →
@@ -346,238 +228,6 @@ theorem merge_notwin :
       have hfin : RaiseSSeqLicensed s (playWord (L' ++ H) ++ playWord [l]) w :=
         RaiseSSeqLicensed.append h_l2 hmerge
       simpa [playWord, List.append_assoc] using hfin
-
-/-! ## §1d. The post-twin rescue and the `TailReplay` replacement
-
-Instead of replaying the tail after the square, run the low rescue **after** the
-original `c.twin` letter.  The tail `post` is then licensed from the same state
-as the rescue and every rescue/`c` rank is strictly below every `post` rank, so
-`merge_lower_higher` appends it.  This is the last good-arm input. -/
-
-/-- **THE POST-TWIN RESCUE (residual).**  After the original `c.twin` letter,
-a rank-`< c.rank` play makes `c` vanilla.  The rescue is ascending, and its
-letters (plus `c`) are strictly below every tail letter. -/
-def PostTwinRescue : Prop :=
-  ∀ {t v : State} {c : Card} {post : List Card},
-    t.WF → RaiseSSeqLicensed t (playWord post) v →
-      (∀ d ∈ post, c.rank.toIdx < d.rank.toIdx) →
-      post.Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx) →
-      ∃ res w, RaiseSSeqLicensed t (playWord res) w ∧
-        (res ++ [c]).Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx) ∧
-        (∀ d ∈ res, d.rank.toIdx < c.rank.toIdx) ∧
-        CanRaise w c
-
-/-! ## §1f. Rank-tie normalization: move the twin letter to the end of its block
-
-After sorting, `c.twin` may still be followed by other cards of the same rank.
-`tie_swap` lets us bubble it to the right across that same-rank block, so the
-tail `post` has rank strictly above `c.rank`. -/
-
-theorem tie_move_right (B : List Card) :
-    ∀ {s z : State} {c : Card},
-      s.WF → c ∉ B → (∀ b ∈ B, b.rank = c.rank) →
-      RaiseSSeqLicensed s (playWord (c :: B)) z →
-      ∃ z', RaiseSSeqLicensed s (playWord (B ++ [c])) z' := by
-  induction B with
-  | nil =>
-      intro s z c hs _ _ h
-      exact ⟨z, by simpa [playWord] using h⟩
-  | cons b B' ih =>
-      intro s z c hs hcB hB h
-      have hb : b.rank = c.rank := hB b (by simp)
-      have hcb : c ≠ b := by
-        intro hEq
-        exact hcB (by rw [hEq]; exact List.mem_cons_self ..)
-      have hcB' : c ∉ B' := fun hmem => hcB (List.mem_cons_of_mem b hmem)
-      have hB' : ∀ b' ∈ B', b'.rank = c.rank :=
-        fun b' hb' => hB b' (List.mem_cons_of_mem b hb')
-      obtain ⟨z1, h1⟩ := tie_swap hs h hb.symm hcb
-      obtain ⟨s1, hbplay, hsl⟩ :=
-        RaiseSSeqLicensed.split_chron (A := [b]) (R := c :: B') (s := s) (z := z1)
-          (by simpa [playWord, List.append_assoc] using h1)
-      have hs1 : s1.WF := RaiseSSeqLicensed.wf hbplay hs
-      obtain ⟨z2, h2⟩ := ih hs1 hcB' hB' hsl
-      refine ⟨z2, ?_⟩
-      have hfin : RaiseSSeqLicensed s (playWord (B' ++ [c]) ++ playWord [b]) z2 :=
-        RaiseSSeqLicensed.append hbplay h2
-      simpa [playWord, List.append_assoc] using hfin
-
-/-- Prefix form: move `c` to the end of the same-rank block `B` that follows it. -/
-theorem move_twin_last {s z : State} {c : Card} {A B : List Card}
-    (hs : s.WF) (hcB : c ∉ B) (hB : ∀ b ∈ B, b.rank = c.rank)
-    (h : RaiseSSeqLicensed s (playWord (A ++ c :: B)) z) :
-    ∃ z', RaiseSSeqLicensed s (playWord (A ++ B ++ [c])) z' := by
-  obtain ⟨sA, hA, hSuf⟩ :=
-    RaiseSSeqLicensed.split_chron (A := A) (R := c :: B) h
-  have hsA : sA.WF := RaiseSSeqLicensed.wf hA hs
-  obtain ⟨z', hSuf'⟩ := tie_move_right B hsA hcB hB hSuf
-  refine ⟨z', ?_⟩
-  have hfin : RaiseSSeqLicensed s (playWord (B ++ [c]) ++ playWord A) z' :=
-    RaiseSSeqLicensed.append hA hSuf'
-  simpa [playWord, List.append_assoc] using hfin
-
-/-- **Post-twin vanilla read.**  Once `c.twin` is founded, a covered `c` cannot
-be `S`-live: the only non-vanilla way to be live is the twin-top disjunct, which
-is unavailable.  Hence `CanRaiseS` at `t` is already `CanRaise`. -/
-theorem canRaise_of_canRaiseS_of_twin_founded {z : State} {c : Card}
-    (hz : z.WF) (hfound : c.twin ∈ z.found c.twin.suit)
-    (hc : CanRaiseS z c) : CanRaise z c := by
-  obtain ⟨-, hfree⟩ := (canRaiseS_split hz).mp hc
-  obtain ⟨a, run, hhold, -, -, -⟩ := freeCardS_unpack hfree
-  have htwin : z.pileOfTop c.twin = none :=
-    pileOfTop_eq_none_of_found hz hfound
-  have hexp : fromCard c ((z.piles a).faceUp) = [c] :=
-    fromCard_nil_of_freeCardS_of_twin_none hhold hfree htwin
-  exact canRaise_of_canRaiseS_of_exposed hz hhold hexp hc
-
-/-- **THE LAST GOOD-ARM RESIDUAL.**  The revive drain from `t` ends with `c`
-still `S`-live (and `c.twin` still founded).  The ascending form is carried so
-it can feed `PostTwinRescue` directly. -/
-def PostTwinLive : Prop :=
-  ∀ {t v : State} {c : Card} {post : List Card},
-    t.WF → RaiseSSeqLicensed t (playWord post) v →
-      (∀ d ∈ post, c.rank.toIdx < d.rank.toIdx) →
-      post.Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx) →
-      ∃ res w, RaiseSSeqLicensed t (playWord res) w ∧
-        (res ++ [c]).Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx) ∧
-        (∀ d ∈ res, d.rank.toIdx < c.rank.toIdx) ∧
-        CanRaiseS w c ∧ c.twin ∈ w.found c.twin.suit ∧ w.WF
-
-/-- **`PostTwinLive` ⇒ `PostTwinRescue`.**  The post-twin vanilla read upgrades
-the endpoint licence. -/
-theorem postTwinRescue_of_live (hl : PostTwinLive) : PostTwinRescue := by
-  intro t v c post ht hpost hrank hcast
-  obtain ⟨res, w, hres, hLasc, hresRank, hcS, hfound, hwf⟩ :=
-    hl ht hpost hrank hcast
-  exact ⟨res, w, hres, hLasc, hresRank,
-    canRaise_of_canRaiseS_of_twin_founded hwf hfound hcS⟩
-
-/-- **`TailReplay` REPLACED BY THE POST-TWIN RESCUE + MERGE.**  From
-`PostTwinRescue`, the pair extension `res ++ [c]` is merged with the tail
-`post` by `merge_lower_higher`; the endpoint dominates `v` because `post` is a
-factor of the merged word. -/
-theorem extension_of_postTwinRescue (hp : PostTwinRescue)
-    {t v : State} {c : Card} {post : List Card}
-    (ht : t.WF) (hpost : RaiseSSeqLicensed t (playWord post) v)
-    (hpostRank : ∀ d ∈ post, c.rank.toIdx < d.rank.toIdx)
-    (hpostAsc : post.Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx)) :
-    ∃ ws w, RaiseSSeqLicensed t ws w ∧ c ∈ ws ∧ RungLe v w := by
-  obtain ⟨res, w, hres, hLasc, hresRank, hcanC⟩ :=
-    hp ht hpost hpostRank hpostAsc
-  obtain ⟨w', hresC⟩ := exists_append_raise hres (CanRaiseS.now c hcanC)
-  have hLlic : RaiseSSeqLicensed t (playWord (res ++ [c])) w' := by
-    simpa [playWord] using hresC
-  have hsep : ∀ l ∈ res ++ [c], ∀ h ∈ post,
-      l.rank.toIdx < h.rank.toIdx := by
-    intro l hl h hh
-    rcases List.mem_append.mp hl with hl | hl
-    · exact Nat.lt_trans (hresRank l hl) (hpostRank h hh)
-    · rw [List.mem_singleton] at hl
-      subst hl
-      exact hpostRank h hh
-  obtain ⟨w2, hmerge⟩ :=
-    merge_lower_higher (res ++ [c]) hLasc hpostAsc hsep ht hLlic hpost
-  refine ⟨playWord ((res ++ [c]) ++ post), w2, hmerge, ?_, ?_⟩
-  · simp [playWord]
-  · intro σ
-    rw [hpost.rungAt_eq σ, hmerge.rungAt_eq σ]
-    have hcount : (playWord post).countP (fun d => decide (d.suit = σ)) ≤
-        (playWord ((res ++ [c]) ++ post)).countP
-          (fun d => decide (d.suit = σ)) := by
-      rw [show playWord ((res ++ [c]) ++ post) =
-          playWord post ++ playWord (res ++ [c]) from by
-        simp [playWord, List.append_assoc]]
-      rw [List.countP_append]
-      exact Nat.le_add_right _ _
-    exact Nat.add_le_add_left hcount _
-
-/-! ## §1e. The post-twin revive drain and the vanilla read
-
-`revive_drain` is the unconditional low-rank climb: raise any S-live card of
-rank below `x.rank` until none remains.  Unlike `PullInsert.low_drain_aux` it
-does **not** assume the tracked card is live; it is the engine that tries to
-revive `c` after the twin letter.  The `t`-side simplification is that `c.twin`
-is now founded, so `CanRaiseS` already forces `c` to be exposed, hence vanilla:
-`canRaise_of_canRaiseS_of_twin_founded`. -/
-
-theorem revive_drain_aux (x : Card) (n : Nat) :
-    ∀ z : State, z.WF → 52 - Drain.rungSum z ≤ n →
-      ∃ ws z', RaiseSSeqLicensed z ws z' ∧
-        (∀ d ∈ ws, d.rank.toIdx < x.rank.toIdx) ∧
-        (∀ d, CanRaiseS z' d → x.rank.toIdx ≤ d.rank.toIdx) ∧
-        sameOrbitSetoid.r z z' := by
-  induction n using Nat.strongRecOn with
-  | ind n ih =>
-      intro z hz hle
-      cases hb : Card.universe.all (fun d =>
-          (!canRaiseSB z d) || !decide (d.rank.toIdx < x.rank.toIdx)) with
-      | true =>
-          have hfloor : ∀ d, CanRaiseS z d → x.rank.toIdx ≤ d.rank.toIdx := by
-            intro d hd
-            have hprobe : canRaiseSB z d = true := (canRaiseSB_iff hz).mpr hd
-            have hall := List.all_eq_true.mp hb d (Card.mem_universe d)
-            rw [hprobe] at hall
-            simp only [Bool.not_true, Bool.false_or] at hall
-            have hdecF : decide (d.rank.toIdx < x.rank.toIdx) = false := by
-              cases hd2 : decide (d.rank.toIdx < x.rank.toIdx) with
-              | true => rw [hd2] at hall; simp at hall
-              | false => rfl
-            exact Nat.le_of_not_gt (of_decide_eq_false hdecF)
-          exact ⟨[], z, RaiseSSeqLicensed.nil z, by simp, hfloor,
-            sameOrbitSetoid.iseqv.refl z⟩
-      | false =>
-          obtain ⟨d, -, hcfalse⟩ := Drain.exists_of_all_false hb
-          rw [Bool.or_eq_false_iff] at hcfalse
-          obtain ⟨hnot, hdec⟩ := hcfalse
-          have hprobe : canRaiseSB z d = true := by
-            cases hp : canRaiseSB z d with
-            | true => rfl
-            | false => rw [hp] at hnot; simp at hnot
-          have hlt : d.rank.toIdx < x.rank.toIdx := by
-            cases hd2 : decide (d.rank.toIdx < x.rank.toIdx) with
-            | true => exact of_decide_eq_true hd2
-            | false => rw [hd2] at hdec; simp at hdec
-          have hSc : CanRaiseS z d := (canRaiseSB_iff hz).mp hprobe
-          obtain ⟨z', hstepS⟩ := raiseStepS_of_canRaiseS hSc
-          have hsum : Drain.rungSum z' = Drain.rungSum z + 1 :=
-            SpectrumCollapse.rungSum_raiseStepS hstepS
-          have hz' : z'.WF := raiseStepS_wf hz hstepS
-          have hlt' : 52 - Drain.rungSum z' < n := by
-            have hbound : Drain.rungSum z' ≤ 52 := Drain.rungSum_le_52 hz'
-            omega
-          obtain ⟨ws, w, hpath, hranks, hfloor, horb⟩ :=
-            ih (52 - Drain.rungSum z') hlt' z' hz' (Nat.le_refl _)
-          obtain ⟨z0, hp, hs⟩ := hstepS
-          have hletter : RaiseSSeqLicensed z [d] z' :=
-            RaiseSSeqLicensed.cons (RaiseSSeqLicensed.nil z) hSc hp hs
-          have hfull : RaiseSSeqLicensed z (ws ++ [d]) w :=
-            RaiseSSeqLicensed.append hletter hpath
-          refine ⟨ws ++ [d], w, hfull, ?_, hfloor,
-            RevEqW_symm (RaiseSSeqLicensed.revEqW hfull hz)⟩
-          intro e he
-          rcases List.mem_append.mp he with he | he
-          · exact hranks e he
-          · rw [List.mem_singleton] at he
-            rw [he]
-            exact hlt
-
-/-- The unconditional low-rank revive drain. -/
-theorem revive_drain {z : State} {x : Card} (hz : z.WF) :
-    ∃ ws z', RaiseSSeqLicensed z ws z' ∧
-      (∀ d ∈ ws, d.rank.toIdx < x.rank.toIdx) ∧
-      (∀ d, CanRaiseS z' d → x.rank.toIdx ≤ d.rank.toIdx) ∧
-      sameOrbitSetoid.r z z' :=
-  revive_drain_aux x (52 - Drain.rungSum z) z hz (Nat.le_refl _)
-
-/-- **THE GOOD ARM FROM `PostTwinLive`.**  Revive drain ⇒ `PostTwinRescue` ⇒
-merge with the tail. -/
-theorem extension_of_postTwinLive (hl : PostTwinLive)
-    {t v : State} {c : Card} {post : List Card}
-    (ht : t.WF) (hpost : RaiseSSeqLicensed t (playWord post) v)
-    (hpostRank : ∀ d ∈ post, c.rank.toIdx < d.rank.toIdx)
-    (hpostAsc : post.Pairwise (fun a b => a.rank.toIdx ≤ b.rank.toIdx)) :
-    ∃ ws w, RaiseSSeqLicensed t ws w ∧ c ∈ ws ∧ RungLe v w :=
-  extension_of_postTwinRescue (postTwinRescue_of_live hl) ht hpost hpostRank hpostAsc
 
 /-! ## §2. Extension ⇒ a play from the pull source -/
 
@@ -695,102 +345,6 @@ theorem pretwin_decomposition
     canRaiseS_of_raiseSSeqLicensed_head (by simpa [playWord] using hhead)
   exact ⟨pre, post, z, hws, hpreNoTwin, hprePlay, hsufPlay, hz, hcZ, hctZ⟩
 
-/-- **FORK OR BOTH-VANILLA DRAIN, WITH THE WORD.**  At the pre-twin state the
-drain dichotomy yields either a fork, or a licensed raise play whose endpoint has
-both twins vanilla and the spectrum collapsed onto them.  Unlike
-`spectrum_pair_fork_or_both` this keeps the drain's word, which the rescue
-needs. -/
-theorem pretwin_fork_or_both_drain {z : State} {c : Card} (hz : z.WF)
-    (hc : CanRaiseS z c) (hct : CanRaiseS z c.twin) :
-    Fork z ∨
-      ∃ wsD z', RaiseSSeqLicensed z wsD z' ∧
-        (∀ d, CanRaiseS z' d → d = c ∨ d = c.twin) ∧
-        CanRaise z' c ∧ CanRaise z' c.twin := by
-  obtain ⟨wsD, z', hD, hsub, horb, hx', hxt'⟩ :=
-    SpectrumCollapse.spectrum_pair_by_draining_live hz hc hct
-  cases hb : tabToFoundR z' c.twin with
-  | false =>
-      have hblk : ¬ CanRaise z' c.twin := by
-        intro h
-        have htrue : tabToFoundR z' c.twin = true :=
-          (tabToFoundR_iff_canRaise z' c.twin).mpr h
-        rw [hb] at htrue
-        exact Bool.noConfusion htrue
-      exact Or.inl
-        (SpectrumCollapse.spectrum_pair_fork_of_blocked horb hx' hxt' hsub hblk)
-  | true =>
-      have hvt : CanRaise z' c.twin := (tabToFoundR_iff_canRaise z' c.twin).mp hb
-      cases ha : tabToFoundR z' c with
-      | false =>
-          have hblk : ¬ CanRaise z' c := by
-            intro h
-            have htrue : tabToFoundR z' c = true :=
-              (tabToFoundR_iff_canRaise z' c).mpr h
-            rw [ha] at htrue
-            exact Bool.noConfusion htrue
-          exact Or.inl
-            (SpectrumCollapse.spectrum_pair_fork_of_flipped_blocked horb hx' hxt' hsub hblk)
-      | true =>
-          exact Or.inr ⟨wsD, z', hD, hsub,
-            (tabToFoundR_iff_canRaise z' c).mp ha, hvt⟩
-
-/-- **THE REFINED RESIDUAL.**  In the both-vanilla drain arm, build the
-extension from the prefix + drain word.  This is now a statement about the
-drained pair, not about the dead post-twin endpoint. -/
-def PreTwinRescue : Prop :=
-  ∀ {u v z z' : State} {c : Card} {ws pre post wsD : List Card},
-    u.WF → CanRaiseS u c → RaiseSSeqLicensed u ws v →
-      c ∉ ws → c.twin ∈ ws →
-      ws = playWord (pre ++ c.twin :: post) →
-      RaiseSSeqLicensed u (playWord pre) z →
-      RaiseSSeqLicensed z wsD z' →
-      (∀ d, CanRaiseS z' d → d = c ∨ d = c.twin) →
-      CanRaise z' c → CanRaise z' c.twin →
-      RaiseExtension u c v
-
-/-- **THE `post = []` RESCUE, PROVED.**  When `c.twin` is the last raise of the
-original word, the drained both-vanilla endpoint is enough: raise `c`, then
-`c.twin` (the square), and the endpoint dominates the old endpoint because the
-old endpoint raised `c.twin` and the drain only adds rungs.  This closes the
-o0 board and shows the shape of the general rescue. -/
-theorem preTwinRescue_post_nil
-    {u v z z' : State} {c : Card} {ws pre post wsD : List Card}
-    (hu : u.WF) (hprePlay : RaiseSSeqLicensed u (playWord pre) z)
-    (hD : RaiseSSeqLicensed z wsD z')
-    (hcanC : CanRaise z' c) (hcanCT : CanRaise z' c.twin)
-    (hsuf : RaiseSSeqLicensed z (playWord (c.twin :: post)) v)
-    (hpost : post = []) :
-    RaiseExtension u c v := by
-  subst hpost
-  have hz : z.WF := RaiseSSeqLicensed.wf hprePlay hu
-  have hz' : z'.WF := RaiseSSeqLicensed.wf hD hz
-  have hsuf' : RaiseSSeqLicensed z [c.twin] v := by simpa [playWord] using hsuf
-  obtain ⟨-, zc, z2, -, -, hC1, hCT2⟩ :=
-    twin_raise_square_both hz' hcanC hcanCT
-  have hstepC : RaiseSSeqLicensed z' [c] zc :=
-    RaiseSSeqLicensed.cons (RaiseSSeqLicensed.nil z')
-      (CanRaiseS.now c hcanC) (Steps.refl z') hC1
-  have hcanCT_zc : CanRaise zc c.twin :=
-    canRaise_of_raise_sameRank hz' hC1 rfl (card_twin_ne_self c) hcanCT
-  have hstepCT : RaiseSSeqLicensed zc [c.twin] z2 :=
-    RaiseSSeqLicensed.cons (RaiseSSeqLicensed.nil zc)
-      (CanRaiseS.now c.twin hcanCT_zc) (Steps.refl zc) hCT2
-  have hboth : RaiseSSeqLicensed z' ([c.twin] ++ [c]) z2 :=
-    RaiseSSeqLicensed.append hstepC hstepCT
-  have hresZ : RaiseSSeqLicensed z (([c.twin] ++ [c]) ++ wsD) z2 :=
-    RaiseSSeqLicensed.append hD hboth
-  refine ⟨(([c.twin] ++ [c]) ++ wsD) ++ playWord pre, z2,
-    RaiseSSeqLicensed.append hprePlay hresZ, by simp, ?_⟩
-  intro σ
-  have hvR := hsuf'.rungAt_eq σ
-  have hz2R := hresZ.rungAt_eq σ
-  rw [hvR, hz2R]
-  have hcount : [c.twin].countP (fun d => decide (d.suit = σ)) ≤
-      (([c.twin] ++ [c]) ++ wsD).countP (fun d => decide (d.suit = σ)) := by
-    rw [List.countP_append, List.countP_append]
-    omega
-  exact Nat.add_le_add_left hcount _
-
 /-! ## §3. The twin-dead residual, precisely -/
 
 /-- **THE TWIN-DEAD RESCUE.**  This is the only missing input of the pull case
@@ -807,66 +361,6 @@ def TwinRescue : Prop :=
       c ∉ ws → c.twin ∈ ws → ¬ CanRaiseS v c →
       RaiseExtension u c v ∨ Fork u
 
-/-- **`PreTwinRescue` gives the twin rescue.**  Split at the first `c.twin`,
-apply `pretwin_fork_or_both_drain`; the fork arm lifts back along the prefix,
-the drain arm is `PreTwinRescue`. -/
-theorem twinRescue_of_preTwinRescue (hp : PreTwinRescue) : TwinRescue := by
-  intro u v c ws hu hcU hρ hmem htwin hdead
-  -- sort the original word: the pre-twin split is invariant, and the endpoint
-  -- rungs are unchanged, so this is free
-  have hρrev : RaiseSSeqLicensed u (playWord ws.reverse) v := by
-    simpa [playWord] using hρ
-  obtain ⟨vₛ, hρₛ⟩ := sortable (P := ws.reverse) hu hρrev
-  let wsₛ : List Card := playWord (sortByRank ws.reverse)
-  have hρₛ' : RaiseSSeqLicensed u wsₛ vₛ := hρₛ
-  have hperm : wsₛ.Perm ws := by
-    change (sortByRank ws.reverse).reverse.Perm ws
-    have h := perm_reverse (sortByRank_perm ws.reverse)
-    rwa [List.reverse_reverse] at h
-  have hmemₛ : c ∉ wsₛ := fun h => hmem (hperm.mem_iff.mp h)
-  have htwinₛ : c.twin ∈ wsₛ := hperm.mem_iff.mpr htwin
-  obtain ⟨pre, post, z, hws, _hpreNoTwin, hprePlay, _hsufPlay, hz, hcZ, hctZ⟩ :=
-    pretwin_decomposition hu hcU hρₛ' hmemₛ htwinₛ
-  rcases pretwin_fork_or_both_drain hz hcZ hctZ with hf | hD
-  · exact Or.inr (fork_of_raiseSSeqLicensed hprePlay hu hf)
-  · obtain ⟨wsD, z', hDplay, hsub, hcanC, hcanCT⟩ := hD
-    have hextₛ : RaiseExtension u c vₛ :=
-      hp hu hcU hρₛ' hmemₛ htwinₛ hws hprePlay hDplay hsub hcanC hcanCT
-    obtain ⟨wsE, w, hE, hcE, hle⟩ := hextₛ
-    have hrung : ∀ σ, rungAt v σ = rungAt vₛ σ :=
-      rungAt_eq_of_perm hρ hρₛ' hperm.symm
-    exact Or.inl ⟨wsE, w, hE, hcE, fun σ => by rw [hrung σ]; exact hle σ⟩
-
-/-- **THE DEAD-ENDPOINT REVIVAL.**  This is the vertex form of the sketch,
-stated in the exact dead-twin context: from the endpoint `v` of a licensed play
-that avoided `c` and raised `c.twin`, a further raise-only play either revives
-`c` (or raises it outright, putting it in the word), or the class forks.  In
-words: *raise the cards covering `c` (all of rank below `c`); if `c` cannot be
-revived, fork.* -/
-def DeadRevive : Prop :=
-  ∀ {u v : State} {c : Card} {ws : List Card},
-    u.WF → CanRaiseS u c → RaiseSSeqLicensed u ws v →
-      c ∉ ws → c.twin ∈ ws → ¬ CanRaiseS v c →
-      (∃ wsR w, RaiseSSeqLicensed v wsR w ∧ (c ∈ wsR ∨ CanRaiseS w c)) ∨ Fork v
-
-/-- **`DeadRevive` gives the twin rescue.**  Concatenate the original word with
-the revival play from its endpoint; if the revival ends with `c` live, append
-`c` as well.  The fork arm lifts back along the play's orbit. -/
-theorem twinRescue_of_deadRevive (hd : DeadRevive) : TwinRescue := by
-  intro u v c ws hu hcU hρ hmem htwin hdead
-  rcases hd hu hcU hρ hmem htwin hdead with ⟨wsR, w, hres, hrev⟩ | hfv
-  · rcases hrev with hmemR | hlivew
-    · -- `c` was raised by the revival: append the revival word to the original
-      refine Or.inl ⟨wsR ++ ws, w, RaiseSSeqLicensed.append hρ hres, ?_,
-        RungMono.rungAt_le hres⟩
-      exact List.mem_append_left ws hmemR
-    · -- `c` is live at the revival endpoint: append it too
-      obtain ⟨w', hres'⟩ := exists_append_raise hres hlivew
-      refine Or.inl ⟨(c :: wsR) ++ ws, w', RaiseSSeqLicensed.append hρ hres',
-        ?_, RungMono.rungAt_le hres'⟩
-      exact List.mem_append_left ws (by simp)
-  · -- the revival play is a raise-only orbit walk from `v`
-    exact Or.inr (fork_of_sameOrbit (hρ.revEqW hu) hfv)
 
 /-- **The existential pull case.**  Split on whether `c` is in the word
 (extension with the word itself), live at the endpoint, or dead.  In the dead
@@ -937,67 +431,17 @@ theorem raises_or_fork_of_twinRescue (hres : TwinRescue) :
   raises_or_fork_of_pullExist
     (fun hs hpull hρ ht => pull_case_existential hres hs hpull hρ ht)
 
-/-- **`FullJoinAtLeastOrFork` from `TwinRescue`.**  The join witness is the
-endpoint of the existential raise play, exactly as in
-`fullJoinAtLeastOrFork_of_raises_or_fork`. -/
-theorem fullJoinAtLeastOrFork_of_twinRescue (hres : TwinRescue) :
-    FullJoinAtLeastOrFork :=
-  fullJoinAtLeastOrFork_of_raises_or_fork (raises_or_fork_of_twinRescue hres)
-
-/-- **RAISE-OR-FORK from `DeadRevive`.** -/
-theorem raises_or_fork_of_deadRevive (hd : DeadRevive) :
-    ∀ s t : State, s.WF → sameOrbitSetoid.r s t →
-      (∃ ws v, RaiseSSeqLicensed s ws v ∧ RungLe s v ∧ RungLe t v) ∨ Fork s :=
-  raises_or_fork_of_twinRescue (twinRescue_of_deadRevive hd)
-
-/-- **`FullJoinAtLeastOrFork` from `DeadRevive`.**  This is the restructured
-end point: the fixed-word `hPull` is gone, the dead-twin board is handled by an
-enlarged word, and the only remaining input is the vertex revival statement. -/
-theorem fullJoinAtLeastOrFork_of_deadRevive (hd : DeadRevive) :
-    FullJoinAtLeastOrFork :=
-  fullJoinAtLeastOrFork_of_raises_or_fork (raises_or_fork_of_deadRevive hd)
-
-/-- **RAISE-OR-FORK from the pre-twin residual.** -/
-theorem raises_or_fork_of_preTwinRescue (hp : PreTwinRescue) :
-    ∀ s t : State, s.WF → sameOrbitSetoid.r s t →
-      (∃ ws v, RaiseSSeqLicensed s ws v ∧ RungLe s v ∧ RungLe t v) ∨ Fork s :=
-  raises_or_fork_of_twinRescue (twinRescue_of_preTwinRescue hp)
-
-/-- **`FullJoinAtLeastOrFork` from the pre-twin residual.**  This is the
-sharpest end point: the fork is taken at the pre-twin state (where the twin pair
-is still live), and the only remaining input is the rescue from the drained
-both-vanilla arm. -/
-theorem fullJoinAtLeastOrFork_of_preTwinRescue (hp : PreTwinRescue) :
-    FullJoinAtLeastOrFork :=
-  fullJoinAtLeastOrFork_of_raises_or_fork (raises_or_fork_of_preTwinRescue hp)
-
 end OneColourClosure
 
-#print axioms OneColourClosure.exists_raiseClimb_saturated
 #print axioms OneColourClosure.raiseExtension_of_end_live
 #print axioms OneColourClosure.raiseExtension_of_noTwin
 #print axioms OneColourClosure.fork_of_raiseSSeqLicensed
-#print axioms OneColourClosure.merge_lower_higher
 #print axioms OneColourClosure.bubble_front_notwin
 #print axioms OneColourClosure.suffix_insert_notwin
 #print axioms OneColourClosure.merge_notwin
-#print axioms OneColourClosure.revive_drain
-#print axioms OneColourClosure.canRaise_of_canRaiseS_of_twin_founded
-#print axioms OneColourClosure.postTwinRescue_of_live
-#print axioms OneColourClosure.extension_of_postTwinRescue
-#print axioms OneColourClosure.extension_of_postTwinLive
 #print axioms OneColourClosure.pull_case_of_extension
 #print axioms OneColourClosure.exists_split_first
 #print axioms OneColourClosure.pretwin_decomposition
-#print axioms OneColourClosure.pretwin_fork_or_both_drain
-#print axioms OneColourClosure.preTwinRescue_post_nil
 #print axioms OneColourClosure.pull_case_existential
-#print axioms OneColourClosure.twinRescue_of_preTwinRescue
-#print axioms OneColourClosure.twinRescue_of_deadRevive
 #print axioms OneColourClosure.raises_or_fork_of_pullExist
 #print axioms OneColourClosure.raises_or_fork_of_twinRescue
-#print axioms OneColourClosure.fullJoinAtLeastOrFork_of_twinRescue
-#print axioms OneColourClosure.raises_or_fork_of_deadRevive
-#print axioms OneColourClosure.fullJoinAtLeastOrFork_of_deadRevive
-#print axioms OneColourClosure.raises_or_fork_of_preTwinRescue
-#print axioms OneColourClosure.fullJoinAtLeastOrFork_of_preTwinRescue
