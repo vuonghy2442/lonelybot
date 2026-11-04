@@ -58,6 +58,8 @@ House compliance: zero `sorry`, zero `Classical.choice`, zero
 
 namespace Drain
 
+open ValleyDrain
+
 /-! ## §1. The definitions -/
 
 /-- The drain invariant: one twin raisable, the other S-live but blocked,
@@ -157,98 +159,6 @@ theorem suit_ne_of_nextUp {st : State} {d c : Card}
   exact hne hdc
 
 /-! ## §5. The forward raise lemma (the mirror of `Valley_Drain`) -/
-
-/-- **A raise cannot create a new raisable card outside its own pile**
-(copied verbatim from `Temp/Valley_Drain.lean:28`, `ValleyDrain.canRaise_of_raise_other`:
-temp modules have no oleans).  If `d`'s suit is untouched and `d`'s pile is
-unchanged by the raise, then `CanRaise w d → CanRaise st d`. -/
-theorem canRaise_of_raise_other {st w : State} {c d : Card}
-    (hwf : st.WF) (hstep : State.step st (Move.tabToFound c) = some w)
-    (hsu : d.suit ≠ c.suit)
-    {b : Anchor} (hd : st.pileHolding d = some b)
-    (hpiles : w.piles b = st.piles b)
-    (h : CanRaise w d) : CanRaise st d := by
-  obtain ⟨hnext_w, a1, hpa_w, hclause_w⟩ := h
-  have hwfw : w.WF := step_wf hwf hstep
-  obtain ⟨-, a0, hpa0, hs⟩ := step_tabToFound_inv hstep
-  have hf : w.found d.suit = st.found d.suit := by
-    rw [hs]
-    exact setFound_found_ne hsu
-  have hnext_st : st.nextUp d = true := by
-    have h1 : d.rank.toIdx = (w.found d.suit).length := by
-      simpa [State.nextUp, State.foundHeight] using of_decide_eq_true hnext_w
-    rw [hf] at h1
-    unfold State.nextUp
-    apply decide_eq_true
-    show d.rank.toIdx = (st.found d.suit).length
-    exact h1
-  have htop_w : (w.piles a1).top = some d :=
-    (pileOfTop_eq_some_iff hwfw).mp hpa_w
-  have hmem_w : d ∈ (w.piles b).faceUp := by
-    rw [hpiles]
-    exact pileHolding_mem hd
-  have ha1 : a1 = b := by
-    by_cases hne : a1 = b
-    · exact hne
-    · exfalso
-      have hmem_a1 : d ∈ (w.piles a1).faceUp := Pile.mem_of_top htop_w
-      have hnot : d ∉ (w.piles b).faceUp :=
-        (mem_faceUp_unique hwfw hmem_a1 b (Ne.symm hne)).1
-      exact hnot hmem_w
-  have htop_st : (st.piles b).top = some d := by
-    rw [← hpiles, ← ha1]
-    exact htop_w
-  have hpile_st : st.pileOfTop d = some b :=
-    (pileOfTop_eq_some_iff hwf).mpr htop_st
-  refine ⟨hnext_st, b, hpile_st, ?_⟩
-  rcases hclause_w with hchop | ⟨hhid, hking⟩
-  · left
-    intro hnil
-    rw [← hpiles, ← ha1] at hnil
-    exact hchop hnil
-  · right
-    refine ⟨?_, hking⟩
-    rw [← hpiles, ← ha1]
-    exact hhid
-
-/-- **The rank condition removes the cover** (copied verbatim from
-`Temp/Valley_Drain.lean:98`, `ValleyDrain.canRaise_of_raise_high`). -/
-theorem canRaise_of_raise_high {st w : State} {c d : Card} {b : Anchor}
-    (hwf : st.WF) (hstep : State.step st (Move.tabToFound c) = some w)
-    (hsu : d.suit ≠ c.suit)
-    (hd : st.pileHolding d = some b)
-    (hrank : d.rank.toIdx ≤ c.rank.toIdx)
-    (h : CanRaise w d) : CanRaise st d := by
-  obtain ⟨-, a0, hpa0, hs⟩ := step_tabToFound_inv hstep
-  have hb_ne : b ≠ a0 := by
-    intro hba
-    have htop_c : (st.piles a0).top = some c :=
-      (pileOfTop_eq_some_iff hwf).mp hpa0
-    have hlast : lastOf (st.piles a0).faceUp = some c := htop_c
-    have hface : (st.piles a0).faceUp = chop (st.piles a0).faceUp ++ [c] :=
-      lastOf_chop hlast
-    have hdmem : d ∈ (st.piles a0).faceUp := by
-      rw [← hba]
-      exact pileHolding_mem hd
-    have hdne : d ≠ c := fun hdc => hsu (by rw [hdc])
-    have hdchop : d ∈ chop (st.piles a0).faceUp := by
-      rw [hface] at hdmem
-      rcases List.mem_append.mp hdmem with h' | h'
-      · exact h'
-      · exact absurd (List.mem_singleton.mp h') hdne
-    have hok : runOK (chop (st.piles a0).faceUp ++ [c]) = true := by
-      rw [← hface]
-      exact hwf.2.1 a0
-    have hlt : c.rank.toIdx < d.rank.toIdx :=
-      runOK_desc hok hdchop (List.mem_singleton_self c)
-    omega
-  have hpiles : w.piles b = st.piles b := by
-    rw [hs]
-    show (if b = a0 then
-        Pile.afterRunRemoved (st.piles a0) (chop (st.piles a0).faceUp)
-      else st.piles b) = st.piles b
-    rw [ite_eq_right hb_ne]
-  exact canRaise_of_raise_other hwf hstep hsu hd hpiles h
 
 /-- **A raise cannot destroy a raisable card outside its own pile** — if
 `d`'s suit is untouched and `c` is not in `d`'s pile, then `CanRaise st d`

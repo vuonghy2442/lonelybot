@@ -108,68 +108,6 @@ theorem twin_pile_ne_source {st : State} {c : Card} (hwf : st.WF)
       rw [htr] at h2
       omega
 
-/-- **The re-resolution row** (copied from `Temp/Commute_Slide_Kit.lean:79`):
-editing the source pile of a slide does not move the top search of any
-other pile's top card. -/
-theorem setPile_afterRunRemoved_pileOfTop {st : State} (hwf : st.WF)
-    {z : Card} {k a : Anchor} (hk : st.pileOfTop z = some k) (hak : k ≠ a)
-    (c : Card) :
-    (st.setPile a ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).pileOfTop z
-      = some k := by
-  obtain ⟨-, hzlast⟩ := pileOfTop_top hk
-  have hzmem : z ∈ (st.piles k).faceUp := lastOf_mem hzlast
-  have huniq := mem_faceUp_unique hwf hzmem a (Ne.symm hak)
-  have hznot : ∀ j : Anchor, j ≠ k → (st.piles j).top ≠ some z := by
-    intro j hj ht
-    exact (mem_faceUp_unique hwf hzmem j hj).1 (Pile.mem_of_top ht)
-  have hedit : ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp)).top
-      ≠ some z := by
-    intro ht
-    have hzone : z ∈ (st.piles a).hidden ++ (st.piles a).faceUp :=
-      tfc_mem_afterRunRemoved_below_zone (x := z) (c := c)
-        (List.mem_append.mpr (Or.inr (Pile.mem_of_top ht)))
-    rcases List.mem_append.mp hzone with hh | hh
-    · exact huniq.2.1 hh
-    · exact huniq.1 hh
-  show firstWhere (fun a' => decide ((st.setPile a
-      ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).topOf a' = some z))
-    Anchor.all = some k
-  refine firstWhere_find (Anchor.mem_all k) ?_ ?_
-  · show decide ((st.setPile a
-      ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).topOf k = some z) = true
-    have hp : (st.setPile a
-        ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles k = st.piles k :=
-      setPile_piles_ne hak
-    have htop : (st.setPile a
-        ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).topOf k
-        = (st.piles k).top := by
-      show ((st.setPile a
-        ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles k).top
-        = (st.piles k).top
-      rw [hp]
-    rw [htop, show (st.piles k).top = some z from (pileOfTop_eq_some_iff hwf).mp hk]
-    exact decide_eq_true rfl
-  · intro x _ hxk
-    show decide ((st.setPile a
-      ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).topOf x = some z) = false
-    apply decide_false_of_not
-    intro ht
-    by_cases hxa : x = a
-    · rw [hxa] at ht
-      have ht' : ((st.setPile a
-          ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles a).top
-          = some z := ht
-      rw [setPile_piles_self] at ht'
-      exact hedit ht'
-    · have htop : (st.setPile a
-          ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).topOf x
-          = (st.piles x).top := by
-        show ((st.setPile a
-          ((st.piles a).afterRunRemoved (below c (st.piles a).faceUp))).piles x).top
-          = (st.piles x).top
-        rw [setPile_piles_ne hxa]
-      rw [htop] at ht
-      exact hznot x hxk ht
 /-- **R1 — the exact piles at the cover-slide endpoint.**  The source pile
 becomes `bs ++ [c]` (new top `c`, hidden unchanged), the twin's pile `k`
 receives the whole moved run `u1 :: rest`, all other piles are untouched,
@@ -221,7 +159,7 @@ theorem slide_frame {st z : State} {c u1 : Card} {rest bs : List Card} {a k : An
       (Pile.afterRunRemoved (st.piles a) (bs ++ [c]))).pileOfTop c.twin = some k :=
     by
       rw [← hbelow]
-      exact setPile_afterRunRemoved_pileOfTop hwf htwinTop hka u1
+      exact CommuteStep.setPile_afterRunRemoved_pileOfTop hwf htwinTop hka u1
   have hnonempty : bs ++ [c] ≠ [] := by simp
   have hAR : Pile.afterRunRemoved (st.piles a) (bs ++ [c])
       = { st.piles a with faceUp := bs ++ [c] } :=

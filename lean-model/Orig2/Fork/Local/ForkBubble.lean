@@ -437,25 +437,6 @@ theorem mountain_of_pullBlock {u v : State} {ρ : List Move}
 
 /-! ## §7. `bracket_delete_at` — deleting a `pull c ; … ; raise c` bracket -/
 
-/-- **SAME-CARD CANCELLATION** (verbatim from `Temp/Valley_Step.lean:33`):
-`… pull c ; raise c …` deletes both letters. -/
-theorem valley_cancel_same {A A' B C : State} {ρ₁ ρ₂ : List Move}
-    {c : Card} {b : Base}
-    (hwf : A.WF)
-    (h₁ : ShufflePlayW A ρ₁ A')
-    (hpull : State.step A' (Move.foundToTab c b) = some B)
-    (h₂ : ShufflePlayW B (Move.tabToFound c :: ρ₂) C) :
-    ShufflePlayW A (ρ₁ ++ ρ₂) C := by
-  have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end h₁ hwf
-  have hback : State.step B (Move.tabToFound c) = some A' :=
-    step_tabToFound_of_foundToTab hA' hpull
-  cases h₂ with
-  | cons hrev hstep hrest =>
-      rename_i B'
-      have hBB' : B' = A' := Option.some.inj (hstep.symm.trans hback)
-      subst hBB'
-      exact ShufflePlayW_append h₁ hrest
-
 /-- **BRACKET DELETE.**  Suppose a play reaches `A'`, pulls `c` onto `b`
 to `S`, then plays an interior `inner` and finally raises `c`.  If the
 interior is slide-free and can be re-run from `A'` (the "independent of
@@ -489,7 +470,7 @@ theorem bracket_delete_at {A A' S C : State} {ρ₁ inner ρ₂ : List Move}
   have hbubble : ShufflePlayW S (Move.tabToFound c :: inner ++ ρ₂) C :=
     bubble_raise_left inner hSwf hnsl (noSlide_of_isRaise ⟨c, rfl⟩) hbr hsw
   simpa [List.append_assoc] using
-    valley_cancel_same (A := A) (A' := A') (B := S) (C := C)
+    ValleyElim.valley_cancel_same (A := A) (A' := A') (B := S) (C := C)
       (ρ₁ := ρ₁) (ρ₂ := inner ++ ρ₂) (c := c) (b := b) hwf h₁ hpull hbubble
 
 /-- **Empty interior** — the `inner = []` base case: this is exactly
@@ -499,7 +480,7 @@ theorem bracket_delete_nil {A A' S C : State} {ρ₁ ρ₂ : List Move} {c : Car
     (hpull : State.step A' (Move.foundToTab c b) = some S)
     (h₂ : ShufflePlayW S (Move.tabToFound c :: ρ₂) C) :
     ShufflePlayW A (ρ₁ ++ ρ₂) C :=
-  valley_cancel_same hwf h₁ hpull h₂
+  ValleyElim.valley_cancel_same hwf h₁ hpull h₂
 
 /-- **One-letter interior** — the inductive step in the smallest case:
 one slide-free letter `m` between the pull and the raise, with the
@@ -645,7 +626,6 @@ theorem invCount_swap_adj : ∀ (pre : List Move) {p r : Move} {post : List Move
 #print axioms mountain_of_shuffle
 #print axioms mountain_of_raiseBlock
 #print axioms mountain_of_pullBlock
-#print axioms valley_cancel_same
 #print axioms bracket_delete_at
 #print axioms bracket_delete_nil
 #print axioms bracket_delete_one

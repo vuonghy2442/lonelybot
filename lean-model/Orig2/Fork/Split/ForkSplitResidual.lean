@@ -85,11 +85,6 @@ def SplitHyp (u v : State) (ρ : List Move) (F : State)
   (∀ m ∈ post, ValleyElim.FreeMove m) ∧
   right = Move.tabToFound d :: tail
 
-/-- The twin of a card is never the card. -/
-theorem card_twin_ne (c : Card) : c.twin ≠ c := by
-  intro h
-  exact Suit.twin_ne c.suit (congrArg Card.suit h)
-
 /-! ## §1b. The one read the block clause needs: `CanRaise` sees only
 `found` and `piles` -/
 
@@ -110,23 +105,10 @@ theorem firstWhere_congr_local {α : Type} {p q : α → Bool} (h : ∀ x, p x =
       | false => exact firstWhere_congr_local h t
       | true => rfl
 
-theorem topOf_congr_piles {u v : State} (hp : u.piles = v.piles) (a : Anchor) :
-    u.topOf a = v.topOf a := by
-  unfold State.topOf
-  rw [hp]
-
-theorem pileOfTop_congr_piles {u v : State} (hp : u.piles = v.piles) (z : Card) :
-    u.pileOfTop z = v.pileOfTop z := by
-  unfold State.pileOfTop
-  exact firstWhere_congr_local
-    (p := fun a => decide (u.topOf a = some z))
-    (q := fun a => decide (v.topOf a = some z))
-    (fun a => by rw [topOf_congr_piles hp a]) Anchor.all
-
 /-- The vanilla raise license is a `found`+`piles` read. -/
 theorem canRaise_congr_found_piles {u v : State} (hf : u.found = v.found)
     (hp : u.piles = v.piles) (c : Card) : CanRaise u c ↔ CanRaise v c := by
-  have hpile : u.pileOfTop c = v.pileOfTop c := pileOfTop_congr_piles hp c
+  have hpile : u.pileOfTop c = v.pileOfTop c := CommuteStep.pileOfTop_congr_piles hp c
   have hnext : u.nextUp c = v.nextUp c := by
     unfold State.nextUp State.foundHeight
     rw [hf]
@@ -579,9 +561,7 @@ end SplitKit
 
 /-! ## §7. Battery -/
 
-#print axioms SplitKit.card_twin_ne
 #print axioms SplitKit.firstWhere_congr_local
-#print axioms SplitKit.pileOfTop_congr_piles
 #print axioms SplitKit.canRaise_congr_found_piles
 #print axioms SplitKit.drawPlay_found_piles
 #print axioms SplitKit.isSlideB_eq_true_iff

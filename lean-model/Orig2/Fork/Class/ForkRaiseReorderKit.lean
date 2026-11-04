@@ -48,19 +48,6 @@ namespace OneColourClosure
 
 /-! ## §1. List bookkeeping for the run removal -/
 
-/-- `chop` never adds cards. -/
-theorem mem_chop_of_mem_chop {l : List Card} {x : Card} (h : x ∈ chop l) : x ∈ l := by
-  induction l with
-  | nil => exact absurd h List.not_mem_nil
-  | cons y t ih =>
-      cases t with
-      | nil => simp [chop] at h
-      | cons z zs =>
-          rw [show chop (y :: z :: zs) = y :: chop (z :: zs) from rfl] at h
-          rcases List.mem_cons.mp h with h' | h'
-          · exact List.mem_cons.mpr (Or.inl h')
-          · exact List.mem_cons.mpr (Or.inr (ih h'))
-
 /-- A member other than the last element survives the chop. -/
 theorem mem_chop_of_mem_of_ne_last : ∀ {l : List Card} {x c : Card},
     x ∈ l → lastOf l = some c → x ≠ c → x ∈ chop l
@@ -148,7 +135,7 @@ theorem mem_and_below_of_mem_afterRunRemoved {p : Pile} {x c : Card}
   · have hshape : (p.afterRunRemoved (chop p.faceUp)).faceUp = chop p.faceUp := by
       rw [afterRunRemoved_faceUp_ne hchop]
     rw [hshape] at hmem hbel ⊢
-    have hmemf : x ∈ p.faceUp := mem_chop_of_mem_chop hmem
+    have hmemf : x ∈ p.faceUp := chop_mem hmem
     exact ⟨hmemf, below_chop_of_mem_of_ne_last hmemf hlast hx⟩
 
 /-! ## §2. The landing state of a raise -/
@@ -974,7 +961,6 @@ theorem cover_must_be_raised_L {s z : State} {ws : List Card} {x t : Card}
 
 end OneColourClosure
 
-#print axioms OneColourClosure.mem_chop_of_mem_chop
 #print axioms OneColourClosure.mem_and_below_of_mem_afterRunRemoved
 #print axioms OneColourClosure.parented_tabToFound_of_ne
 #print axioms OneColourClosure.bare_tabToFound_of_ne

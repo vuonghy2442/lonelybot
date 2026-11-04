@@ -421,11 +421,11 @@ theorem freeCardS_tabToFound_eq_of_low_rank {z z' : State} {e d : Card}
     rw [hp0]
     rcases hseat with hne | ⟨hhid, -⟩
     · rw [afterRunRemoved_faceUp_ne hne]
-      intro h; exact hd0 (mem_chop_of_mem_chop h)
+      intro h; exact hd0 (chop_mem h)
     · by_cases hch : chop (z.piles a0).faceUp = []
       · rw [hch, afterRunRemoved_faceUp_bare hhid]; simp
       · rw [afterRunRemoved_faceUp_ne hch]
-        intro h; exact hd0 (mem_chop_of_mem_chop h)
+        intro h; exact hd0 (chop_mem h)
   have hdt0' : d.twin ∉ (z'.piles a0).faceUp := by
     have hp0 : z'.piles a0 =
         Pile.afterRunRemoved (z.piles a0) (chop (z.piles a0).faceUp) := by
@@ -433,11 +433,11 @@ theorem freeCardS_tabToFound_eq_of_low_rank {z z' : State} {e d : Card}
     rw [hp0]
     rcases hseat with hne | ⟨hhid, -⟩
     · rw [afterRunRemoved_faceUp_ne hne]
-      intro h; exact hdt0 (mem_chop_of_mem_chop h)
+      intro h; exact hdt0 (chop_mem h)
     · by_cases hch : chop (z.piles a0).faceUp = []
       · rw [hch, afterRunRemoved_faceUp_bare hhid]; simp
       · rw [afterRunRemoved_faceUp_ne hch]
-        intro h; exact hdt0 (mem_chop_of_mem_chop h)
+        intro h; exact hdt0 (chop_mem h)
   have hagree : ∀ a, a ≠ a0 → z'.piles a = z.piles a := by
     intro a ha
     rw [hpiles a, ite_eq_right ha]
@@ -815,12 +815,6 @@ theorem fromCard_singleton_decomp : ∀ {l : List Card} {c : Card},
         obtain ⟨bs, hbs⟩ := fromCard_singleton_decomp h'
         exact ⟨x :: bs, by rw [hbs]; rfl⟩
 
-/-- The twin of a card is not the card. -/
-theorem card_twin_ne_self (c : Card) : c.twin ≠ c := by
-  intro h
-  have hs : c.suit.twin = c.suit := congrArg Card.suit h
-  exact Suit.twin_ne c.suit hs
-
 /-- `a = c.twin` gives a different suit. -/
 theorem suit_ne_of_twin {a c : Card} (h : a = c.twin) : c.suit ≠ a.suit := by
   rw [h]
@@ -924,11 +918,11 @@ theorem freeCardS_tabToFound_eq_of_rank_eq_notTwin {z z' : State} {a c : Card}
     rw [hp0]
     rcases hseat with hne | ⟨hhid, -⟩
     · rw [afterRunRemoved_faceUp_ne hne]
-      intro h; exact hc0 (mem_chop_of_mem_chop h)
+      intro h; exact hc0 (chop_mem h)
     · by_cases hch : chop (z.piles a0).faceUp = []
       · rw [hch, afterRunRemoved_faceUp_bare hhid]; simp
       · rw [afterRunRemoved_faceUp_ne hch]
-        intro h; exact hc0 (mem_chop_of_mem_chop h)
+        intro h; exact hc0 (chop_mem h)
   have hct0' : c.twin ∉ (z'.piles a0).faceUp := by
     have hp0 : z'.piles a0 =
         Pile.afterRunRemoved (z.piles a0) (chop (z.piles a0).faceUp) := by
@@ -936,11 +930,11 @@ theorem freeCardS_tabToFound_eq_of_rank_eq_notTwin {z z' : State} {a c : Card}
     rw [hp0]
     rcases hseat with hne | ⟨hhid, -⟩
     · rw [afterRunRemoved_faceUp_ne hne]
-      intro h; exact hct0 (mem_chop_of_mem_chop h)
+      intro h; exact hct0 (chop_mem h)
     · by_cases hch : chop (z.piles a0).faceUp = []
       · rw [hch, afterRunRemoved_faceUp_bare hhid]; simp
       · rw [afterRunRemoved_faceUp_ne hch]
-        intro h; exact hct0 (mem_chop_of_mem_chop h)
+        intro h; exact hct0 (chop_mem h)
   have hagree : ∀ a', a' ≠ a0 → z'.piles a' = z.piles a' := by
     intro a' ha'
     rw [hpiles a', ite_eq_right ha']
@@ -999,7 +993,7 @@ theorem freeCardS_tabToFound_bwd_of_twin {z z' : State} {a c : Card}
   have hc0 : c ∉ (z.piles a0).faceUp := by
     apply not_mem_pileOfTop_of_rank_eq hz hpa0
     · rw [ht, Card.twin_rank]
-    · intro h; exact (card_twin_ne_self c).symm (h.trans ht)
+    · intro h; exact (card_twin_ne c).symm (h.trans ht)
   have hc0' : c ∉ (z'.piles a0).faceUp := by
     have hp0 : z'.piles a0 =
         Pile.afterRunRemoved (z.piles a0) (chop (z.piles a0).faceUp) := by
@@ -1007,11 +1001,11 @@ theorem freeCardS_tabToFound_bwd_of_twin {z z' : State} {a c : Card}
     rw [hp0]
     rcases hseat with hne | ⟨hhid, -⟩
     · rw [afterRunRemoved_faceUp_ne hne]
-      intro h; exact hc0 (mem_chop_of_mem_chop h)
+      intro h; exact hc0 (chop_mem h)
     · by_cases hch : chop (z.piles a0).faceUp = []
       · rw [hch, afterRunRemoved_faceUp_bare hhid]; simp
       · rw [afterRunRemoved_faceUp_ne hch]
-        intro h; exact hc0 (mem_chop_of_mem_chop h)
+        intro h; exact hc0 (chop_mem h)
   have hagree : ∀ a', a' ≠ a0 → z'.piles a' = z.piles a' := by
     intro a' ha'
     rw [hpiles a', ite_eq_right ha']
@@ -1068,7 +1062,7 @@ theorem freeCardS_tabToFound_fwd_of_twin {z z' : State} {a c : Card} {p : Anchor
   have hc0 : c ∉ (z.piles a0).faceUp := by
     apply not_mem_pileOfTop_of_rank_eq hz hpa0
     · rw [ht, Card.twin_rank]
-    · intro h; exact (card_twin_ne_self c).symm (h.trans ht)
+    · intro h; exact (card_twin_ne c).symm (h.trans ht)
   have hc0' : c ∉ (z'.piles a0).faceUp := by
     have hp0 : z'.piles a0 =
         Pile.afterRunRemoved (z.piles a0) (chop (z.piles a0).faceUp) := by
@@ -1076,11 +1070,11 @@ theorem freeCardS_tabToFound_fwd_of_twin {z z' : State} {a c : Card} {p : Anchor
     rw [hp0]
     rcases hseat with hne | ⟨hhid, -⟩
     · rw [afterRunRemoved_faceUp_ne hne]
-      intro h; exact hc0 (mem_chop_of_mem_chop h)
+      intro h; exact hc0 (chop_mem h)
     · by_cases hch : chop (z.piles a0).faceUp = []
       · rw [hch, afterRunRemoved_faceUp_bare hhid]; simp
       · rw [afterRunRemoved_faceUp_ne hch]
-        intro h; exact hc0 (mem_chop_of_mem_chop h)
+        intro h; exact hc0 (chop_mem h)
   have hagree : ∀ a', a' ≠ a0 → z'.piles a' = z.piles a' := by
     intro a' ha'
     rw [hpiles a', ite_eq_right ha']
@@ -1178,7 +1172,7 @@ theorem twinStep_piles {z z' : State} {a c : Card}
   have hc0 : c ∉ (z.piles a0).faceUp := by
     apply not_mem_pileOfTop_of_rank_eq hz hpa0
     · rw [ht, Card.twin_rank]
-    · intro h; exact (card_twin_ne_self c).symm (h.trans ht)
+    · intro h; exact (card_twin_ne c).symm (h.trans ht)
   have hc0' : c ∉ (z'.piles a0).faceUp := by
     have hp0 : z'.piles a0 =
         Pile.afterRunRemoved (z.piles a0) (chop (z.piles a0).faceUp) := by
@@ -1186,11 +1180,11 @@ theorem twinStep_piles {z z' : State} {a c : Card}
     rw [hp0]
     rcases hseat with hne | ⟨hhid, -⟩
     · rw [afterRunRemoved_faceUp_ne hne]
-      intro h; exact hc0 (mem_chop_of_mem_chop h)
+      intro h; exact hc0 (chop_mem h)
     · by_cases hch : chop (z.piles a0).faceUp = []
       · rw [hch, afterRunRemoved_faceUp_bare hhid]; simp
       · rw [afterRunRemoved_faceUp_ne hch]
-        intro h; exact hc0 (mem_chop_of_mem_chop h)
+        intro h; exact hc0 (chop_mem h)
   have hagree : ∀ a', a' ≠ a0 → z'.piles a' = z.piles a' := by
     intro a' ha'
     rw [hpiles a', ite_eq_right ha']
@@ -1567,7 +1561,6 @@ end OneColourClosure
 #print axioms OneColourClosure.raiseS_sorted_of_licensed
 #print axioms OneColourClosure.below_append_singleton_of_not_mem
 #print axioms OneColourClosure.fromCard_singleton_decomp
-#print axioms OneColourClosure.card_twin_ne_self
 #print axioms OneColourClosure.freeCardS_unpack
 #print axioms OneColourClosure.freeCardS_of_data
 #print axioms OneColourClosure.freeCardS_tabToFound_eq_of_rank_eq_notTwin

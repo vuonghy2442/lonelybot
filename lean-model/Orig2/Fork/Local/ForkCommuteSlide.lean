@@ -118,19 +118,6 @@ theorem lastOf_append_of_ne_nil {l m : List Card} (hm : m ≠ []) :
               rw [List.cons_append]
               exact ih
 
-/-- `chop` never adds cards. -/
-theorem chop_mem {l : List Card} {x : Card} (h : x ∈ chop l) : x ∈ l := by
-  induction l with
-  | nil => exact absurd h List.not_mem_nil
-  | cons y t ih =>
-      cases t with
-      | nil => exact absurd h List.not_mem_nil
-      | cons z zs =>
-          rw [show chop (y :: z :: zs) = y :: chop (z :: zs) from rfl] at h
-          rcases List.mem_cons.mp h with h' | h'
-          · exact List.mem_cons.mpr (Or.inl h')
-          · exact List.mem_cons.mpr (Or.inr (ih h'))
-
 /-- The `chop`-edited pile's face-up run is a sub-run of the original. -/
 theorem mem_afterRunRemoved_chop_faceUp {p : Pile} {x : Card}
     (h : x ∈ (p.afterRunRemoved (chop p.faceUp)).faceUp) :
