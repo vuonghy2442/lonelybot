@@ -528,7 +528,7 @@ theorem canRaise_slide_x {u z : State} {x c : Card} {u1 : Card}
       exact hlastrun
     have hpodz : z.pileOfTop x = some k := (pileOfTop_eq_some_iff hwfz).2 htopk
     have hchop : chop (z.piles k).faceUp ≠ [] := by
-      apply OneSlide.chop_ne_nil_of_two_le
+      apply chop_ne_nil_of_two_le
       have hzK : (z.piles k).faceUp = (u.piles k).faceUp ++ (u1 :: rest) := by
         rw [hpk]
       rw [hzK]

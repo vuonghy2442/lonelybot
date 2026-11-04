@@ -257,31 +257,6 @@ theorem emptyTail_canRaise {u v : State} {ρ : List Move} {F : State}
     simpa using hleft
   exact Bridge.raisable_of_pull_at_end huwf hleft'
 
-/-- **MINIMALITY FORCES `c ≠ d` IN THE EMPTY-TAIL CASE.**  `post = []` makes
-the turn an ADJACENT `pull c ; raise d`; if `c = d` the two letters delete
-(`Bridge.shortest_adjacent_turn_ne`), contradicting minimality. -/
-theorem emptyTail_turn_ne {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail) (hpost : post = []) :
-    c ≠ d := by
-  obtain ⟨huwf, -, -, hplay, -, hmin, hρ, hleft, -, hshape, -, hrightShape⟩ := h
-  subst hpost
-  have hEq : ρ = pre ++ Move.foundToTab c b :: Move.tabToFound d :: tail := by
-    rw [hρ, hshape, hrightShape]
-    simp
-  have hplay' : ShufflePlayW u
-      (pre ++ Move.foundToTab c b :: Move.tabToFound d :: tail) v := hEq ▸ hplay
-  obtain ⟨A', hpre, _⟩ :=
-    ValleyElim.ShufflePlayW_split hleft pre (Move.foundToTab c b :: []) hshape
-  have hmin' : ∀ ρ' : List Move, ShufflePlayW u ρ' v →
-      (pre ++ Move.foundToTab c b :: Move.tabToFound d :: tail).length ≤ ρ'.length := by
-    intro ρ' hρ'
-    have hh := hmin ρ' hρ'
-    rw [hEq] at hh
-    exact hh
-  exact Bridge.shortest_adjacent_turn_ne huwf hpre hplay' hmin'
-
 /-- **THE EMPTY-TAIL TURN IS A GENUINE CROSSING TURN.**  With minimality the
 two cards differ and (being both next-up at the bottom) lie in different
 suits: exactly the second disjunct of
@@ -427,7 +402,6 @@ end BlockKit
 #print axioms BlockKit.canRaise_of_pull_of_ne
 #print axioms BlockKit.suit_ne_of_canRaise_of_ne
 #print axioms BlockKit.emptyTail_canRaise
-#print axioms BlockKit.emptyTail_turn_ne
 #print axioms BlockKit.emptyTail_suit_ne
 #print axioms BlockKit.emptyTail_canRaise_before
 #print axioms BlockKit.tailCovers_imp_unblock

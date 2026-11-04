@@ -197,11 +197,6 @@ theorem tabToFoundR_iff_canRaise (st : State) (c : Card) :
         | cons x xs => simp [hc, hh]
       | cons x xs => simp [hc]
 
-/-- **A licensed raise is reversible** (hence undoable). -/
-theorem canRaise_reversibleAtW {st : State} {c : Card} (hwf : st.WF)
-    (h : CanRaise st c) : reversibleAtW st (Move.tabToFound c) :=
-  (tabToFoundR_iff_reversibleAtW hwf c).mp ((tabToFoundR_iff_canRaise st c).mpr h)
-
 /-- **A licensed raise passes the reversible-first oracle.** -/
 theorem canRaise_reversibleOf {st : State} {c : Card} (h : CanRaise st c) :
     reversibleOf st (Move.tabToFound c) = true :=
@@ -227,7 +222,7 @@ theorem canRaiseS_iff_cargoPath_reversibleAtW {z : State} {c : Card} (hz : z.WF)
     CanRaiseS z c ↔ ∃ z₀, CargoPath z z₀ ∧ reversibleAtW z₀ (Move.tabToFound c) := by
   constructor
   · rintro ⟨z₀, hp, hc⟩
-    exact ⟨z₀, hp, canRaise_reversibleAtW (cargoPath_wf hz hp) hc⟩
+    exact ⟨z₀, hp, DrainClose.reversibleAtW_tabToFound_of_canRaise (cargoPath_wf hz hp) hc⟩
   · rintro ⟨z₀, hp, hrev⟩
     exact ⟨z₀, hp, canRaise_of_reversibleAtW (cargoPath_wf hz hp) hrev⟩
 
@@ -237,7 +232,7 @@ standard notion) and `CanRaise` (the standard licence).  The "fires" half is not
 needed: reversibility alone decides the licence. -/
 theorem not_canRaise_of_not_reversibleAtW {z : State} {c : Card} (hz : z.WF)
     (hrev : ¬ reversibleAtW z (Move.tabToFound c)) : ¬ CanRaise z c :=
-  fun hc => hrev (canRaise_reversibleAtW hz hc)
+  fun hc => hrev (DrainClose.reversibleAtW_tabToFound_of_canRaise hz hc)
 
 /-! ## §3. Covers (proved) -/
 
@@ -492,7 +487,6 @@ end OneColourClosure
 #print axioms OneColourClosure.cover_seats
 #print axioms OneColourClosure.cover_seats_cases
 #print axioms OneColourClosure.tabToFoundR_iff_canRaise
-#print axioms OneColourClosure.canRaise_reversibleAtW
 #print axioms OneColourClosure.canRaise_reversibleOf
 #print axioms OneColourClosure.canRaise_of_reversibleAtW
 #print axioms OneColourClosure.not_canRaise_of_not_reversibleAtW

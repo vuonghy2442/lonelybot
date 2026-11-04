@@ -405,17 +405,6 @@ theorem twin_above_c_rank {st : State} {x c : Card} (hwf : st.WF)
       (List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl))) hmem
   exact hlt
 
-/-- A face-up run of length at least two has a nonempty `chop`. -/
-theorem chop_ne_nil_of_two_le {l : List Card} (h : 2 ≤ l.length) : chop l ≠ [] := by
-  obtain ⟨x, y, u, rfl⟩ : ∃ x y u, l = x :: y :: u := by
-    cases l with
-    | nil => simp at h
-    | cons x t =>
-        cases t with
-        | nil => simp at h
-        | cons y u => exact ⟨x, y, u, rfl⟩
-  exact List.cons_ne_nil x _
-
 /-- **The twin is never the top of `c`'s pile.**  If it were, it would be
 vanilla raisable at `st` = flat seat clause from the remaining `bs ++ [c]`
 prefix — against `¬ CanRaise st x.twin`.  This is the fact that makes the

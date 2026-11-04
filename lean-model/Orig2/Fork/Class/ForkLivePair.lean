@@ -253,41 +253,6 @@ theorem pull_raise_pair_shortens
     ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length < ρ.length :=
   identity_pair_delete hplay hρ hα (pull_raise_identity_pair hA hstep)
 
-/-- **A SPLIT-BOTTOM APPLICATION (adjacent-turn case).**  If the free tail
-`post` is empty, the split's turn IS an adjacent `pull c ; raise d`; shortest
-plays therefore force `c ≠ d`.  This is the `post = []` corner of the
-`SplitNe` pin, and it is exactly W3's pull/raise family
-(`Bridge.shortest_adjacent_turn_ne`, `Orig2/Fork/Split/ForkBridge.lean:211`). -/
-theorem post_nil_turn_ne
-    {u v : State} {ρ : List Move} {F : State}
-    {left right : List Move} {c d : Card} {b : Base}
-    {pre post tail : List Move}
-    (h : SplitHyp u v ρ F left right c d b pre post tail) (hpost : post = []) :
-    c ≠ d := by
-  obtain ⟨huwf, -, -, hplay, -, hmin, hρ, hleft, hright, hshape, hfree,
-    hrightShape⟩ := h
-  subst hpost
-  -- rewrite the play into the adjacent-turn shape
-  have hplay' : ShufflePlayW u
-      (pre ++ Move.foundToTab c b :: Move.tabToFound d :: tail) v := by
-    have hp := hplay
-    rw [hρ, hshape, hrightShape] at hp
-    simpa [List.append_assoc] using hp
-  have hlen' : ∀ ρ' : List Move, ShufflePlayW u ρ' v →
-      (pre ++ Move.foundToTab c b :: Move.tabToFound d :: tail).length ≤ ρ'.length := by
-    intro ρ' hρ'
-    have hlen := hmin ρ' hρ'
-    rw [hρ, hshape, hrightShape] at hlen
-    simpa [List.append_assoc] using hlen
-  -- the prefix reaches the turn's pre-state
-  have hleft' : ShufflePlayW u (pre ++ Move.foundToTab c b :: ([] : List Move)) F := by
-    rw [← hshape]
-    simpa using hleft
-  obtain ⟨A', hpre, hrest⟩ :=
-    ValleyElim.ShufflePlayW_split hleft' pre [Move.foundToTab c b] rfl
-  -- the adjacent-turn theorem's `F` is that pre-state
-  exact Bridge.shortest_adjacent_turn_ne huwf hpre hplay' hlen'
-
 /-- **A SHORTEST PLAY CONTAINS NO IDENTITY PAIR.**  Contrapositive of W3. -/
 theorem shortest_no_identity_pair {u v : State} {ρ : List Move}
     (hplay : ShufflePlayW u ρ v)
@@ -413,7 +378,6 @@ theorem splitBlock_of_valleyElim_postCommutes
 #print axioms slide_slide_identity_pair
 #print axioms slide_slide_pair_shortens
 #print axioms pull_raise_pair_shortens
-#print axioms post_nil_turn_ne
 #print axioms shortest_no_identity_pair
 #print axioms splitHyp_no_identity_pair
 #print axioms splitNe_of_postCommutesRaise

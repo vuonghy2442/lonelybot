@@ -302,14 +302,6 @@ theorem exists_first_le (p : Nat → Bool) :
 
 /-! ## Piece 6: assembly -/
 
-/-- The reachability half is a projection of the orbit relation
-(`Orig2/Substrate/Vocab.lean:296-297, 323-326`), restated locally so this card depends
-only on `Orig2.ForkSplit`. -/
-theorem sameOrbit_reachable {u v : State} (h : sameOrbitSetoid.r u v) :
-    ∃ ρ : List Move, ShufflePlayW u ρ v := by
-  obtain ⟨σ, _, ρ, hρ⟩ := h
-  exact ⟨ρ, hρ⟩
-
 /-- **THE UNGATED FORM.**  No `SSaturated`, no rung difference — only the
 `u.WF` needed by the oracle bridge (the target's same-state `WF` is not even
 needed for `v`). -/

@@ -1,4 +1,5 @@
 import Orig2.Fork.Local.ForkCriticalPair
+import Orig2.Fork.Local.ForkValley
 import Orig2.Substrate.Classification
 import Orig2.Fork.Split.FirstPassage
 import Orig2.Fiber.ArmFiber
@@ -397,42 +398,6 @@ theorem rungAt_eq_of_free_play {u v : State} {ρ : List Move}
 
 /-! ## §2. The raise/raise square without reversibility hypotheses -/
 
-/-- Two raises of the same suit cannot both fire in both orders. -/
-theorem raise_same_suit_contra {u s1 s2 s12 : State} (hwf : u.WF) {c1 c2 : Card}
-    (h1 : State.step u (Move.tabToFound c1) = some s1)
-    (h2 : State.step u (Move.tabToFound c2) = some s2)
-    (hsu : c1.suit = c2.suit)
-    (h12 : State.step s1 (Move.tabToFound c2) = some s12) : False := by
-  obtain ⟨hnextU1, a, hpa, hs1⟩ := step_tabToFound_inv h1
-  obtain ⟨hnextU2, -⟩ := step_tabToFound_inv h2
-  obtain ⟨hnextS2, -⟩ := step_tabToFound_inv h12
-  have hu1 : c1.rank.toIdx = (u.found c1.suit).length := by
-    have h := of_decide_eq_true hnextU1
-    simpa [State.nextUp, State.foundHeight] using h
-  have hu2 : c2.rank.toIdx = (u.found c2.suit).length := by
-    have h := of_decide_eq_true hnextU2
-    simpa [State.nextUp, State.foundHeight] using h
-  have hs2l : c2.rank.toIdx = (s1.found c2.suit).length := by
-    have h := of_decide_eq_true hnextS2
-    simpa [State.nextUp, State.foundHeight] using h
-  have hs1f : s1.found c2.suit = u.found c1.suit ++ [c1] := by
-    rw [hs1]
-    show (u.setFound c1.suit (u.found c1.suit ++ [c1])).found c2.suit = _
-    rw [← hsu, setFound_found_self]
-  have hlen : (s1.found c2.suit).length = (u.found c1.suit).length + 1 := by
-    rw [hs1f, List.length_append]
-    simp
-  have hc2c1 : c2 = c1 := by
-    have hr : c2.rank = c1.rank := by
-      apply Rank.toIdx_inj
-      rw [hu2, ← hsu, ← hu1]
-    cases c2
-    cases c1
-    simp_all
-  rw [← hc2c1] at hu1
-  rw [hsu] at hlen
-  omega
-
 /-- The raise/raise square, with the reversibility hypotheses removed. -/
 theorem raise_raise_square_norev {st s1 s2 s12 s21 : State} {c1 c2 : Card}
     (hwf : st.WF)
@@ -504,26 +469,6 @@ theorem crossing_block_delete {u v : State} {ρ : List Move}
 
 /-! ## §4. The adjacent valley turn (same-card cancellation) -/
 
-/-- **SAME-CARD VALLEY CANCELLATION.**  If a witness play reaches `A'`,
-pulls `c` onto `b` to reach `B`, and immediately raises `c`, the two
-letters delete. -/
-theorem valley_cancel_same {A A' B C : State} {ρ₁ ρ₂ : List Move}
-    {c : Card} {b : Base}
-    (hwf : A.WF)
-    (h₁ : ShufflePlayW A ρ₁ A')
-    (hpull : State.step A' (Move.foundToTab c b) = some B)
-    (h₂ : ShufflePlayW B (Move.tabToFound c :: ρ₂) C) :
-    ShufflePlayW A (ρ₁ ++ ρ₂) C := by
-  have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end h₁ hwf
-  have hback : State.step B (Move.tabToFound c) = some A' :=
-    step_tabToFound_of_foundToTab hA' hpull
-  cases h₂ with
-  | cons hrev hstep hrest =>
-      rename_i B'
-      have hBB' : B' = A' := Option.some.inj (hstep.symm.trans hback)
-      subst hBB'
-      exact ShufflePlayW_append h₁ hrest
-
 /-- Adjacent valley elimination in the same-card case. -/
 theorem valley_elim_pull_raise_same
     {A A' F C : State} {ρ₁ ρ₂ : List Move} {c : Card} {b : Base}
@@ -534,7 +479,7 @@ theorem valley_elim_pull_raise_same
     (hstep : State.step F (Move.tabToFound c) = some A')
     (h₂ : ShufflePlayW A' ρ₂ C) :
     ShufflePlayW A (ρ₁ ++ ρ₂) C :=
-  valley_cancel_same hwf h₁ hpull (Walk.cons hrev hstep h₂)
+  ValleyStep.valley_cancel_same hwf h₁ hpull (Walk.cons hrev hstep h₂)
 
 /-! ## §5. List decompositions -/
 
@@ -967,7 +912,7 @@ theorem valley_elim_pull_raise (hloc : ValleyCrossingLocator)
           rcases hturn with hcd | ⟨hcd, hsuit⟩
           · subst hcd
             refine ⟨left ++ right,
-              valley_cancel_same huwf hleft hstepPull (Walk.cons hrevRaise hstepRaise hright), ?_⟩
+              ValleyStep.valley_cancel_same huwf hleft hstepPull (Walk.cons hrevRaise hstepRaise hright), ?_⟩
             simp only [List.length_append, List.length_cons, List.length_nil]
             omega
           · have hblock : CrossingBlock u v
@@ -979,7 +924,6 @@ end ValleyElim
 
 #print axioms ValleyElim.crossing_cancel
 #print axioms ValleyElim.crossing_block_delete
-#print axioms ValleyElim.valley_cancel_same
 #print axioms ValleyElim.valley_elim_pull_raise_same
 #print axioms ValleyElim.valley_exists
 #print axioms ValleyElim.satDifferForkWF_of_valleyElimNonfork
@@ -997,6 +941,5 @@ end ValleyElim
 #print axioms ValleyElim.nonfree_reversible_is_pull_or_raise
 #print axioms ValleyElim.not_reversible_tabToFound_of_saturated
 #print axioms ValleyElim.pull_card_live
-#print axioms ValleyElim.raise_same_suit_contra
 
 #print axioms ValleyElim.valley_elim_pull_raise

@@ -621,48 +621,47 @@ theorem first_step_rung_le {st s1 : State} (hwf : st.WF) (hs : SSaturated st)
 
 /-! ## §3. A pull creates a live card -/
 
-/-- **A successful pull whose post-state is next-up leaves the pulled card
-vanilla-raisable.**  In the `inl` cell the card is a bare king; in the `inr`
-cell it is the last card of a face-up run, so the chop beneath it is nonempty.
-(This is the "the pull's own card is live" half of the dip's first passage;
-at `WF` the hypothesis `hnext` is automatic, see the header.) -/
-theorem canRaise_of_foundToTab_step {st w : State} (hwf : st.WF) {c : Card} {b : Base}
-    (hstep : State.step st (Move.foundToTab c b) = some w)
-    (hnext : w.nextUp c = true) : CanRaise w c := by
-  obtain ⟨c', htop, hc', hcp, hs⟩ := step_foundToTab_inv hstep
-  subst c'
-  have hwfw : w.WF := step_wf hwf hstep
-  cases b with
-  | inl a0 =>
-      have hp : w.piles a0 = (⟨[], [c]⟩ : Pile) := by
-        rw [hs]
-        simp [State.putCard, State.setPile]
-      have hlast : lastOf (w.piles a0).faceUp = some c := by
-        rw [hp]
-        rfl
-      have hpa : w.pileOfTop c = some a0 :=
-        (pileOfTop_eq_some_iff hwfw).2 (by rw [hp]; rfl)
-      refine ⟨hnext, a0, hpa, Or.inr ⟨?_, (canPlace_inl hcp).2⟩⟩
-      rw [hp]
-  | inr z =>
-      obtain ⟨k, hkz, hfit⟩ := canPlace_inr hcp
-      have hp : w.piles k =
-          { st.piles k with faceUp := (st.piles k).faceUp ++ [c] } := by
-        rw [hs]
-        simp [State.putCard, State.setPile, setFound_piles, hkz]
-      have hlast : lastOf (w.piles k).faceUp = some c := by
-        rw [hp]
-        exact lastOf_snoc
-      have hpa : w.pileOfTop c = some k :=
-        (pileOfTop_eq_some_iff hwfw).2 (by rw [hp]; exact lastOf_snoc)
-      have hne : (st.piles k).faceUp ≠ [] := (pileOfTop_top hkz).1
-      obtain ⟨x, xs, hx⟩ : ∃ x xs, (st.piles k).faceUp = x :: xs := by
-        cases hh : (st.piles k).faceUp with
-        | nil => exact absurd hh hne
-        | cons x xs => exact ⟨x, xs, rfl⟩
-      refine ⟨hnext, k, hpa, Or.inl ?_⟩
-      rw [hp, hx]
-      simp [chop]
+/-- **SAME ORBIT SUPPLIES THE PLAY.** -/
+theorem sameOrbit_reachable {u v : State} (h : sameOrbitSetoid.r u v) :
+    ∃ ρ : List Move, ShufflePlayW u ρ v := by
+  obtain ⟨ρ, _, ρ', hρ'⟩ := h
+  exact ⟨ρ', hρ'⟩
+
+/-- Two raises of the same suit cannot both fire in both orders. -/
+theorem raise_same_suit_contra {u s1 s2 s12 : State} (hwf : u.WF) {c1 c2 : Card}
+    (h1 : State.step u (Move.tabToFound c1) = some s1)
+    (h2 : State.step u (Move.tabToFound c2) = some s2)
+    (hsu : c1.suit = c2.suit)
+    (h12 : State.step s1 (Move.tabToFound c2) = some s12) : False := by
+  obtain ⟨hnextU1, a, hpa, hs1⟩ := step_tabToFound_inv h1
+  obtain ⟨hnextU2, -⟩ := step_tabToFound_inv h2
+  obtain ⟨hnextS2, -⟩ := step_tabToFound_inv h12
+  have hu1 : c1.rank.toIdx = (u.found c1.suit).length := by
+    have h := of_decide_eq_true hnextU1
+    simpa [State.nextUp, State.foundHeight] using h
+  have hu2 : c2.rank.toIdx = (u.found c2.suit).length := by
+    have h := of_decide_eq_true hnextU2
+    simpa [State.nextUp, State.foundHeight] using h
+  have hs2l : c2.rank.toIdx = (s1.found c2.suit).length := by
+    have h := of_decide_eq_true hnextS2
+    simpa [State.nextUp, State.foundHeight] using h
+  have hs1f : s1.found c2.suit = u.found c1.suit ++ [c1] := by
+    rw [hs1]
+    show (u.setFound c1.suit (u.found c1.suit ++ [c1])).found c2.suit = _
+    rw [← hsu, setFound_found_self]
+  have hlen : (s1.found c2.suit).length = (u.found c1.suit).length + 1 := by
+    rw [hs1f, List.length_append]
+    simp
+  have hc2c1 : c2 = c1 := by
+    have hr : c2.rank = c1.rank := by
+      apply Rank.toIdx_inj
+      rw [hu2, ← hsu, ← hu1]
+    cases c2
+    cases c1
+    simp_all
+  rw [← hc2c1] at hu1
+  rw [hsu] at hlen
+  omega
 
 /-! ## §4. Battery -/
 
@@ -691,4 +690,5 @@ theorem canRaise_of_foundToTab_step {st w : State} (hwf : st.WF) {c : Card} {b :
 #print axioms rungEq_of_no_raise_shuffles
 #print axioms first_letter_ne_raise
 #print axioms first_step_rung_le
-#print axioms canRaise_of_foundToTab_step
+#print axioms raise_same_suit_contra
+#print axioms sameOrbit_reachable

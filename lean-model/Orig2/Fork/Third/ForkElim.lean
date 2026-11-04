@@ -251,7 +251,7 @@ theorem bracket_delete_of_commuted
     ∃ ρ' : List Move, ShufflePlayW u ρ' v ∧ ρ'.length < ρ.length := by
   have hdel : ShufflePlayW u (α ++ γ ++ β) v := by
     simpa only [List.append_assoc] using
-      (ValleyElim.valley_cancel_same (A := u) (A' := P) (B := Q) (C := v)
+      (ValleyStep.valley_cancel_same (A := u) (A' := P) (B := Q) (C := v)
         (ρ₁ := α) (ρ₂ := γ ++ β) (c := z) (b := bz) huwf hα hstep hcomm)
   refine ⟨α ++ γ ++ β, hdel, ?_⟩
   rw [hρ]
@@ -326,7 +326,7 @@ theorem samecard_turn_nil_shortens
   have hQF : Q = F := Option.some.inj (hstep1.symm.trans hstep0)
   rw [hQF] at hrest
   refine ⟨pre ++ tail,
-    ValleyElim.valley_cancel_same (A := u) (A' := P0) (B := F) (C := v)
+    ValleyStep.valley_cancel_same (A := u) (A' := P0) (B := F) (C := v)
       (ρ₁ := pre) (ρ₂ := tail) (c := c) (b := b) huwf hpre0 hstep0 hrest, ?_⟩
   rw [hρ, hshape, hrightShape]
   simp only [List.length_append, List.length_cons, List.length_nil]

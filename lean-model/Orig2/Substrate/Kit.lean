@@ -2374,6 +2374,17 @@ theorem chop_append_singleton {l : List Card} {c : Card} :
           show x :: chop ((y :: t') ++ [c]) = x :: (y :: t')
           rw [ih]
 
+/-- A face-up run of length at least two has a nonempty `chop`. -/
+theorem chop_ne_nil_of_two_le {l : List Card} (h : 2 ≤ l.length) : chop l ≠ [] := by
+  obtain ⟨x, y, u, rfl⟩ : ∃ x y u, l = x :: y :: u := by
+    cases l with
+    | nil => simp at h
+    | cons x t =>
+        cases t with
+        | nil => simp at h
+        | cons y u => exact ⟨x, y, u, rfl⟩
+  exact List.cons_ne_nil x _
+
 theorem afterRunRemoved_faceUp_ne {p : Pile} {pre : List Card} (h : pre ≠ []) :
     (Pile.afterRunRemoved p pre).faceUp = pre := by
   cases pre with

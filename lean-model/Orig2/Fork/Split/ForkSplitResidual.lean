@@ -88,23 +88,6 @@ def SplitHyp (u v : State) (ρ : List Move) (F : State)
 /-! ## §1b. The one read the block clause needs: `CanRaise` sees only
 `found` and `piles` -/
 
-/-- Congruence of the anchor search (local copy; `Orig/Twin.lean`'s
-`firstWhere_congr` is outside the seam). -/
-theorem firstWhere_congr_local {α : Type} {p q : α → Bool} (h : ∀ x, p x = q x) :
-    ∀ l : List α, firstWhere p l = firstWhere q l
-  | [] => rfl
-  | x :: t => by
-      show (match p x with
-            | true => some x
-            | false => firstWhere p t) =
-           (match q x with
-            | true => some x
-            | false => firstWhere q t)
-      rw [h x]
-      cases q x with
-      | false => exact firstWhere_congr_local h t
-      | true => rfl
-
 /-- The vanilla raise license is a `found`+`piles` read. -/
 theorem canRaise_congr_found_piles {u v : State} (hf : u.found = v.found)
     (hp : u.piles = v.piles) (c : Card) : CanRaise u c ↔ CanRaise v c := by
@@ -557,17 +540,45 @@ theorem splitTwin_of_livePair_block (hl : SplitLivePair) (hb : SplitBlock) :
     exact absurd hc (hb u v ρ F left right c d b pre post tail h)
   · rw [h', card_twin_twin]
 
+/-- **MINIMALITY FORCES `c ≠ d` IN THE EMPTY-TAIL CASE.** -/
+theorem emptyTail_turn_ne
+    {u v : State} {ρ : List Move} {F : State}
+    {left right : List Move} {c d : Card} {b : Base}
+    {pre post tail : List Move}
+    (h : SplitHyp u v ρ F left right c d b pre post tail) (hpost : post = []) :
+    c ≠ d := by
+  obtain ⟨huwf, -, -, hplay, -, hmin, hρ, hleft, hright, hshape, hfree,
+    hrightShape⟩ := h
+  subst hpost
+  have hplay' : ShufflePlayW u
+      (pre ++ Move.foundToTab c b :: Move.tabToFound d :: tail) v := by
+    have hp := hplay
+    rw [hρ, hshape, hrightShape] at hp
+    simpa [List.append_assoc] using hp
+  have hlen' : ∀ ρ' : List Move, ShufflePlayW u ρ' v →
+      (pre ++ Move.foundToTab c b :: Move.tabToFound d :: tail).length ≤ ρ'.length := by
+    intro ρ' hρ'
+    have hlen := hmin ρ' hρ'
+    rw [hρ, hshape, hrightShape] at hlen
+    simpa [List.append_assoc] using hlen
+  have hleft' : ShufflePlayW u (pre ++ Move.foundToTab c b :: ([] : List Move)) F := by
+    rw [← hshape]
+    simpa using hleft
+  obtain ⟨A', hpre, hrest⟩ :=
+    ValleyElim.ShufflePlayW_split hleft' pre [Move.foundToTab c b] rfl
+  exact Bridge.shortest_adjacent_turn_ne huwf hpre hplay' hlen'
+
 end SplitKit
 
 /-! ## §7. Battery -/
 
-#print axioms SplitKit.firstWhere_congr_local
 #print axioms SplitKit.canRaise_congr_found_piles
 #print axioms SplitKit.drawPlay_found_piles
 #print axioms SplitKit.isSlideB_eq_true_iff
 #print axioms SplitKit.splitHyp_green
 #print axioms SplitKit.splitHyp_post_ne_nil
 #print axioms SplitKit.splitHyp_post_has_slide
+#print axioms SplitKit.emptyTail_turn_ne
 #print axioms SplitKit.splitResidualData_of_parts
 #print axioms SplitKit.parts_of_splitResidualData
 #print axioms SplitKit.splitResidualData_iff_parts

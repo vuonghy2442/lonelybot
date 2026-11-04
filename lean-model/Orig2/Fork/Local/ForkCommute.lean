@@ -459,42 +459,6 @@ theorem step_comm_pull_pull {st s1 s2 s12 s21 : State} {c1 c2 : Card} {b1 b2 : B
 -- ===== from Temp/Commute_Step_Raise.lean =====
 
 
-/-- Two raises of the same suit cannot both fire in both orders. -/
-theorem raise_same_suit_contra {u s1 s2 s12 : State} (hwf : u.WF) {c1 c2 : Card}
-    (h1 : State.step u (Move.tabToFound c1) = some s1)
-    (h2 : State.step u (Move.tabToFound c2) = some s2)
-    (hsu : c1.suit = c2.suit)
-    (h12 : State.step s1 (Move.tabToFound c2) = some s12) : False := by
-  obtain ⟨hnextU1, a, hpa, hs1⟩ := step_tabToFound_inv h1
-  obtain ⟨hnextU2, -⟩ := step_tabToFound_inv h2
-  obtain ⟨hnextS2, -⟩ := step_tabToFound_inv h12
-  have hu1 : c1.rank.toIdx = (u.found c1.suit).length := by
-    have h := of_decide_eq_true hnextU1
-    simpa [State.nextUp, State.foundHeight] using h
-  have hu2 : c2.rank.toIdx = (u.found c2.suit).length := by
-    have h := of_decide_eq_true hnextU2
-    simpa [State.nextUp, State.foundHeight] using h
-  have hs2l : c2.rank.toIdx = (s1.found c2.suit).length := by
-    have h := of_decide_eq_true hnextS2
-    simpa [State.nextUp, State.foundHeight] using h
-  have hs1f : s1.found c2.suit = u.found c1.suit ++ [c1] := by
-    rw [hs1]
-    show (u.setFound c1.suit (u.found c1.suit ++ [c1])).found c2.suit = _
-    rw [← hsu, setFound_found_self]
-  have hlen : (s1.found c2.suit).length = (u.found c1.suit).length + 1 := by
-    rw [hs1f, List.length_append]
-    simp
-  have hc2c1 : c2 = c1 := by
-    have hr : c2.rank = c1.rank := by
-      apply Rank.toIdx_inj
-      rw [hu2, ← hsu, ← hu1]
-    cases c2
-    cases c1
-    simp_all
-  rw [← hc2c1] at hu1
-  rw [hsu] at hlen
-  omega
-
 /-- Two raises, both legal at `st` and each legal after the other, land
 on the same state. -/
 theorem step_comm_raise_raise {st s1 s2 s12 s21 : State} {c1 c2 : Card}

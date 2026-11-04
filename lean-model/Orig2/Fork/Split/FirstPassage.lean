@@ -572,9 +572,7 @@ theorem FirstRise.card_live {u v : State} {ρ : List Move} {σ : Suit} {k : Nat}
 
 /-! ## §0. Local copy of the pull-liveness lemma (promotion-clean) -/
 
-/-- **A PULL'S CARD IS VANILLA-LIVE AT THE LANDING.**  Verbatim mirror of
-`canRaise_of_foundToTab_step` (`Orig2/Fork/Local/ForkCriticalPair.lean:629`), kept
-local so `FirstPassage.lean` need not import `ForkCriticalPair`. -/
+/-- **A PULL'S CARD IS VANILLA-LIVE AT THE LANDING.** -/
 theorem canRaise_post_of_pull {st w : State} (hwf : st.WF) {c : Card} {b : Base}
     (hstep : State.step st (Move.foundToTab c b) = some w)
     (hnext : w.nextUp c = true) : CanRaise w c := by

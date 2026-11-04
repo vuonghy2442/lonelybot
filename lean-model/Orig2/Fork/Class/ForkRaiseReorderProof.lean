@@ -115,7 +115,7 @@ theorem RaiseSSeqLicensed.revEqW {s z : State} {ws : List Card}
       have hzwf0 : zz0.WF := cargoPath_wf hzwf hp
       have hcr : CanRaise zz0 cc := canRaise_of_canRaiseS_of_step hzwf hS hp hstep
       have hrev : reversibleAtW zz0 (Move.tabToFound cc) :=
-        canRaise_reversibleAtW hzwf0 hcr
+        DrainClose.reversibleAtW_tabToFound_of_canRaise hzwf0 hcr
       have hone : ShufflePlayW zz (play ++ [Move.tabToFound cc]) zz' :=
         ShufflePlayW_append hplay (Walk.cons hrev hstep (Walk.nil zz'))
       exact RevEqW_trans hprev (shufflePlayW_revEqW hone)

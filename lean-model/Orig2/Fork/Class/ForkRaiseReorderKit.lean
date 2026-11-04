@@ -637,15 +637,6 @@ theorem canRaiseS_cargoPath_bicond {z z' : State} (hz : z.WF) (hpath : CargoPath
     exact (canRaiseS_orbit_rung hz (sameOrbit_of_cargoPath hpath)
       (rungAt_cargoPath hpath)).mp h
 
-/-- `chop` of a list of length at least two is nonempty. -/
-theorem chop_ne_nil_of_two_le {l : List Card} (h : 2 ≤ l.length) : chop l ≠ [] := by
-  cases l with
-  | nil => simp at h
-  | cons x t =>
-      cases t with
-      | nil => simp at h
-      | cons y t => simp [chop]
-
 /-- **The card-word licence is the vanilla licence at the slide's end.**  Along a
 cargo path the seat/hatch disjunct of a licence is invariant, so once the raise
 *step* fires at the path's end the licence is vanilla there. -/
@@ -1017,7 +1008,6 @@ end OneColourClosure
 #print axioms OneColourClosure.canRaiseS_persist_of_rank_ne
 #print axioms OneColourClosure.cover_rank_lt
 #print axioms OneColourClosure.cover_rank_ne
-#print axioms OneColourClosure.chop_ne_nil_of_two_le
 #print axioms OneColourClosure.RaiseSSeqLicensed.toSeq
 #print axioms OneColourClosure.RaiseSSeqLicensed.canRaiseS_head
 #print axioms OneColourClosure.RaiseSSeqLicensed.cargoPath

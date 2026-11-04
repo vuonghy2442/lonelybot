@@ -53,20 +53,6 @@ namespace MinKit
 
 /-! ## 1. Existence is a projection of the orbit relation -/
 
-/-- **SAME ORBIT SUPPLIES THE PLAY.**  `sameOrbitSetoid.r u v` unfolds to
-`RevEqW v u`, and (`Orig2/Substrate/Vocab.lean:296-297`)
-
-    `RevEqW s s' := ∃ ρ, ShufflePlayW s ρ s' ∧ ∃ ρ', ShufflePlayW s' ρ' s`,
-
-i.e. one existential whose body is a conjunction.  At `s = v`, `s' = u` its
-second conjunct is literally `∃ ρ, ShufflePlayW u ρ v`.  So the existence
-half is a projection, not a chess theorem: no `WF`, no saturation, no rung
-input. -/
-theorem sameOrbit_reachable {u v : State} (h : sameOrbitSetoid.r u v) :
-    ∃ ρ : List Move, ShufflePlayW u ρ v := by
-  obtain ⟨ρ, _, ρ', hρ'⟩ := h
-  exact ⟨ρ', hρ'⟩
-
 /-! ## 2. The residual: the pure well-ordering fact, and the reduction -/
 
 /-- **THE PURE `Nat` MINIMUM PRINCIPLE.**  Every inhabited set of naturals
@@ -206,7 +192,6 @@ through the vocabulary, not through the proofs: `fun h => h` at type
 rows (`em_of_natHasMin`, `natHasMin_of_em`, `natHasMin_iff_em`) are exactly
 `[]`.  No row uses `Classical.choice` or `Quot.sound`. -/
 
-#print axioms MinKit.sameOrbit_reachable
 #print axioms MinKit.playLenMin_of_natHasMin
 #print axioms MinKit.shortestPlayExists_of_playLenMin
 #print axioms MinKit.shortestPlayExists_ungated

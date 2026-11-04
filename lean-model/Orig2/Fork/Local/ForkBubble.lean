@@ -470,7 +470,7 @@ theorem bracket_delete_at {A A' S C : State} {ρ₁ inner ρ₂ : List Move}
   have hbubble : ShufflePlayW S (Move.tabToFound c :: inner ++ ρ₂) C :=
     bubble_raise_left inner hSwf hnsl (noSlide_of_isRaise ⟨c, rfl⟩) hbr hsw
   simpa [List.append_assoc] using
-    ValleyElim.valley_cancel_same (A := A) (A' := A') (B := S) (C := C)
+    ValleyStep.valley_cancel_same (A := A) (A' := A') (B := S) (C := C)
       (ρ₁ := ρ₁) (ρ₂ := inner ++ ρ₂) (c := c) (b := b) hwf h₁ hpull hbubble
 
 /-- **Empty interior** — the `inner = []` base case: this is exactly
@@ -480,7 +480,7 @@ theorem bracket_delete_nil {A A' S C : State} {ρ₁ ρ₂ : List Move} {c : Car
     (hpull : State.step A' (Move.foundToTab c b) = some S)
     (h₂ : ShufflePlayW S (Move.tabToFound c :: ρ₂) C) :
     ShufflePlayW A (ρ₁ ++ ρ₂) C :=
-  ValleyElim.valley_cancel_same hwf h₁ hpull h₂
+  ValleyStep.valley_cancel_same hwf h₁ hpull h₂
 
 /-- **One-letter interior** — the inductive step in the smallest case:
 one slide-free letter `m` between the pull and the raise, with the

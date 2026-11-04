@@ -232,21 +232,6 @@ theorem A_coverEvent :
     Mech.CoverEvent A F [Move.tabToTab S4 (Sum.inr H5)] H5 :=
   ⟨S4, [], [], A, F, rfl, Walk.nil A, A_seat, A_rev, A_step, Walk.nil F, F_seat⟩
 
-/-- **`coverEvent_of_block` APPLIES TO THE GADGET.**  All six hypotheses of the
-mechanism theorem (`B.WF`, the free play, freeness, `CanRaise B c`,
-`CanRaiseS F c`, `¬ CanRaise F c`) hold here, so the gadget sits inside the
-mechanism's regime — not outside it. -/
-theorem A_coverEvent_via_block :
-    Mech.CoverEvent A F [Move.tabToTab S4 (Sum.inr H5)] H5 :=
-  Mech.coverEvent_of_block A_wf
-    (Walk.cons A_rev A_step (Walk.nil F))
-    (by
-      intro m hm
-      rw [List.mem_singleton] at hm
-      subst hm
-      exact ValleyElim.free_slide S4 (Sum.inr H5))
-    A_canRaise F_live F_block
-
 /-- **THE WHOLE LOCAL DATUM, WITH THE PIN FAILING.**  `A`/`F` are `WF`; the
 cover event holds; `c` is S-live and blocked at the landing; a raise card exists
 there; the cover's source is `c.twin`; the twin suit is strictly behind; and the
@@ -318,7 +303,6 @@ theorem blockerReady_with_failing_pin :
 #print axioms RungGeGadget.F_canRaise_AC
 #print axioms RungGeGadget.F_twin_not_live
 #print axioms RungGeGadget.A_coverEvent
-#print axioms RungGeGadget.A_coverEvent_via_block
 #print axioms RungGeGadget.coverEvent_with_failing_pin
 #print axioms RungGeGadget.coverEvent_does_not_imply_pin
 #print axioms RungGeGadget.A_blockerReady

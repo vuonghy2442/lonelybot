@@ -342,7 +342,7 @@ theorem noEmptyTail_of_free_pre
   intro hpost
   have hkeep := h
   obtain ⟨huwf, hsatu, -, -, -, -, -, -, -, -, -, -⟩ := hkeep
-  have hcd : c ≠ d := BlockKit.emptyTail_turn_ne h hpost
+  have hcd : c ≠ d := SplitKit.emptyTail_turn_ne h hpost
   obtain ⟨A', hpre, hcanA'd⟩ := BlockKit.emptyTail_canRaise_before h hpost
   have hA' : A'.WF := SatDifferCensus.ShufflePlayW.wf_end hpre huwf
   have hsatA' : SSaturated A' :=
