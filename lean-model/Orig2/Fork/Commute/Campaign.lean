@@ -1,5 +1,6 @@
 import Orig2.Fork.Class.CeilingBridge
 import Orig2.Fork.Commute.PullCommute
+import Orig2.Fork.Commute.ForklessTop
 
 set_option autoImplicit false
 
@@ -35,5 +36,12 @@ theorem forkless_found_unique_proved {s s' : State}
   forkless_found_unique_wf OneColourClosure.satDifferForkWF_proved
     hwf hwf' hclass hfrk hsat hsat'
 
+/-- **EVERY FORKLESS CLASS HAS A RUNG TOP.**  The saturation climb plus the
+unconditional rung agreement. -/
+theorem forklessHasTop_proved : OneColourClosure.ForklessHasTop :=
+  ForklessTop.forklessHasTop_of_satDifferForkWF
+    OneColourClosure.satDifferForkWF_proved
+
 #print axioms forkless_rungs_agree_proved
 #print axioms forkless_found_unique_proved
+#print axioms forklessHasTop_proved
