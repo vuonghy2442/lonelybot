@@ -1,6 +1,5 @@
 import Orig2.Fork.Class.ForkRaiseReorderProof
 import Orig2.Fork.Commute.SatDiffer_config
-import Orig2.Fork.Commute.Fork_producer
 import Orig2.Fork.Commute.RungMono
 import Orig2.Fork.Commute.PullRaiseId
 import Orig2.Fork.Commute.Obstruction
@@ -46,9 +45,8 @@ endpoint here is a play from the *pull's landing*, not from the pull's source.
 ## 2. The fork branch
 
 `ForkWitness st x` is *spectrum equality* `(∀ c, CanRaiseS st c ↔ c = x ∨ c =
-x.twin)` plus the vanilla block `¬ CanRaise st x.twin`.  A drain that collapses
-the spectrum to a twin pair therefore gives `Fork st` outright, with no
-invariant and no rank floor (`fork_of_collapsed_spectrum`).
+x.twin)` plus the vanilla block `¬ CanRaise st x.twin`.  The spectrum producers
+themselves are not used by the final commutation route and have been removed.
 
 ## 3. The route implies the join
 
@@ -239,36 +237,6 @@ theorem obstruction_dichotomy {z : State} (hz : z.WF) {c : Card}
     exact Or.inl (covered_at_of_buried hz hhold hface hrun)
   · exact Or.inr hlk
 
-/-! ## 3. The fork branch: a collapsed spectrum is a fork -/
-
-/-- **DRAIN-TO-FORK, closed.**  If the `S`-live set of `st` has collapsed onto
-the twin pair `{x, x.twin}` (written as the implication `CanRaiseS st d → d = x
-∨ d = x.twin`, with both members live), and `x.twin` is vanilla-blocked, then
-`st` is a `ForkWitness` and hence the class of `st` is `Fork`.
-
-No invariant, no rank floor: this is `forkWitness_of_spectrum` plus the
-definitional closure of `Fork`. -/
-theorem fork_of_collapsed_spectrum {st : State} {x : Card}
-    (hx : CanRaiseS st x) (hxt : CanRaiseS st x.twin)
-    (honly : ∀ d, CanRaiseS st d → d = x ∨ d = x.twin)
-    (hblocked : ¬ CanRaise st x.twin) :
-    Fork st := by
-  have hspec : ∀ c : Card, (c = x ∨ c = x.twin) ↔ CanRaiseS st c := by
-    intro c
-    constructor
-    · rintro (rfl | rfl)
-      · exact hx
-      · exact hxt
-    · exact honly c
-  exact ⟨st, x, RevEqW_refl st, forkWitness_of_spectrum hspec hblocked⟩
-
-/-- The same, from the exact spectrum equality that a drain produces. -/
-theorem fork_of_spectrum {st : State} {x : Card}
-    (hspec : ∀ c : Card, (c = x ∨ c = x.twin) ↔ CanRaiseS st c)
-    (hblocked : ¬ CanRaise st x.twin) :
-    Fork st :=
-  ⟨st, x, RevEqW_refl st, forkWitness_of_spectrum hspec hblocked⟩
-
 /-! ## 3. The trivial cases of the target -/
 
 /-- The target is immediate (empty play at `s`) whenever `t`'s rungs are below
@@ -314,8 +282,6 @@ end OneColourClosure
 #print axioms OneColourClosure.covered_at_of_buried
 #print axioms OneColourClosure.frozen_of_deficit_lock
 #print axioms OneColourClosure.obstruction_dichotomy
-#print axioms OneColourClosure.fork_of_collapsed_spectrum
-#print axioms OneColourClosure.fork_of_spectrum
 #print axioms OneColourClosure.raisesOrFork_of_rungLe_rev
 #print axioms OneColourClosure.raisesOrFork_of_rungEq
 #print axioms OneColourClosure.fullJoinAtLeastOrFork_of_raises_or_fork

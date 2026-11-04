@@ -285,6 +285,55 @@ theorem nodup_of_nodup_reverse : ∀ {l : List Card}, l.reverse.Nodup → l.Nodu
       intro ha
       exact (hdisj a (List.mem_reverse.mpr ha) a (List.mem_singleton_self a)) rfl
 
+/-! ## §1b. Local spectrum rows
+
+The two rows of the old `SpectrumCollapse` card that this file consumes, copied
+here so that the spectrum file can be removed. -/
+
+/-- **Raising an outside card preserves both twins' `S`-licence.**  The rank
+split is the brief's: a letter of a different rank is licence-inert
+(`canRaiseS_step_of_rank_ne`), and a letter of the twins' rank other than the
+twins is inert (`SatDifferConfig.licence_lost_only_by_twin`). -/
+theorem drain_pair_stays_live' {z z' : State} {d x : Card} (hz : z.WF)
+    (hstep : RaiseStepS z z' d)
+    (hd : d ≠ x) (hdt : d ≠ x.twin)
+    (hx : CanRaiseS z x) (hxt : CanRaiseS z x.twin) :
+    CanRaiseS z' x ∧ CanRaiseS z' x.twin := by
+  have hx' : CanRaiseS z' x := by
+    by_cases hr : d.rank = x.rank
+    · exact SatDifferConfig.licence_lost_only_by_twin hz hstep hr hd hdt hx
+    · exact canRaiseS_step_of_rank_ne hz hstep hr hx
+  have hxt' : CanRaiseS z' x.twin := by
+    by_cases hr : d.rank = x.rank
+    · have hr' : d.rank = x.twin.rank := by
+        rw [Card.twin_rank]; exact hr
+      exact SatDifferConfig.licence_lost_only_by_twin hz hstep hr' hdt
+        (by simpa [card_twin_twin] using hd) hxt
+    · have hr' : d.rank ≠ x.twin.rank := by
+        rw [Card.twin_rank]; exact hr
+      exact canRaiseS_step_of_rank_ne hz hstep hr' hxt
+  exact ⟨hx', hxt'⟩
+
+/-- **A `RaiseStepS` letter climbs the rank sum by exactly one.**  The cargo
+prefix is rung-inert and the raise bumps exactly one suit; the sum is
+`Drain.rungSum`. -/
+theorem rungSum_raiseStepS' {z z' : State} {d : Card} (h : RaiseStepS z z' d) :
+    Drain.rungSum z' = Drain.rungSum z + 1 := by
+  unfold Drain.rungSum
+  obtain ⟨hclimb, hfix⟩ := RungMono.rungAt_raiseStepS h
+  have hmap : (Suit.all.map (fun s => rungAt z' s)) =
+      Suit.all.map (fun s => if s = d.suit then rungAt z s + 1 else rungAt z s) := by
+    apply List.map_congr_left
+    intro σ _
+    by_cases hσ : σ = d.suit
+    · rw [ite_eq_left hσ, hσ]
+      exact hclimb
+    · rw [ite_eq_right hσ]
+      exact hfix σ hσ
+  rw [hmap]
+  exact Drain.sum_map_ite_bump Suit.all (fun s => rungAt z s) d.suit
+    Drain.suit_all_nodup (Suit.mem_all d.suit)
+
 /-- **The low drain.**  Raise any `S`-live card of rank strictly below `x`'s,
 keeping both twins `S`-live, until none remains. -/
 theorem lowDrainCommute_aux (x : Card) (n : Nat) :
@@ -335,9 +384,9 @@ theorem lowDrainCommute_aux (x : Card) (n : Nat) :
             exact Nat.lt_irrefl _ hlt
           obtain ⟨z', hstepS⟩ := raiseStepS_of_canRaiseS hSc
           have hpair :=
-            SpectrumCollapse.drain_pair_stays_live hz hstepS hdx hdxt hx hxt
+            drain_pair_stays_live' hz hstepS hdx hdxt hx hxt
           have hsum : Drain.rungSum z' = Drain.rungSum z + 1 :=
-            SpectrumCollapse.rungSum_raiseStepS hstepS
+            rungSum_raiseStepS' hstepS
           have hz' : z'.WF := raiseStepS_wf hz hstepS
           have hlt' : 52 - Drain.rungSum z' < n := by
             have hbound : Drain.rungSum z' ≤ 52 := Drain.rungSum_le_52 hz'

@@ -88,114 +88,6 @@ theorem countP_erase_add {l : List Card} {c : Card} (h : c ∈ l) (p : Card → 
           List.countP_cons, List.countP_cons]
         omega
 
-/-! ## §2. The pull case: append the pulled card, hoist, cancel -/
-
-/-- **The pull case, given the endpoint licence.**  If `c` is still `S`-live at
-the endpoint `v` of a licensed play from the pull's landing `u`, then `c` can be
-appended, hoisted to the front (`raiseS_rankfront_L`), and cancelled against the
-pull (`cancel_prefix_is_play_from_source`).  The result is a play from the pull
-source `s` whose endpoint is `v + e_c`. -/
-theorem pull_case_of_end_live {s u v : State} {c : Card} {b : Base}
-    {ws : List Card}
-    (hs : s.WF) (hpull : State.step s (Move.foundToTab c b) = some u)
-    (hρ : RaiseSSeqLicensed u ws v) (hcz : CanRaiseS v c) :
-    ∃ v', RaiseSSeqLicensed s (playWord (sortByRank ws)) v' ∧
-      (∀ σ, σ ≠ c.suit → rungAt v' σ = rungAt v σ) ∧
-      rungAt v' c.suit = rungAt v c.suit + 1 := by
-  have hu : u.WF := step_wf hs hpull
-  have hcanU : CanRaiseS u c := SatDifferConfig.canRaiseS_after_pull hs hpull
-  have hcan : CanRaise u c := SatDifferConfig.canRaise_after_pull hs hpull
-  obtain ⟨v₁, happ⟩ := exists_append_raise hρ hcz
-  have hmem : c ∈ c :: ws := List.mem_cons_self ..
-  obtain ⟨z, hz⟩ := raiseS_rankfront_L hu hcanU happ hmem
-  have hword : rankFrontWord c (c :: ws) = playWord (c :: sortByRank ws) := by
-    simp [rankFrontWord, playWord, List.erase_cons_head]
-  have hz' : RaiseSSeqLicensed u (playWord (c :: sortByRank ws)) z := by
-    rwa [hword] at hz
-  obtain ⟨v', hv'⟩ := cancel_prefix_is_play_from_source hs hpull hcan hz'
-  have hstepUS : State.step u (Move.tabToFound c) = some s :=
-    step_tabToFound_of_foundToTab hs hpull
-  have hperm : (playWord (sortByRank ws)).Perm ws := by
-    rw [playWord]
-    exact (reverse_perm (sortByRank ws)).trans (sortByRank_perm ws)
-  refine ⟨v', hv', ?_, ?_⟩
-  · intro σ hσ
-    rw [hv'.rungAt_eq σ, hρ.rungAt_eq σ,
-      hperm.countP_eq (fun d => decide (d.suit = σ)),
-      rungAt_foundToTab hpull σ, ite_eq_right hσ]
-  · rw [hv'.rungAt_eq c.suit, hρ.rungAt_eq c.suit,
-      hperm.countP_eq (fun d => decide (d.suit = c.suit)),
-      rungAt_tabToFound hstepUS c.suit, ite_eq_left rfl]
-    omega
-
-/-- **The pull case when the play already raises `c`.**  Hoisting the existing
-`raise c` to the front and cancelling against the pull yields a play from `s`
-with the *same* endpoint rungs (`ws.erase c` is the remaining word). -/
-theorem pull_case_mem {s u v : State} {c : Card} {b : Base} {ws : List Card}
-    (hs : s.WF) (hpull : State.step s (Move.foundToTab c b) = some u)
-    (hρ : RaiseSSeqLicensed u ws v) (hmem : c ∈ ws) :
-    ∃ v', RaiseSSeqLicensed s (playWord (sortByRank (ws.erase c))) v' ∧
-      (∀ σ, rungAt v' σ = rungAt v σ) := by
-  have hu : u.WF := step_wf hs hpull
-  have hcanU : CanRaiseS u c := SatDifferConfig.canRaiseS_after_pull hs hpull
-  have hcan : CanRaise u c := SatDifferConfig.canRaise_after_pull hs hpull
-  obtain ⟨z, hz⟩ := raiseS_rankfront_L hu hcanU hρ hmem
-  have hword : rankFrontWord c ws = playWord (c :: sortByRank (ws.erase c)) := by
-    simp [rankFrontWord, playWord]
-  have hz' : RaiseSSeqLicensed u (playWord (c :: sortByRank (ws.erase c))) z := by
-    rwa [hword] at hz
-  obtain ⟨v', hv'⟩ := cancel_prefix_is_play_from_source hs hpull hcan hz'
-  have hstepUS : State.step u (Move.tabToFound c) = some s :=
-    step_tabToFound_of_foundToTab hs hpull
-  have hperm : (playWord (sortByRank (ws.erase c))).Perm (ws.erase c) := by
-    rw [playWord]
-    exact (reverse_perm (sortByRank (ws.erase c))).trans (sortByRank_perm (ws.erase c))
-  refine ⟨v', hv', ?_⟩
-  intro σ
-  rw [hv'.rungAt_eq σ, hρ.rungAt_eq σ,
-    hperm.countP_eq (fun d => decide (d.suit = σ))]
-  have herase := countP_erase_add hmem (fun d => decide (d.suit = σ))
-  by_cases hσ : σ = c.suit
-  · have hp1 : (if decide (c.suit = σ) = true then 1 else 0) = 1 := by
-      rw [hσ]; simp
-    rw [hp1] at herase
-    have hsR : rungAt s σ = rungAt u σ + 1 := by
-      rw [rungAt_tabToFound hstepUS σ, ite_eq_left hσ]
-    omega
-  · have hp0 : (if decide (c.suit = σ) = true then 1 else 0) = 0 := by
-      have hne : c.suit ≠ σ := fun h => hσ h.symm
-      rw [decide_eq_false hne]; rfl
-    rw [hp0] at herase
-    rw [rungAt_foundToTab hpull σ, ite_eq_right hσ]
-    omega
-
-/-- **THE PULL CASE, non-twin, CLOSED UNCONDITIONALLY.**  This is the fragment
-of `hPull` that needs no in-flight input: the tail play avoids `c`'s suit and
-`c.twin`, so `c` stays `S`-live at the endpoint (`canRaiseS_of_word_notMem`),
-and `pull_case_of_end_live` supplies the play from `s`; its endpoint is
-`v + e_c`, hence dominates both `s` and `t`.
-
-The only surviving pull sub-case is `c.twin ∈ ws` (and `c ∉ ws`), which is
-exactly the `∨ Fork s` arm of `hPull`. -/
-theorem pull_case_noTwin {s u v t : State} {c : Card} {b : Base} {ws : List Card}
-    (hs : s.WF) (hpull : State.step s (Move.foundToTab c b) = some u)
-    (hρ : RaiseSSeqLicensed u ws v)
-    (hno : ∀ d ∈ ws, d.suit ≠ c.suit) (htwin : c.twin ∉ ws) (ht : RungLe t v) :
-    ∃ v', RaiseSSeqLicensed s (playWord (sortByRank ws)) v' ∧
-      RungLe s v' ∧ RungLe t v' := by
-  have hu : u.WF := step_wf hs hpull
-  have hcanU : CanRaiseS u c := SatDifferConfig.canRaiseS_after_pull hs hpull
-  have hself : c ∉ ws := fun hmem => hno c hmem rfl
-  have hcz : CanRaiseS v c := canRaiseS_of_word_notMem hρ hu hcanU hself htwin
-  obtain ⟨v', hplay', hoff, hon⟩ := pull_case_of_end_live hs hpull hρ hcz
-  refine ⟨v', hplay', rungLe_of_raiseSSeqLicensed hplay', fun σ => ?_⟩
-  by_cases hσ : σ = c.suit
-  · subst hσ
-    rw [hon]
-    exact Nat.le_trans (ht c.suit) (Nat.le_succ _)
-  · rw [hoff σ hσ]
-    exact ht σ
-
 /-! ## §3. The path induction -/
 
 /-- **The path induction.**  Along any witness shuffle `s ⇝ t`, either there is
@@ -314,9 +206,6 @@ end OneColourClosure
 #print axioms OneColourClosure.rungLe_of_rung_eq
 #print axioms OneColourClosure.replay_of_orbit_rung
 #print axioms OneColourClosure.countP_erase_add
-#print axioms OneColourClosure.pull_case_of_end_live
-#print axioms OneColourClosure.pull_case_mem
-#print axioms OneColourClosure.pull_case_noTwin
 #print axioms OneColourClosure.raises_or_fork_play
 #print axioms OneColourClosure.raises_or_fork_of
 #print axioms OneColourClosure.fullJoinAtLeastOrFork_of_hPull

@@ -1,56 +1,24 @@
-import Orig2.Fork.Split.ForkDrainClose
 import Orig2.Fork.Class.ForkRaiseReorderProof
 import Orig2.Fork.Split.FirstPassage
-import Orig2.Fork.Split.ForkSplit
-import Orig2.Fork.Commute.Drain_transport_rows
 
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 set_option linter.unusedVariables false
 
 /-!
-# Temp/SatDiffer_config — the `SatDifferForkWF` configuration card
+# Temp/SatDiffer_config — the slim licence configuration card
 
-Attack on the campaign residue `SatDifferForkWF`
-(`Orig2/Substrate/Vocab.lean:641`).  New file only; nothing under `Orig2/`
-and no existing `Temp/` file is modified.
+The final chain consumes exactly three rows from this card:
 
-## What is proved here
+* `SatDifferConfig.licence_lost_only_by_twin` — a same-rank raise of a card
+  other than `c` or `c.twin` preserves `c`'s `S`-licence;
+* `SatDifferConfig.canRaise_after_pull` — the pulled card is vanilla-raisable
+  at the pull's landing;
+* `SatDifferConfig.canRaiseS_after_pull` — the same card is `S`-live there.
 
-* **§1 STEP 1 — `licence_lost_only_by_twin`.**  A `RaiseStepS` letter
-  whose raised card `d` has the same rank as `c`, with `d ≠ c` and
-  `d ≠ c.twin`, preserves `CanRaiseS · c`.  Proof: the licence splits as
-  `nextUp ∧ freeCardS` (`canRaiseS_split`); `d`'s suit differs from
-  `c.suit` (same rank + different card), so `nextUp` is fixed, and
-  `freeCardS c` reads only `c`'s own pile and `pileOfTop c.twin` — both
-  untouched by a same-rank raise (a same-rank card is never *above* `c`
-  in a legal run, and `c.twin` is never the raised card).  The cargo
-  prefix is absorbed with `canRaiseS_orbit_rung` (a `CargoPath` is an
-  equal-rung orbit move).
-
-* **§2 STEP 2 — `pulled_card_refounded`.**  In a witness play a
-  `foundToTab c b` letter drops the `c.suit`-rung from
-  `c.rank.toIdx + 1` to `c.rank.toIdx`.  If the play's end reads the
-  suit's rung at least its value at the start, then `tabToFound c`
-  occurs in the play.  Two crossings of the level `c.rank.toIdx`: if
-  the start is already above it, the first later rise
-  (`SatDifferCensus.firstRise_of_rung_lt`) is the raise of `c`; if the
-  start is at most `c.rank.toIdx`, the pull's pre-state reads
-  `c.rank.toIdx + 1`, so the first rise already occurs in the prefix.
-  In both cases the crossing letter is a `tabToFound c'` with
-  `c'.suit = c.suit` and `c'.rank.toIdx = c.rank.toIdx`, hence `c' = c`.
-
-* **§3 THE CONFIGURATION.**  The drain half is already unconditional in
-  `Orig2` (`DrainClose.fork_exists_of_asymmetry`): a `WF` state carrying
-  a raisable card `x` whose twin is S-live and vanilla-blocked, with no
-  live card below `x`'s rank, has a fork in its class.  So the whole
-  residue is the *existence* of that configuration in the class.  We
-  prove the assembly `satDifferForkWF_of_asymmetry` from that existence
-  statement (stated inline, no new `Prop` wrapper), and we record the
-  precise residual conjunct in the report.  The carry-on conjunct
-  `Drain.DrainRaisable` is **not** part of the residual: `DrainClose`
-  drains blocked live cards by the two-letter slide-then-raise, so the
-  weaker `drain_phase_fork` provider is not needed.
+Everything else (the `SatDifferForkWF_of_*` assembly tail and the
+`Drain_transport_rows` dependency) has been removed; the commutation route in
+`PullExtension`/`PullCommute` supersedes it.
 
 House compliance: zero `sorry`, zero `Classical.choice`, zero
 `noncomputable`, zero `native_decide`.
@@ -193,164 +161,11 @@ theorem licence_lost_only_by_twin {u u' : State} {d c : Card}
   have h1 : CanRaiseS u c ↔ CanRaiseS z0 c := canRaiseS_orbit_rung hu horb hrung
   exact canRaiseS_tabToFound_fwd_of_rank_eq hz0 hfire hdc.symm hdt.symm hr.symm (h1.mp hS)
 
-/-- **The contrapositive: the licence can be lost only at `c` or `c.twin`.**
-If a same-rank raise step destroys `c`'s S-licence, the raised card is
-`c` or `c.twin` itself.  This is the exact "only by twin" reading used by
-the configuration step: an intervening same-rank raise of any *other*
-card is licence-inert. -/
-theorem licence_lost_only_by_twin' {u u' : State} {d c : Card}
-    (hu : u.WF) (hstep : RaiseStepS u u' d) (hr : d.rank = c.rank)
-    (hS : CanRaiseS u c) (hlost : ¬ CanRaiseS u' c) :
-    d = c ∨ d = c.twin := by
-  by_cases hdc : d = c
-  · exact Or.inl hdc
-  · by_cases hdt : d = c.twin
-    · exact Or.inr hdt
-    · exact absurd (licence_lost_only_by_twin hu hstep hr hdc hdt hS) hlost
-
-/-! ## §2. Step 2 — a pulled card is re-founded when the rung returns -/
-
-/-- Split a list at a member occurrence. -/
-theorem exists_split_at_mem {α : Type} :
-    ∀ (l : List α) (x : α), x ∈ l → ∃ a b, l = a ++ x :: b
-  | [], x, h => by simp at h
-  | y :: t, x, h => by
-      rcases List.mem_cons.mp h with hyx | h1
-      · subst hyx
-        exact ⟨[], t, rfl⟩
-      · obtain ⟨a, b, hab⟩ := exists_split_at_mem t x h1
-        exact ⟨y :: a, b, by rw [hab]; rfl⟩
-
-/-- **A first-rise crossing letter is the named raise.**  The crossing
-letter of `FirstRise u v ρ σ k` is a `tabToFound` of the unique
-`σ`-card of rank index `k`. -/
-theorem FirstRise.mem_raise {u v : State} {ρ : List Move} {σ : Suit} {k : Nat} {c : Card}
-    (hcs : c.suit = σ) (hcr : c.rank.toIdx = k)
-    (fr : SatDifferCensus.FirstRise u v ρ σ k) :
-    Move.tabToFound c ∈ ρ := by
-  obtain ⟨pre, m, rest, mid, post, c', hplay, -, -, -, -, -, -, hm, hcs', hcr', -⟩ := fr
-  have hcc : c' = c := by
-    have hsuit : c'.suit = c.suit := by rw [hcs', hcs]
-    have hrank : c'.rank.toIdx = c.rank.toIdx := by rw [hcr', hcr]
-    have hrank' : c'.rank = c.rank := Rank.toIdx_inj hrank
-    cases c' with
-    | mk s r =>
-        cases c with
-        | mk s' r' => simp_all
-  have hm' : m = Move.tabToFound c := by
-    rw [hm, hcc]
-  rw [hplay, hm']
-  exact List.mem_append_right _ (List.mem_cons_self ..)
-
-/-- **STEP 2 — `pulled_card_refounded`.**  If a witness play contains
-the pull `foundToTab c b` and the `c.suit`-rung at the end of the play
-is at least its value at the start, then `tabToFound c` occurs somewhere
-in the play.
-
-Two cases, both crossings of the level `c.rank.toIdx`:
-
-* if the start already reads `> c.rank.toIdx`, the pull drops the rung
-  from `c.rank.toIdx + 1` to `c.rank.toIdx`, and the end reading
-  `≥` the start forces a later first rise through `c.rank.toIdx` — the
-  raise of `c`;
-* otherwise the start reads `≤ c.rank.toIdx` while the pull's
-  pre-state reads `c.rank.toIdx + 1`, so the first rise already happens
-  in the prefix before the pull — again the raise of `c`. -/
-theorem pulled_card_refounded {st W : State} {play : List Move} {c : Card} {b : Base}
-    (hwf : st.WF) (hplay : ShufflePlayW st play W)
-    (hmem : Move.foundToTab c b ∈ play)
-    (hrung : rungAt st c.suit ≤ rungAt W c.suit) :
-    Move.tabToFound c ∈ play := by
-  obtain ⟨a, b', hsplit⟩ := exists_split_at_mem play (Move.foundToTab c b) hmem
-  subst hsplit
-  obtain ⟨F, hpreF, hpostW⟩ :=
-    ValleyElim.ShufflePlayW_split hplay a (Move.foundToTab c b :: b') rfl
-  cases hpostW with
-  | cons hrev hstep hrest =>
-      rename_i A
-      have hF : F.WF := SatDifferCensus.ShufflePlayW.wf_end hpreF hwf
-      obtain ⟨c0, htop0, hc0, -, -⟩ := step_foundToTab_inv hstep
-      have htop : F.foundTop c.suit = some c := by
-        have h := htop0
-        rw [hc0] at h
-        exact h
-      have hrF : c.rank.toIdx + 1 = rungAt F c.suit :=
-        SatDifferCensus.foundTop_rank_succ hF htop
-      have hrA : rungAt A c.suit = c.rank.toIdx := by
-        have h1 := rungAt_foundToTab hstep c.suit
-        rw [ite_eq_left rfl] at h1
-        omega
-      by_cases hcase : rungAt st c.suit ≤ c.rank.toIdx
-      · -- the rise happens in the prefix, before the pull
-        have hgt : c.rank.toIdx < rungAt F c.suit := by omega
-        have hfr := SatDifferCensus.firstRise_exists hpreF hcase hgt
-        exact List.mem_append_left _
-          (FirstRise.mem_raise (c := c) (σ := c.suit) (k := c.rank.toIdx) rfl rfl hfr)
-      · -- the start is already above: the rise happens after the pull
-        have hlt : rungAt A c.suit < rungAt W c.suit := by omega
-        have hfr := SatDifferCensus.firstRise_of_rung_lt hrest hlt
-        rw [hrA] at hfr
-        have hmem' : Move.tabToFound c ∈ Move.foundToTab c b :: b' := by
-          have := FirstRise.mem_raise (c := c) (σ := c.suit) (k := c.rank.toIdx) rfl rfl hfr
-          exact List.mem_cons_of_mem _ this
-        exact List.mem_append_right a hmem'
-
-/-- **A low-rank raise cannot kill a higher card's vanilla licence.**  The
-mirror of `Drain.canRaise_of_raise_high_fwd` for `c.rank < d.rank`: the
-raised pile is not `d`'s pile (two tops of one pile would be one card),
-and the foundation of `d`'s suit is untouched.  This is the row the rank
-floor would need to be *removed* from the configuration: a live card
-below the pair can be raised without disturbing the pair's raisable
-member. -/
-theorem canRaise_of_raise_low_fwd {st w : State} {c d : Card}
-    (hwf : st.WF) (hstep : State.step st (Move.tabToFound c) = some w)
-    (hcd : c ≠ d) (hrank : c.rank.toIdx < d.rank.toIdx)
-    (h : CanRaise st d) : CanRaise w d := by
-  obtain ⟨hnext_d, a1, hpa1, hclause⟩ := h
-  obtain ⟨hnext_c, a0, hpa0, hs⟩ := step_tabToFound_inv hstep
-  have hsuit : d.suit ≠ c.suit :=
-    Drain.suit_ne_of_nextUp hnext_d hnext_c (Ne.symm hcd)
-  have htop_d : (st.piles a1).top = some d := (pileOfTop_eq_some_iff hwf).mp hpa1
-  have htop_c : (st.piles a0).top = some c := (pileOfTop_eq_some_iff hwf).mp hpa0
-  have ha10 : a1 ≠ a0 := by
-    intro hcon
-    rw [hcon] at htop_d
-    exact hcd (Option.some.inj (htop_d.symm.trans htop_c)).symm
-  have hfound : w.found d.suit = st.found d.suit := by
-    rw [hs]
-    exact setFound_found_ne hsuit
-  have hnext_w : w.nextUp d = true := by
-    have h1 : d.rank.toIdx = (st.found d.suit).length := by
-      simpa [State.nextUp, State.foundHeight] using of_decide_eq_true hnext_d
-    unfold State.nextUp State.foundHeight
-    rw [hfound]
-    exact decide_eq_true h1
-  have hpiles : w.piles a1 = st.piles a1 := by
-    rw [hs]
-    simp only []
-    rw [ite_eq_right ha10]
-  have hwfw : w.WF := step_wf hwf hstep
-  have htop_w : (w.piles a1).top = some d := by
-    rw [hpiles]
-    exact htop_d
-  have hpile_w : w.pileOfTop d = some a1 := (pileOfTop_eq_some_iff hwfw).mpr htop_w
-  refine ⟨hnext_w, a1, hpile_w, ?_⟩
-  rcases hclause with hchop | ⟨hhid, hking⟩
-  · left
-    rw [hpiles]
-    exact hchop
-  · right
-    refine ⟨?_, hking⟩
-    rw [hpiles]
-    exact hhid
-
-/-! ## §2b. The pull's landing is a live configuration
+/-! ## §2. The pull's landing is a live configuration
 
 A `WF` pull re-founds the pulled card in the tableau with the suit's
 rung exactly at its rank index, so it is `nextUp` and vanilla-raisable
-at the landing.  This is the "pull creates the live card" half of the
-plan's configuration step, with the `nextUp` premise discharged from
-`WF`. -/
+at the landing.  These are the two rows the commutation route consumes. -/
 
 /-- **`nextUp` after a pull.**  The pulled card is next-up at the
 landing: the rung has dropped from `c.rank.toIdx + 1` to
@@ -386,72 +201,12 @@ theorem canRaiseS_after_pull {F A : State} {c : Card} {b : Base}
     CanRaiseS A c :=
   CanRaiseS.now c (canRaise_after_pull hF hstep)
 
-/-! ## §3. The configuration: the drain half is unconditional
-
-`DrainClose.fork_exists_of_asymmetry` consumes exactly the twin
-asymmetry plus the rank floor.  The residue is therefore the existence
-of a class-mate carrying that data — the plan's "blocking state".  We
-isolate the assembly with the existence hypothesis inline (no new
-`Prop` wrapper). -/
-
-/-- **THE CONFIGURATION ASSEMBLY.**  If every saturated differing-rung
-class pair has a class-mate `w` carrying a raisable card `x` whose twin
-is S-live but vanilla-blocked, with no live card below `x`'s rank, then
-`SatDifferForkWF` holds.
-
-The `WF` of `w` is transported from `u` along the class relation; the
-drain half is `DrainClose.fork_exists_of_asymmetry` (unconditional — no
-`DrainRaisable` and no `RaiseTransport` provider is needed). -/
-theorem satDifferForkWF_of_asymmetry
-    (h : ∀ u v : State, u.WF → SSaturated u → SSaturated v →
-      sameOrbitSetoid.r u v →
-      (∃ σ : Suit, rungAt u σ ≠ rungAt v σ) →
-      ∃ (w : State) (x : Card), sameOrbitSetoid.r u w ∧
-        CanRaise w x ∧ CanRaiseS w x.twin ∧ ¬ CanRaise w x.twin ∧
-        (∀ c, CanRaiseS w c → x.rank.toIdx ≤ c.rank.toIdx)) :
-    SatDifferForkWF := by
-  intro u v huwf hsu hsv hcls hdiff
-  obtain ⟨w, x, huw, hcan, hlive, hblock, hfloor⟩ := h u v huwf hsu hsv hcls hdiff
-  have hwwf : w.WF := by
-    obtain ⟨σ, hσ, τ, hτ⟩ := huw
-    exact SatDifferCensus.ShufflePlayW.wf_end hτ huwf
-  obtain ⟨F, hrel, hfork⟩ :=
-    DrainClose.fork_exists_of_asymmetry hwwf hcan hlive hblock hfloor
-  obtain ⟨y, hy⟩ := forkState_iff.mp hfork
-  exact ⟨F, y, sameOrbitSetoid.iseqv.trans huw hrel, hy⟩
-
-/-- **The same assembly through the weaker `Drain.DrainRaisable` route.**
-This is the plan's literal four-conjunct configuration: `DrainInvariant`
-(raisable `x`, S-live blocked twin, rank floor) plus the carry-on
-`DrainRaisable`.  The previous theorem shows the carry-on is *not*
-needed — `DrainClose` drains blocked live cards as well.  Both routes
-are recorded so the report can point at the exact difference. -/
-theorem satDifferForkWF_of_drainConfig
-    (h : ∀ u v : State, u.WF → SSaturated u → SSaturated v →
-      sameOrbitSetoid.r u v →
-      (∃ σ : Suit, rungAt u σ ≠ rungAt v σ) →
-      ∃ (w : State) (x : Card), sameOrbitSetoid.r u w ∧ w.WF ∧
-        Drain.DrainInvariant w x ∧ Drain.DrainRaisable w x) :
-    SatDifferForkWF := by
-  intro u v huwf hsu hsv hcls hdiff
-  obtain ⟨w, x, huw, hwwf, hinv, hra⟩ := h u v huwf hsu hsv hcls hdiff
-  obtain ⟨F, hrel, hfork⟩ := OneColourClosure.drain_phase_fork hwwf hinv hra
-  obtain ⟨y, hy⟩ := forkState_iff.mp hfork
-  exact ⟨F, y, sameOrbitSetoid.iseqv.trans huw hrel, hy⟩
-
 end SatDifferConfig
 
 #print axioms SatDifferConfig.not_mem_pileOfTop_of_rank_eq
 #print axioms SatDifferConfig.freeCardS_fwd_of_rank_eq
 #print axioms SatDifferConfig.canRaiseS_tabToFound_fwd_of_rank_eq
 #print axioms SatDifferConfig.licence_lost_only_by_twin
-#print axioms SatDifferConfig.licence_lost_only_by_twin'
-#print axioms SatDifferConfig.exists_split_at_mem
-#print axioms SatDifferConfig.FirstRise.mem_raise
-#print axioms SatDifferConfig.pulled_card_refounded
-#print axioms SatDifferConfig.canRaise_of_raise_low_fwd
 #print axioms SatDifferConfig.nextUp_after_pull
 #print axioms SatDifferConfig.canRaise_after_pull
 #print axioms SatDifferConfig.canRaiseS_after_pull
-#print axioms SatDifferConfig.satDifferForkWF_of_asymmetry
-#print axioms SatDifferConfig.satDifferForkWF_of_drainConfig
