@@ -33,6 +33,8 @@ import Orig2.Fork.Class.ForkOneColourClosure
 import Orig2.Fork.Class.ForkMin
 import Orig2.Fork.Class.ForkDecide
 import Orig2.Fork.Class.ForkPrefixClimb
+import Orig2.Fork.Class.RungLeRaise
+import Orig2.Fork.Class.RungLeRaiseClose
 import Orig2.Fork.Commute.PullCommute
 import Orig2.Fork.Commute.Campaign
 import Orig2.Fork.Commute.FlatNormal
