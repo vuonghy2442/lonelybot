@@ -186,17 +186,6 @@ theorem forkless_saturated_rungs_eq
   intro u v hu hv hfrk horb _hsu hsv
   exact h u hu hfrk v horb hsv
 
-/-- The same row with the brief's premise written out (`∀ F, ...`) rather
-than through the `Forkless` abbreviation. -/
-theorem forkless_saturated_rungs_eq_explicit
-    (h : ∀ u, u.WF → (∀ F, sameOrbitSetoid.r u F → ¬ forkState F) →
-      ∀ v, sameOrbitSetoid.r u v → SSaturated v → RungEq u v) :
-    ∀ u v, u.WF → v.WF →
-      (∀ F, sameOrbitSetoid.r u F → ¬ forkState F) →
-      sameOrbitSetoid.r u v → SSaturated u → SSaturated v → RungEq u v := by
-  intro u v hu _hv hfrk horb _hsu hsv
-  exact h u hu hfrk v horb hsv
-
 /-- `SatDifferForkWF` gives the pairwise rung agreement
 (`forkless_rungs_agree_wf`, `Orig2/Fork/Class/CeilingBridge.lean`). -/
 theorem forklessSatRungsAgree_of_satDifferForkWF (h : SatDifferForkWF) :
@@ -255,8 +244,7 @@ theorem forklessHasTop_of_forkless_saturated_rungs_eq_explicit
     (h : ∀ u, u.WF → (∀ F, sameOrbitSetoid.r u F → ¬ forkState F) →
       ∀ v, sameOrbitSetoid.r u v → SSaturated v → RungEq u v) :
     ForklessHasTop :=
-  forklessHasTop_of_forklessSatRungsAgree
-    (forkless_saturated_rungs_eq_explicit h)
+  forklessHasTop_of_forkless_saturated_rungs_eq h
 
 /-- **`forklessHasTop_of_forklessFlatNormal`** — the flat-normal
 invariant implies the top. -/
@@ -409,7 +397,6 @@ end ForklessTop
 #print axioms ForklessTop.exists_live_of_not_ssaturated
 #print axioms ForklessTop.exists_saturated_above
 #print axioms ForklessTop.forkless_saturated_rungs_eq
-#print axioms ForklessTop.forkless_saturated_rungs_eq_explicit
 #print axioms ForklessTop.forklessSatRungsAgree_of_satDifferForkWF
 #print axioms ForklessTop.forklessSatRungsAgree_of_satFlatFiberFork
 #print axioms ForklessTop.forklessSatRungsAgree_of_forklessFlatNormal
