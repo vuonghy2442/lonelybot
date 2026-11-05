@@ -374,7 +374,7 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
             intro j hjk
             rcases Decidable.em (j = a) with hja | hja
             · rw [hja, hAface]
-              exact tfc_below_not_mem_self m _
+              exact below_not_mem_self (c := m) _
             · rw [hOther j hja hjk]
               exact tfc_faceUp_uniq_other hwfu (pileHolding_mem hholdm) hja
           have hbelowmV : lastOf (below m ((v.piles k).faceUp)) = some z.twin := by

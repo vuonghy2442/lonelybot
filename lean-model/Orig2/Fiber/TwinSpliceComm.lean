@@ -133,9 +133,9 @@ theorem splice_piles_a_nf (ha : s.pileHolding x = some a)
         faceUp := preA s x a ++ x.twin :: sufB s x b } := by
   rw [spliceTwinRuns_piles_self ha hb hab, faceUp_A ha, faceUp_B hb]
   rw [below_append_cons (preA s x a) (sufA s x a)
-        (by simpa [preA] using tfc_below_not_mem_self x (s.piles a).faceUp)]
+        (by simpa [preA] using below_not_mem_self (c := x) (s.piles a).faceUp)]
   rw [fromCard_append_cons (preB s x b) (sufB s x b)
-        (by simpa [preB] using tfc_below_not_mem_self x.twin (s.piles b).faceUp)]
+        (by simpa [preB] using below_not_mem_self (c := x.twin) (s.piles b).faceUp)]
 
 theorem splice_piles_b_nf (ha : s.pileHolding x = some a)
     (hb : s.pileHolding x.twin = some b) (hab : a ≠ b) :
@@ -144,9 +144,9 @@ theorem splice_piles_b_nf (ha : s.pileHolding x = some a)
         faceUp := preB s x b ++ x :: sufA s x a } := by
   rw [spliceTwinRuns_piles_second ha hb hab, faceUp_A ha, faceUp_B hb]
   rw [below_append_cons (preB s x b) (sufB s x b)
-        (by simpa [preB] using tfc_below_not_mem_self x.twin (s.piles b).faceUp)]
+        (by simpa [preB] using below_not_mem_self (c := x.twin) (s.piles b).faceUp)]
   rw [fromCard_append_cons (preA s x a) (sufA s x a)
-        (by simpa [preA] using tfc_below_not_mem_self x (s.piles a).faceUp)]
+        (by simpa [preA] using below_not_mem_self (c := x) (s.piles a).faceUp)]
 
 end Splice
 

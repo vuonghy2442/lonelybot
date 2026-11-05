@@ -180,7 +180,7 @@ theorem holding_splice_self {st : State} {x : Card} {a b : Anchor}
       rw [spliceTwinRuns_piles_self ha hb hab]
       intro hm
       rcases List.mem_append.mp hm with hpre | hrun
-      · exact tfc_below_not_mem_self x _ hpre
+      · exact below_not_mem_self (c := x) _ hpre
       · exact hxB (tfc_mem_fromCard _ hrun)
     · rw [spliceTwinRuns_piles_other ha hb hab hja hj]
       exact (mem_faceUp_unique hwf hxmem j hja).1
@@ -206,7 +206,7 @@ theorem holding_splice_twin {st : State} {x : Card} {a b : Anchor}
       rw [spliceTwinRuns_piles_second ha hb hab]
       intro hm
       rcases List.mem_append.mp hm with hpre | hrun
-      · exact tfc_below_not_mem_self x.twin _ hpre
+      · exact below_not_mem_self (c := x.twin) _ hpre
       · exact htA (tfc_mem_fromCard _ hrun)
     · rw [spliceTwinRuns_piles_other ha hb hab hj hjb]
       exact (mem_faceUp_unique hwf htmem j hjb).1

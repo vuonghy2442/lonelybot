@@ -147,13 +147,6 @@ theorem tfc_fromCard_cons_head {c : Card} : ∀ (l : List Card), c ∈ l →
       · obtain ⟨r, hr⟩ := ih (List.mem_cons.mp h |>.resolve_left (fun h' => hxc h'.symm))
         exact ⟨r, by rw [tfc_fromCard_cons, ite_eq_right hxc, hr]⟩
 
-/-- PORT of `Orig2/Substrate/Classification.lean` (`below_not_mem_self`,
-frozen home `Orig/Classify.lean:294`).  A one-line delegate since the
-2026-10-31 shared-kit strike (Classification's row is public, one home
-at the founding card). -/
-theorem tfc_below_not_mem_self (c : Card) : ∀ (l : List Card), c ∉ below c l :=
-  below_not_mem_self (c := c)
-
 /-- PORT of `Orig2/Substrate/Classification.lean` (`below_fromCard_excl`,
 frozen home `Orig/Classify.lean:310`).  A one-line delegate since the
 2026-10-31 shared-kit strike (Classification's row is public, one home
@@ -1369,7 +1362,7 @@ theorem tfc_seat_point_edit {st s' : State} {c : Card} {b : Base}
           intro j hja'
           rcases Decidable.em (j = a) with hja | hja
           · rw [hja, hresFaceF]
-            exact tfc_below_not_mem_self c _
+            exact below_not_mem_self (c := c) _
           · rw [hother j hja hja']
             exact tfc_faceUp_uniq_other hwf hcctx hja
         exact tfc_seatOf_inl_intro (tfc_pileHolding_pin hmemC hnoC)
@@ -1606,7 +1599,7 @@ theorem tfc_seat_point_edit {st s' : State} {c : Card} {b : Base}
           intro j hjk
           rcases Decidable.em (j = a) with hja | hja
           · rw [hja, hresFaceF]
-            exact tfc_below_not_mem_self c _
+            exact below_not_mem_self (c := c) _
           · rw [hother j hja hjk]
             exact tfc_faceUp_uniq_other hwf hcctx hja
         have hnews := tfc_pileHolding_pin hmemC hnoC
@@ -1958,7 +1951,6 @@ theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
 #print axioms tfc_below_fromCard
 #print axioms tfc_mem_fromCard
 #print axioms tfc_fromCard_cons_head
-#print axioms tfc_below_not_mem_self
 #print axioms tfc_below_fromCard_excl
 #print axioms tfc_below_mem_append_left
 #print axioms tfc_runOK_two_true
