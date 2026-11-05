@@ -341,11 +341,11 @@ theorem twinPairSwapStrict_of_twin_raise
     exact hfit0
   have hfr_u2 : fromCard c (u2.piles a).faceUp = c :: tr := by
     rw [hu2_face_a, hrun0]
-    rw [(tfc_below_fromCard_excl c (chop (st.piles a).faceUp) (c :: tr) hcNotPreA).2]
+    rw [(below_fromCard_excl (c := c) (chop (st.piles a).faceUp) (c :: tr) hcNotPreA).2]
     exact fromCard_head_eq
   have hbelow_u2 : below c (u2.piles a).faceUp = chop (st.piles a).faceUp := by
     rw [hu2_face_a, hrun0]
-    rw [(tfc_below_fromCard_excl c (chop (st.piles a).faceUp) (c :: tr) hcNotPreA).1]
+    rw [(below_fromCard_excl (c := c) (chop (st.piles a).faceUp) (c :: tr) hcNotPreA).1]
     rw [below_cons, ite_eq_left rfl, List.append_nil]
   have hfa0 : below c (st.piles a0).faceUp ++ (c :: tr) = (st.piles a0).faceUp := by
     rw [← hrun0]

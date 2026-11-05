@@ -75,17 +75,17 @@ tree-wide — struck, the compiler as reachability judge. -/
 
 theorem below_append_cons {c : Card} (P S : List Card) (hP : c ∉ P) :
     below c (P ++ c :: S) = P := by
-  have hb := (tfc_below_fromCard_excl c P (c :: S) hP).1
+  have hb := (below_fromCard_excl (c := c) P (c :: S) hP).1
   rw [hb, below_cons, ite_eq_left rfl, List.append_nil]
 
 theorem fromCard_append_cons {c : Card} (P S : List Card) (hP : c ∉ P) :
     fromCard c (P ++ c :: S) = c :: S := by
-  have hf := (tfc_below_fromCard_excl c P (c :: S) hP).2
+  have hf := (below_fromCard_excl (c := c) P (c :: S) hP).2
   rw [hf, tfc_fromCard_cons, ite_eq_left rfl]
 
 theorem below_append_eq {c : Card} {A B : List Card} (h : c ∉ A) :
     below c (A ++ B) = A ++ below c B :=
-  (tfc_below_fromCard_excl c A B h).1
+  (below_fromCard_excl (c := c) A B h).1
 
 section SpliceSetup
 

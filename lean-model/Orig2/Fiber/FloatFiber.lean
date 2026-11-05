@@ -480,7 +480,7 @@ theorem floater_seat_to_equiv' {st w : State} {c : Card} {β : Base}
           have h1 : below c ((w.piles k).faceUp)
               = below c ((st.piles k).faceUp ++ (c :: tr)) := by
             rw [← hKface]
-          rw [h1, (tfc_below_fromCard_excl c (st.piles k).faceUp (c :: tr) hcnk').1,
+          rw [h1, (below_fromCard_excl (c := c) (st.piles k).faceUp (c :: tr) hcnk').1,
             below_cons, ite_eq_left rfl, List.append_nil]
         have hbelowWne : below c ((w.piles k).faceUp) ≠ [] := by
           rw [hbelowEq]

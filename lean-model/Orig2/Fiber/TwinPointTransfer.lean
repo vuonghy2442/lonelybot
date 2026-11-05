@@ -340,21 +340,21 @@ theorem spliceTwinRuns_invol {s : State} {x : Card} (hwf : s.WF)
       rw [hrunB, fromCard_head_eq]
     have hbelow1 : below x (below x.twin (s.piles b).faceUp ++
         fromCard x (s.piles a).faceUp) = below x.twin (s.piles b).faceUp := by
-      rw [(tfc_below_fromCard_excl x (below x.twin (s.piles b).faceUp)
+      rw [(below_fromCard_excl (c := x) (below x.twin (s.piles b).faceUp)
         (fromCard x (s.piles a).faceUp) hxB').1, hbelowA, List.append_nil]
     have hfrom1 : fromCard x.twin (below x (s.piles a).faceUp ++
         fromCard x.twin (s.piles b).faceUp) =
         fromCard x.twin (s.piles b).faceUp := by
-      rw [(tfc_below_fromCard_excl x.twin (below x (s.piles a).faceUp)
+      rw [(below_fromCard_excl (c := x.twin) (below x (s.piles a).faceUp)
         (fromCard x.twin (s.piles b).faceUp) htA').2, hfromB]
     have hbelow2 : below x.twin (below x (s.piles a).faceUp ++
         fromCard x.twin (s.piles b).faceUp) = below x (s.piles a).faceUp := by
-      rw [(tfc_below_fromCard_excl x.twin (below x (s.piles a).faceUp)
+      rw [(below_fromCard_excl (c := x.twin) (below x (s.piles a).faceUp)
         (fromCard x.twin (s.piles b).faceUp) htA').1, hbelowB, List.append_nil]
     have hfrom2 : fromCard x (below x.twin (s.piles b).faceUp ++
         fromCard x (s.piles a).faceUp) =
         fromCard x (s.piles a).faceUp := by
-      rw [(tfc_below_fromCard_excl x (below x.twin (s.piles b).faceUp)
+      rw [(below_fromCard_excl (c := x) (below x.twin (s.piles b).faceUp)
         (fromCard x (s.piles a).faceUp) hxB').2, hfromA]
     have hfaceA : (((s.spliceTwinRuns x).spliceTwinRuns x).piles a).faceUp =
         (s.piles a).faceUp := by

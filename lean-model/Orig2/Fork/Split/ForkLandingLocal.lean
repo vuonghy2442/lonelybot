@@ -63,13 +63,13 @@ theorem canRaiseS_below_form {st : State} (hwf : st.WF) {c : Card} :
       exact runOK_nodup (hwf.2.1 a)
     have hcNbs : c ∉ bs := nodup_mid_notmem c bs run hnd
     have hbelow : below c (st.piles a).faceUp = bs := by
-      have hexcl := tfc_below_fromCard_excl c bs (c :: run) hcNbs
+      have hexcl := below_fromCard_excl (c := c) bs (c :: run) hcNbs
       have h1 := hexcl.1
       rw [below_cons_self, List.append_nil] at h1
       rw [hshape]
       exact h1
     have hfc : fromCard c (st.piles a).faceUp = c :: run := by
-      have hexcl := tfc_below_fromCard_excl c bs (c :: run) hcNbs
+      have hexcl := below_fromCard_excl (c := c) bs (c :: run) hcNbs
       have h2 := hexcl.2
       rw [fromCard_head_eq] at h2
       rw [hshape]

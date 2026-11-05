@@ -120,7 +120,7 @@ theorem cover_slide_exists {st : State} {c : Card} (hwf : st.WF)
   have hdnotin : u1 ∉ bs ++ [c] :=
     nodup_mid_notmem u1 (bs ++ [c]) rest
       (by rw [hid, ← hshape]; exact runOK_nodup (hwf.2.1 a))
-  have hexcl := tfc_below_fromCard_excl u1 (bs ++ [c]) (u1 :: rest) hdnotin
+  have hexcl := below_fromCard_excl (c := u1) (bs ++ [c]) (u1 :: rest) hdnotin
   have hbelD : below u1 ((st.piles a).faceUp) = bs ++ [c] := by
     have h1 := hexcl.1
     rw [below_cons_self, List.append_nil] at h1

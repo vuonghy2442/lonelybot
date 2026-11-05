@@ -231,7 +231,7 @@ theorem seatOf_splice_self {st : State} {x : Card} {a b : Anchor}
   have hbelow_new : below x ((st.spliceTwinRuns x).piles b).faceUp =
       below x.twin (st.piles b).faceUp := by
     rw [spliceTwinRuns_piles_second ha hb hab]
-    rw [(tfc_below_fromCard_excl x (below x.twin (st.piles b).faceUp)
+    rw [(below_fromCard_excl (c := x) (below x.twin (st.piles b).faceUp)
       (fromCard x (st.piles a).faceUp) hxpreB).1]
     rw [hrunA, below_cons_self, List.append_nil]
   rw [hbelow_new]
@@ -255,7 +255,7 @@ theorem seatOf_splice_twin {st : State} {x : Card} {a b : Anchor}
   have hbelow_new : below x.twin ((st.spliceTwinRuns x).piles a).faceUp =
       below x (st.piles a).faceUp := by
     rw [spliceTwinRuns_piles_self ha hb hab]
-    rw [(tfc_below_fromCard_excl x.twin (below x (st.piles a).faceUp)
+    rw [(below_fromCard_excl (c := x.twin) (below x (st.piles a).faceUp)
       (fromCard x.twin (st.piles b).faceUp) htpreA).1]
     rw [hrunB, below_cons_self, List.append_nil]
   rw [hbelow_new]
@@ -444,7 +444,7 @@ private theorem seat_runA {y : Card}
       below x.twin (st.piles b).faceUp ++
         below y (fromCard x (st.piles a).faceUp) := by
     rw [spliceTwinRuns_piles_second ha hb hab]
-    exact (tfc_below_fromCard_excl y (below x.twin (st.piles b).faceUp)
+    exact (below_fromCard_excl (c := y) (below x.twin (st.piles b).faceUp)
       (fromCard x (st.piles a).faceUp) hy_not_preB).1
   have hbelow_old : below y (st.piles a).faceUp =
       below x (st.piles a).faceUp ++
@@ -452,7 +452,7 @@ private theorem seat_runA {y : Card}
     conv =>
       lhs
       rw [← tfc_below_fromCard x (st.piles a).faceUp]
-    exact (tfc_below_fromCard_excl y (below x (st.piles a).faceUp)
+    exact (below_fromCard_excl (c := y) (below x (st.piles a).faceUp)
       (fromCard x (st.piles a).faceUp) hy_not_preA).1
   have hnonempty : below y (fromCard x (st.piles a).faceUp) ≠ [] :=
     below_fromCard_ne_nil ⟨r, hrunA⟩ hyRA hyx
@@ -482,7 +482,7 @@ private theorem seat_runB {y : Card}
       below x (st.piles a).faceUp ++
         below y (fromCard x.twin (st.piles b).faceUp) := by
     rw [spliceTwinRuns_piles_self ha hb hab]
-    exact (tfc_below_fromCard_excl y (below x (st.piles a).faceUp)
+    exact (below_fromCard_excl (c := y) (below x (st.piles a).faceUp)
       (fromCard x.twin (st.piles b).faceUp) hy_not_preA).1
   have hbelow_old : below y (st.piles b).faceUp =
       below x.twin (st.piles b).faceUp ++
@@ -490,7 +490,7 @@ private theorem seat_runB {y : Card}
     conv =>
       lhs
       rw [← tfc_below_fromCard x.twin (st.piles b).faceUp]
-    exact (tfc_below_fromCard_excl y (below x.twin (st.piles b).faceUp)
+    exact (below_fromCard_excl (c := y) (below x.twin (st.piles b).faceUp)
       (fromCard x.twin (st.piles b).faceUp) hy_not_preB).1
   have hnonempty : below y (fromCard x.twin (st.piles b).faceUp) ≠ [] :=
     below_fromCard_ne_nil ⟨r, hrunB⟩ hyRB hyt

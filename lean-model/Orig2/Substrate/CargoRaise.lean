@@ -462,7 +462,7 @@ theorem canRaiseS_flat_necessity {st : State} {c : Card} (hwf : st.WF)
             have hdnotin : d ∉ below c ((st.piles a).faceUp) ++ [c] :=
               nodup_mid_notmem d (below c ((st.piles a).faceUp) ++ [c]) rest'
                 (by rw [hid, ← hshape]; exact runOK_nodup (hwf.2.1 a))
-            have hexcl := tfc_below_fromCard_excl d
+            have hexcl := below_fromCard_excl (c := d)
               (below c ((st.piles a).faceUp) ++ [c]) (d :: rest') hdnotin
             have hbelD : below d ((st.piles a).faceUp)
                 = below c ((st.piles a).faceUp) ++ [c] := by
@@ -546,7 +546,7 @@ theorem canRaiseS_flat_sufficiency {st : State} {c : Card} (hwf : st.WF)
           have hdnotin : d ∉ bs ++ [c] :=
             nodup_mid_notmem d (bs ++ [c]) rest'
               (by rw [hid, ← hshape]; exact runOK_nodup (hwf.2.1 a))
-          have hexcl := tfc_below_fromCard_excl d (bs ++ [c]) (d :: rest') hdnotin
+          have hexcl := below_fromCard_excl (c := d) (bs ++ [c]) (d :: rest') hdnotin
           have hbelD : below d ((st.piles a).faceUp) = bs ++ [c] := by
             have h1 := hexcl.1
             rw [below_cons_self, List.append_nil] at h1
@@ -797,13 +797,13 @@ theorem canRaiseSB_iff {st : State} {c : Card} (hwf : st.WF) :
       exact h
     have hcNbs : c ∉ bs := nodup_mid_notmem c bs run hnd
     have hbelow : below c ((st.piles a).faceUp) = bs := by
-      have hexcl := tfc_below_fromCard_excl c bs (c :: run) hcNbs
+      have hexcl := below_fromCard_excl (c := c) bs (c :: run) hcNbs
       have h1 := hexcl.1
       rw [below_cons_self, List.append_nil] at h1
       rw [hshape]
       exact h1
     have hfc : fromCard c ((st.piles a).faceUp) = c :: run := by
-      have hexcl := tfc_below_fromCard_excl c bs (c :: run) hcNbs
+      have hexcl := below_fromCard_excl (c := c) bs (c :: run) hcNbs
       have h2 := hexcl.2
       rw [fromCard_head_eq] at h2
       rw [hshape]

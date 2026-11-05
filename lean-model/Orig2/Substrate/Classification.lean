@@ -1159,9 +1159,7 @@ for the closed-seam consolidation); this founding card's copy struck,
 its internal cites resolving through the import. -/
 
 /-- With `c` absent from a prefix, below and fromCard only look
-past it.  PORTED verbatim from `Orig/Classify.lean:310`.  PUBLIC since
-the 2026-10-31 shared-kit strike (CargoKit's `tfc_below_fromCard_excl`
-port is a one-line delegate). -/
+past it.  PORTED verbatim from `Orig/Classify.lean:310`. -/
 theorem below_fromCard_excl {c : Card} : ∀ (X l : List Card), c ∉ X →
     below c (X ++ l) = X ++ below c l ∧ fromCard c (X ++ l) = fromCard c l := by
   intro X

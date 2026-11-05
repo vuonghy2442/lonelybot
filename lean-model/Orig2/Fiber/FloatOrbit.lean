@@ -324,7 +324,7 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
                 intro hmem2
                 exact tfc_two_mem_faceUp_absurd hwfu hsplit hmem2 hrun
               rw [hsplit] at hlc
-              rw [(tfc_below_fromCard_excl c'
+              rw [(below_fromCard_excl (c := c')
                 (below m ((u.piles a).faceUp)) (m :: tr) hcnotBm).1] at hlc
               by_cases hbl2 : below c' (m :: tr) = []
               · exact hcm (fli_belownil_head hbl2)
@@ -358,7 +358,7 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
                 exact tfc_two_mem_faceUp_absurd hwfv hKface hmemX hrun
               have hdecomp : below c' ((u.piles k).faceUp ++ (m :: tr))
                   = (u.piles k).faceUp ++ below c' (m :: tr) :=
-                (tfc_below_fromCard_excl c' (u.piles k).faceUp (m :: tr) hcnotX).1
+                (below_fromCard_excl (c := c') (u.piles k).faceUp (m :: tr) hcnotX).1
               rw [hdecomp] at hlc
               by_cases hbl2 : below c' (m :: tr) = []
               · exact hcm (fli_belownil_head hbl2)
@@ -381,7 +381,7 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
             have h1 : below m ((v.piles k).faceUp)
                 = (u.piles k).faceUp ++ below m (m :: tr) := by
               rw [hKface]
-              refine (tfc_below_fromCard_excl m (u.piles k).faceUp (m :: tr) ?_).1
+              refine (below_fromCard_excl (c := m) (u.piles k).faceUp (m :: tr) ?_).1
               exact tfc_faceUp_uniq_other hwfu (pileHolding_mem hholdm) hka
             have h2 : below m (m :: tr) = [] := by
               rw [below_cons, ite_eq_left rfl]
@@ -808,7 +808,7 @@ private theorem orbit_sitter_unique {s : State} {x y z : Card}
           exact (tfc_two_mem_faceUp_absurd hwf hspl hmem
             (List.mem_cons.mpr (Or.inr hyride))).elim
         rw [hspl] at hlasty
-        rw [(tfc_below_fromCard_excl y _ _ hynbl).1] at hlasty
+        rw [(below_fromCard_excl (c := y) _ _ hynbl).1] at hlasty
         by_cases hbe : below y (x :: Rx) = []
         · exact hxy (fli_belownil_head hbe)
         · rw [tfc_lastOf_append_ne _ hbe] at hlasty
@@ -915,7 +915,7 @@ private theorem orbit_exposed_tops {s : State} {z : Card} {q : Anchor}
           congrArg (below y) hspl
         have heqB : below y (below z ((s.piles q).faceUp) ++ (z :: y :: ys))
             = below z ((s.piles q).faceUp) ++ below y (z :: y :: ys) :=
-          (tfc_below_fromCard_excl y _ _ hynbl).1
+          (below_fromCard_excl (c := y) _ _ hynbl).1
         have heq2 : below y (z :: y :: ys) = z :: [] := by
           rw [below_cons, ite_eq_right hzne, below_cons, ite_eq_left rfl]
         rw [heqA.trans heqB, heq2, tfc_lastOf_append_ne _ (by simp)]

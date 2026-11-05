@@ -147,14 +147,6 @@ theorem tfc_fromCard_cons_head {c : Card} : ∀ (l : List Card), c ∈ l →
       · obtain ⟨r, hr⟩ := ih (List.mem_cons.mp h |>.resolve_left (fun h' => hxc h'.symm))
         exact ⟨r, by rw [tfc_fromCard_cons, ite_eq_right hxc, hr]⟩
 
-/-- PORT of `Orig2/Substrate/Classification.lean` (`below_fromCard_excl`,
-frozen home `Orig/Classify.lean:310`).  A one-line delegate since the
-2026-10-31 shared-kit strike (Classification's row is public, one home
-at the founding card). -/
-theorem tfc_below_fromCard_excl (c : Card) : ∀ (X l : List Card), c ∉ X →
-    below c (X ++ l) = X ++ below c l ∧ fromCard c (X ++ l) = fromCard c l :=
-  below_fromCard_excl (c := c)
-
 /-- PORT verbatim from `Orig/Reach.lean:479`. -/
 theorem tfc_runOK_two_true {x y : Card} {t : List Card}
     (h : runOK (x :: y :: t) = true) :
@@ -1269,7 +1261,7 @@ theorem tfc_seat_point_edit {st s' : State} {c : Card} {b : Base}
                     = below x ((below c ((st.piles a).faceUp)) ++ c :: tr) :=
                   congrArg (below x) hface
                 rw [h2]
-                exact (tfc_below_fromCard_excl x (below c ((st.piles a).faceUp)) (c :: tr) hxnBl).1
+                exact (below_fromCard_excl (c := x) (below c ((st.piles a).faceUp)) (c :: tr) hxnBl).1
               have hbxCne : below x (c :: tr) ≠ [] := by
                 have hbxC' : below x (c :: tr) = c :: below x tr := by
                   rw [below_cons, ite_eq_right (fun hce => hxc hce.symm)]
@@ -1491,7 +1483,7 @@ theorem tfc_seat_point_edit {st s' : State} {c : Card} {b : Base}
                     = below x ((below c ((st.piles a).faceUp)) ++ c :: tr) :=
                   congrArg (below x) hface
                 rw [h2]
-                exact (tfc_below_fromCard_excl x (below c ((st.piles a).faceUp)) (c :: tr) hxnBl).1
+                exact (below_fromCard_excl (c := x) (below c ((st.piles a).faceUp)) (c :: tr) hxnBl).1
               have hbxCne : below x (c :: tr) ≠ [] := by
                 have hbxC' : below x (c :: tr) = c :: below x tr := by
                   rw [below_cons, ite_eq_right (fun hce => hxc hce.symm)]
@@ -1501,7 +1493,7 @@ theorem tfc_seat_point_edit {st s' : State} {c : Card} {b : Base}
               have hxnk : x ∉ (st.piles k).faceUp := tfc_faceUp_uniq_other hwf hxinA hka
               have hnewBelow : below x ((s'.piles k).faceUp)
                   = (st.piles k).faceUp ++ below x (c :: tr) := by
-                rw [hLKface, (tfc_below_fromCard_excl x (st.piles k).faceUp (c :: tr) hxnk).1]
+                rw [hLKface, (below_fromCard_excl (c := x) (st.piles k).faceUp (c :: tr) hxnk).1]
               have hmemS : x ∈ (s'.piles k).faceUp := by
                 rw [hLKface]
                 exact List.mem_append.2 (Or.inr (List.mem_cons.2 (Or.inr hxin)))
@@ -1604,7 +1596,7 @@ theorem tfc_seat_point_edit {st s' : State} {c : Card} {b : Base}
             exact tfc_faceUp_uniq_other hwf hcctx hja
         have hnews := tfc_pileHolding_pin hmemC hnoC
         refine tfc_seatOf_inr_intro hnews ?_
-        rw [hLKface, (tfc_below_fromCard_excl c (st.piles k).faceUp (c :: tr) hcnk).1, below_cons, ite_eq_left rfl,
+        rw [hLKface, (below_fromCard_excl (c := c) (st.piles k).faceUp (c :: tr) hcnk).1, below_cons, ite_eq_left rfl,
           List.append_nil]
         exact hktop
       intro x
@@ -1951,7 +1943,6 @@ theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
 #print axioms tfc_below_fromCard
 #print axioms tfc_mem_fromCard
 #print axioms tfc_fromCard_cons_head
-#print axioms tfc_below_fromCard_excl
 #print axioms tfc_below_mem_append_left
 #print axioms tfc_runOK_two_true
 #print axioms tfc_runOK_below

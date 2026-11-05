@@ -901,7 +901,7 @@ copy struck; the cite resolves to the Kit home by the same name. -/
 private theorem below_w_eq {w : Card} {X F : List Card} (hwX : w ∉ X) :
     ∀ (l : List Card), l = X ++ w :: F → below w l = X := by
   intro l hl
-  rw [hl, (tfc_below_fromCard_excl w X (w :: F) hwX).1, below_cons_self, List.append_nil]
+  rw [hl, (below_fromCard_excl (c := w) X (w :: F) hwX).1, below_cons_self, List.append_nil]
 
 /-- **THE SEAT'S POSITIONAL UNIQUENESS** — at most one card sits
 directly on any given card: two `inr w` seats are the same card
@@ -996,7 +996,7 @@ theorem cover_of_run {st : State} {c : Card} {a : Anchor} {run : List Card}
       = below c ((st.piles a).faceUp) ++ [c] := by
     have hdnotbelow : d ∉ below c ((st.piles a).faceUp) :=
       fun hcon => hdnotin (List.mem_append.mpr (Or.inl hcon))
-    have hex := (tfc_below_fromCard_excl d
+    have hex := (below_fromCard_excl (c := d)
       (below c ((st.piles a).faceUp)) (c :: d :: rest') hdnotbelow).1
     rw [← hshape] at hex
     rw [hex, below_cons, ite_eq_right hcd, below_cons_self]
@@ -1033,7 +1033,7 @@ theorem no_cover_of_nil_run {st : State} {c y : Card} {a : Anchor}
     exact nodup_mid_notmem c _ _ (by rw [← hrep]; exact hnd) hcon
   have hfc2 : fromCard c ((st.piles a_y).faceUp)
       = c :: fromCard y ((st.piles a_y).faceUp) := by
-    have hex := (tfc_below_fromCard_excl c
+    have hex := (below_fromCard_excl (c := c)
       (chop (below y ((st.piles a_y).faceUp)))
       (c :: fromCard y ((st.piles a_y).faceUp)) hcX).2
     rw [← hrep] at hex
