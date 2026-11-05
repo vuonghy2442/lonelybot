@@ -875,7 +875,7 @@ theorem bareFlatEquiv_of_rungBoundedPath
 
 /-- At a both-empty draw zone a flat letter is a cargo letter, and the zone
 stays both-empty. -/
-theorem flatStep_cargo_of_bothEmpty {w u : State}
+private theorem flatStep_cargo_of_bothEmpty {w u : State}
     (hs : w.stock = []) (hw : w.waste = []) (h : FlatStep w u) :
     CargoLeg w u ∧ u.stock = [] ∧ u.waste = [] := by
   cases h with
@@ -893,7 +893,7 @@ theorem flatStep_cargo_of_bothEmpty {w u : State}
       exact absurd hstep' (by simp)
 
 /-- A flat path from a both-empty draw zone is a cargo path. -/
-theorem flatPath_cargoPath_of_bothEmpty {a b : State}
+private theorem flatPath_cargoPath_of_bothEmpty {a b : State}
     (hs : a.stock = []) (hw : a.waste = [])
     (h : FlatPath a b) : CargoPath a b := by
   induction h with
@@ -903,7 +903,7 @@ theorem flatPath_cargoPath_of_bothEmpty {a b : State}
       exact Steps.cons hleg (ih hs' hw')
 
 /-- The boundary pair `vcS/vcT` is not flat. -/
-theorem vc_not_bareFlat_local : ¬ BareFlatEquiv vcS vcT := by
+private theorem vc_not_bareFlat_local : ¬ BareFlatEquiv vcS vcT := by
   intro h
   exact vc_not_cargoPath (flatPath_cargoPath_of_bothEmpty rfl rfl h.1)
 

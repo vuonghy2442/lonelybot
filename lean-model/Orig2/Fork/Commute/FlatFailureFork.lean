@@ -20,7 +20,7 @@ No `Classical.choice` is used.
 open OneColourClosure
 
 /-- `RungLe` is decidable by the four-suit enumeration (no `Fintype`). -/
-instance instDecidableRungLe (z u : State) : Decidable (RungLe z u) :=
+private instance instDecidableRungLe (z u : State) : Decidable (RungLe z u) :=
   decidable_of_iff
     (rungAt z .spade ≤ rungAt u .spade ∧
      rungAt z .heart ≤ rungAt u .heart ∧
@@ -38,7 +38,7 @@ instance instDecidableRungLe (z u : State) : Decidable (RungLe z u) :=
         exact ⟨h .spade, h .heart, h .diamond, h .club⟩)
 
 /-- The states on a nonempty play are the start or states on the tail. -/
-theorem stateOnPlay_cons {s s1 : State} {m : Move} {rest : List Move}
+private theorem stateOnPlay_cons {s s1 : State} {m : Move} {rest : List Move}
     (hstep : State.step s m = some s1) {z : State} :
     StateOnPlay s (m :: rest) z ↔ z = s ∨ StateOnPlay s1 rest z := by
   constructor
@@ -65,7 +65,7 @@ theorem stateOnPlay_cons {s s1 : State} {m : Move} {rest : List Move}
       · simpa only [State.run, hstep] using hrun
 
 /-- From a failed pointwise bound, extract the suit that overshoots. -/
-theorem exists_gt_of_not_rungLe {z u : State} (h : ¬ RungLe z u) :
+private theorem exists_gt_of_not_rungLe {z u : State} (h : ¬ RungLe z u) :
     ∃ σ : Suit, rungAt u σ < rungAt z σ := by
   by_cases h1 : rungAt u .spade < rungAt z .spade
   · exact ⟨.spade, h1⟩
@@ -86,7 +86,7 @@ theorem exists_gt_of_not_rungLe {z u : State} (h : ¬ RungLe z u) :
 
 /-- A finite scan: either every visited state stays below `u`, or one visited
 state overshoots.  Constructive: the case split is a decidable `RungLe`. -/
-theorem onPlay_bounded_or_witness {u : State} {s W : State} {play : List Move}
+private theorem onPlay_bounded_or_witness {u : State} {s W : State} {play : List Move}
     (hplay : ShufflePlayW s play W) :
     (∀ z, StateOnPlay s play z → RungLe z u) ∨
       ∃ z, StateOnPlay s play z ∧ ¬ RungLe z u := by
@@ -122,7 +122,7 @@ theorem onPlay_bounded_or_witness {u : State} {s W : State} {play : List Move}
         exact (stateOnPlay_cons hstep).mpr (Or.inl rfl)
 
 /-- An unbounded state on a witness play yields a class fork. -/
-theorem fork_of_unbounded_onPlay
+private theorem fork_of_unbounded_onPlay
     {u v : State} {play : List Move}
     (hu : u.WF) (hsu : SSaturated u)
     (hplay : ShufflePlayW u play v) {z : State}
@@ -204,7 +204,6 @@ theorem satFlatFiberFork_proved : SatFlatFiberFork := by
 
 /-! ## Audit battery -/
 
-#print axioms fork_of_unbounded_onPlay
 #print axioms flat_or_fork_on_play
 #print axioms flat_or_fork
 #print axioms flat_failure_fork
