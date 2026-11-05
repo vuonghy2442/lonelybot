@@ -15,19 +15,17 @@ THE ARM RESIDUE'S EXACT DECOMPOSITION.  `ArmDichotomy`
 * `SatEqualFork` — equal-rung saturated class-mates are one cargo fiber
   or the class contains a fork (the `vcS/vcT` half).
 
-`armDichotomy_iff_split` proves the split constructively.  This card
-also names the forkless-normalization target `ForklessCargoNormal` and
-proves it suffices for the arm dichotomy, and it records the draw
-obstruction: `BareCargoEquiv` fixes `stock`/`waste`, so a reversible
-draw can connect different cargo fibers.  The draw-free probes hide
-this; any full normalization statement must either exclude draws
-(`NoDrawPlayW`/`SWRotW`) or quotient by `Position`.
+`armDichotomy_iff_split` proves the split constructively.  NOTE: the cargo
+`ArmDichotomy` is FALSE, refuted by the draw counterexample
+(`Orig2/Boundary.lean`, `armDichotomy_draw_false`); the flat-fiber repair
+`ArmDichotomySW` is the live target (`Orig2/Fiber/SWDichotomy.lean`).  This
+card records the draw obstruction — `BareCargoEquiv` fixes `stock`/`waste`,
+so a reversible draw can connect different cargo fibers — and keeps the
+generic `ArmDichotomyFor R` split that the SW repair uses.
 
 House compliance: additive leaf (`Orig2.ArmFiber` for the fiber/arm
 rows, `Orig2.CeilingBridge` for the forkless rung agreement); the split
-itself is constructive; `forklessCargoNormal_to_armDichotomy` uses the
-classical case split and its axiom output is reported at the tail; zero
-`sorry`.
+itself is constructive; zero `sorry`.
 -/
 
 /-! ## §1. The equal-rung half and the split -/
@@ -106,50 +104,12 @@ theorem armDichotomy_iff_split :
 theorem satEqualFork_of_armDichotomy (h : ArmDichotomy) : SatEqualFork :=
   (armDichotomy_iff_split.mp h).2
 
-/-- The full residue reassembles from the two halves. -/
-theorem armDichotomy_of_split (hD : SatDifferFork) (hE : SatEqualFork) :
-    ArmDichotomy :=
-  armDichotomy_iff_split.mpr ⟨hD, hE⟩
-
-/-- The source row `armDichotomy_to_satDifferFork`
-(`Orig2/Fiber/ArmFiber.lean`) re-derived through the split. -/
-theorem armDichotomy_to_satDifferFork' (h : ArmDichotomy) : SatDifferFork :=
-  (armDichotomy_iff_split.mp h).1
-
-/-- Once `SatDifferFork` is assumed, the whole residue is *exactly* the
-equal-rung half. -/
-theorem armDichotomy_iff_satEqualFork_of_satDifferFork
-    (hD : SatDifferFork) : ArmDichotomy ↔ SatEqualFork := by
-  constructor
-  · exact satEqualFork_of_armDichotomy
-  · exact armDichotomy_of_split hD
-
-/-! ## §2. The forkless-normalization route -/
-
-/-- **THE NORMALIZATION SUFFICES** — a forkless-normal class satisfies
-the arm dichotomy: if the pair is not in one cargo fiber, the forkless
-premise must fail, and `forkState_iff` hands back a `ForkWitness`. -/
-theorem forklessCargoNormal_to_armDichotomy (h : ForklessCargoNormal) :
-    ArmDichotomy := by
-  intro u v hu hv horb
-  by_cases hbc : BareCargoEquiv u v
-  · exact Or.inl hbc
-  · right
-    apply Classical.byContradiction
-    intro hno
-    apply hbc
-    apply h u v hu hv horb
-    intro F hF hfs
-    obtain ⟨x, hx⟩ := forkState_iff.mp hfs
-    exact hno ⟨F, x, hF, hx⟩
-
-
 /-- A `ForkWitness` is a `forkState`. -/
 theorem forkWitness_forkState {F : State} {x : Card} (h : ForkWitness F x) :
     forkState F :=
   forkState_iff.mpr ⟨x, h⟩
 
-/-! ## §3. The draw obstruction
+/-! ## §2. The draw obstruction
 
 `CargoLeg` is a `tabToTab` step, and `tabToTab` never touches the stock
 or the waste.  Hence a `BareCargoEquiv` pair agrees on both zones.  A
@@ -196,17 +156,12 @@ theorem not_bareCargo_of_waste_ne {a b : State} (h : a.waste ≠ b.waste) :
     ¬ BareCargoEquiv a b :=
   fun hbc => h (bareCargo_waste hbc)
 
-
-/-! ## §5. Audit battery -/
+/-! ## §3. Audit battery -/
 
 #print axioms rungEq_of_no_differing
 #print axioms armDichotomyFor_iff_split
 #print axioms armDichotomy_iff_split
 #print axioms satEqualFork_of_armDichotomy
-#print axioms armDichotomy_of_split
-#print axioms armDichotomy_to_satDifferFork'
-#print axioms armDichotomy_iff_satEqualFork_of_satDifferFork
-#print axioms forklessCargoNormal_to_armDichotomy
 #print axioms cargoLeg_stock
 #print axioms cargoLeg_waste
 #print axioms cargoPath_stock
@@ -214,4 +169,3 @@ theorem not_bareCargo_of_waste_ne {a b : State} (h : a.waste ≠ b.waste) :
 #print axioms bareCargo_stock
 #print axioms bareCargo_waste
 #print axioms not_bareCargo_of_stock_ne
-#print axioms not_bareCargo_of_waste_ne

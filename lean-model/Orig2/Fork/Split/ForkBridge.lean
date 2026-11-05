@@ -394,13 +394,6 @@ theorem satDifferForkWF_of_bottom_asymmetry
   obtain ⟨F, y, hrF, hfork⟩ := hdrain w x hwwf hcan hS hblock hfloor
   exact ⟨F, y, sameOrbitSetoid.iseqv.trans huw hrF, hfork⟩
 
-def BottomCover : Prop :=
-  ∀ u v : State, u.WF → SSaturated u → SSaturated v → sameOrbitSetoid.r u v →
-    (∃ σ : Suit, rungAt u σ ≠ rungAt v σ) →
-    ∃ (w : State) (x : Card), sameOrbitSetoid.r u w ∧
-      CanRaise w x ∧ CanRaiseS w x.twin ∧ CoveredAt w x.twin ∧
-      (∀ c, CanRaiseS w c → x.rank.toIdx ≤ c.rank.toIdx)
-
 theorem forkExistenceFromAsymmetry_drainClosed : ForkExistenceFromAsymmetry := by
   intro w x hwf hcan hlive hblock hfloor
   obtain ⟨F, hrel, hfork⟩ :=

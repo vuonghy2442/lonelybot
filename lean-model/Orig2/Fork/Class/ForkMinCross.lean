@@ -109,18 +109,6 @@ theorem bracket_of_samecard_window
   have hcan : CanRaise Q z := ValleyStep.pull_card_canRaise hPwf hstep
   exact ⟨α, γ, β, z, bz, P, Q, hρ, hα, hstep, hcan, hread⟩
 
-/-- **`ReadWindowExists`** — the exact existence half: at every non-fork
-valley split there is a same-card pair whose interior is `ReadOK`. -/
-def ReadWindowExists : Prop :=
-  ∀ (u v : State) (ρ : List Move) (F : State),
-    u.WF → SSaturated u → SSaturated v →
-    ShufflePlayW u ρ v →
-    ValleySplitAt u v ρ F →
-    (∃ x : Card, ForkWitness F x) ∨
-    (∃ (α γ β : List Move) (z : Card) (bz : Base),
-      ρ = α ++ Move.foundToTab z bz :: γ ++ Move.tabToFound z :: β ∧
-      (∀ q ∈ γ, R12.ReadOK z q))
-
 /-! ## §1. A read-safe bracket deletes at a minimal play -/
 
 /-- The deletion step: from the bracket's landing play and the per-letter

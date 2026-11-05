@@ -265,18 +265,6 @@ A pile is a strictly descending run, so a card *above* another in the same
 pile has strictly lower rank.  This is the "ascending clears covers first"
 primitive of the rank-front route. -/
 
-/-- **Rank order.**  A card that appears above `y` in a face-up run of a
-well-formed state has strictly **lower** rank than `y`.
-
-PROVED: `above_rank_lt` (list form, `runOK`) and `above_rank_lt_of_pile`
-(state form, this statement) in `Temp/RankFront_final.lean:59,78`; the rank
-step of the proof is `cover_rank_lt` (`Temp/RankFront_proof.lean:90`), which
-is `canSitOn_eq` plus arithmetic. -/
-def RankOrder : Prop :=
-  ∀ {st : State} {a : Anchor} {y x : Card} {A B : List Card},
-    st.WF → (st.piles a).faceUp = A ++ y :: B → x ∈ B →
-      x.rank.toIdx < y.rank.toIdx
-
 /-! ## §5. Licence propagation
 
 Raising a card never disturbs the licence of a card of **different rank**:
@@ -285,43 +273,12 @@ automatic.  The rank split that the old `↔` needed (above/below, with differen
 pile hypotheses) collapses: one forward step lemma covers both regimes, and no
 converse is claimed. -/
 
-/-- **Licence propagation, one step.**  Raising `d` preserves `c`'s licence
-whenever the ranks differ.
-
-PROVED: `canRaiseS_step_of_rank_ne` (`Temp/RankFront_proof.lean:61`), which is
-`specShift_sem_fwd` (`Temp/SpecShift_sem.lean:336`) with `d ≠ c` and
-`d ≠ c.twin` discharged from `d.rank ≠ c.rank` (`twin_rank`).
-See H2: this is the transfer used when replaying across a shifted prefix. -/
-def LicenceStep : Prop :=
-  ∀ {z z' : State} {d c : Card}, z.WF → RaiseStepS z z' d → d.rank ≠ c.rank →
-    CanRaiseS z c → CanRaiseS z' c
-
-/-- **Licence propagation, one word.**  If every raised card has rank different
-from `c`'s, `c`'s licence survives the whole sequence.
-
-PROVED: `canRaiseS_persist_of_rank_ne` (`Temp/RankFront_proof.lean:71`), by
-induction on the sequence with `LicenceStep` at each letter. -/
-def LicenceWord : Prop :=
-  ∀ {s z : State} {ws : List Card} {c : Card}, RaiseSSeq s ws z → s.WF →
-    (∀ d ∈ ws, d.rank ≠ c.rank) → CanRaiseS s c → CanRaiseS z c
-
 /-! ## §6. The cover lock
 
 While `x` sits on `t` and `t.twin` is founded, `x` has no legal placement
 anywhere in the cargo class, so `t` is never a pile top there — hence `t` can
 never be raised.  The state-level half is closed; the play-level passage is
 the named residual `CoverMustBeRaisedWord`. -/
-
-/-- **The cover lock (state level).**  If `x` sits on `t`, `t.twin` is founded,
-and `v` is a cargo mate of `w`, then `t` cannot be raised at `v`.
-
-PROVED: `step_none_of_twin_covered` (`Temp/RankFront_final.lean:153`), from
-`twin_covered_persists` (`:127`), `no_canPlace_of_seated` (`:98`),
-`seat_possibilities` (`:86`), i.e. the state-level rows only. -/
-def CoverLock : Prop :=
-  ∀ {w v : State} {x t : Card}, w.WF →
-    seatOf w x = some (Sum.inr t) → t.twin ∈ w.found t.twin.suit →
-      CargoPath w v → State.step v (Move.tabToFound t) = none
 
 /-- **The cover must be raised (play level) — PROVED.**  If `x` sits on `t` and
 `t.twin` is founded at `s`, then every valid `raiseS` word that raises `t`
@@ -337,65 +294,6 @@ def CoverMustBeRaisedWord : Prop :=
   ∀ {s z : State} {ws : List Card} {x t : Card},
     RaiseSSeq s ws z → s.WF → seatOf s x = some (Sum.inr t) →
       t.twin ∈ s.found t.twin.suit → t ∈ ws → x ∈ ws
-
-/-! ## §7. The two one-way shift forms
-
-Both were `↔` in the previous version of this card, and both `↔` forms are
-false; only the forward directions survive.  The counterexamples are recorded
-at the statements. -/
-
-/-- **`SpecShift`, forward direction — PROVED (the `↔` is FALSE).**
-
-The forward direction needs **no** "no reveal / off-pile" hypothesis.
-
-PROVED: `specShift_sem_fwd` (`Temp/SpecShift_sem.lean:336`).
-
-**The `↔` form is false.**  Two kernel-checked refutations, both in
-`Temp/SpecShift_proof.lean`:
-
-* `not_SpecShift` — witness `zce`: the raised card is the only face-up card of
-  its pile, so the raise *flips the hidden head* (`K♦`) onto the face-up run; a
-  card `d` of another suit goes from not-`CanRaiseS` to `CanRaiseS`.  The
-  licence is *created*, so `CanRaiseS z' d → CanRaiseS z d` dies.
-* `not_SpecShift_reversible` — witness `zceB` (state shape below), where the
-  raise is *reversible* (there is a card beneath it), so the failure is not an
-  artefact of the hidden reveal.
-* `not_specShift_with_suit` — the same refutation survives adding
-  `d.suit ≠ c.suit`: suit-disjointness alone does not repair the `↔`.
-
-Witness `zceB` (`Temp/SpecShift_proof.lean`, `CounterexampleB`): foundations
-`♠ = A..6`, `♥ = A..7`, `♦ = ♣ = []`; tableau `p0 = ⟨[], [9♣, 8♥, 7♠]⟩`
-(`8♥` directly beneath `7♠`) and `p1 = ⟨[8♦], [7♣]⟩`; the rest is stock.
-`c = 7♠`, `d = 8♥`, `c.rank.toIdx = 6 < 7 = d.rank.toIdx`; raising `7♠`
-deletes it from `p0`, so `8♥` becomes the pile top and `CanRaiseS · 8♥` flips
-`false → true`. -/
-def SpecShiftFwd : Prop :=
-  ∀ {z z' : State} {c d : Card}, z.WF → RaiseStepS z z' c → d ≠ c → d ≠ c.twin →
-    CanRaiseS z d → CanRaiseS z' d
-
-/-- **`RaiseAbove`, forward direction — PROVED (the `↔` is FALSE).**
-
-PROVED: `canRaise_of_raise_above` (`Temp/RaiseAbove_proof.lean:88`).  That
-proof carries `d.suit ≠ c.suit` and `st.pileHolding d = some b`; here both are
-supplied.  The rank gap gives the suit gap: if `d.suit = c.suit` then both
-`nextUp` bits read the same foundation height, forcing `d.rank = c.rank`.  And
-`CanRaise st d` gives `pileOfTop st d = some a`, hence `pileHolding d = some a`
-(`pileHolding_of_pileOfTop`, `Orig2/Fork/Split/ForkDrainInduction.lean:121`).
-With `d`'s pile known, the forward direction is pile-local: `CanRaise st d`
-forces `d`'s pile to differ from `c`'s (two tops in one pile would give
-`d = c`), so the raise leaves `d`'s pile literally unchanged.
-
-**The `↔` form is false.**  `not_RaiseAbove` (`Temp/SpecShift_proof.lean:455`)
-refutes `CanRaise st d ↔ CanRaise w d` at the same witness `zceB`: with
-`p0 = ⟨[], [9♣, 8♥, 7♠]⟩` (foundations `♠ A..6`, `♥ A..7`), the raise of
-`7♠` exposes `8♥` **beneath it in the same pile**.  `CanRaise zceB 8♥` is
-false (`8♥` is not a pile top) while `CanRaise zceBStep 8♥` is true, so
-`CanRaise w d → CanRaise st d` fails.  Only a separation hypothesis of the
-form "`d`'s pile is not `c`'s pile" restores the converse
-(`canRaise_of_raise_above_iff`, `Temp/RaiseAbove_proof.lean:149`). -/
-def RaiseAboveFwd : Prop :=
-  ∀ {st w : State} {c d : Card}, st.WF → State.step st (Move.tabToFound c) = some w →
-    c.rank.toIdx < d.rank.toIdx → CanRaise st d → CanRaise w d
 
 /-! ## §8. The rank-front target -/
 

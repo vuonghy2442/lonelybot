@@ -235,18 +235,6 @@ def mkState (hfound p0 p1 : List Card) : State :=
     waste := []
     drawStep := 1 }
 
-/-- **`L_u`** — the deep endpoint: hearts founded to the five, `6S` alone on
-`p0` (the pull's base), `p1 = [6C, 5D, 4S]` (the twin `5D` covered by `4S`),
-everything else in the stock. -/
-def L_u : State := mkState [AH, H2, H3, H4, H5] [S6] [C6, D5, S4]
-
-/-- **`L_B`** — the pull's landing: `5H` now tops `p0` on `6S`. -/
-def L_B : State := mkState [AH, H2, H3, H4] [S6, H5] [C6, D5, S4]
-
-/-- **`L_F`** — the bottom: the free tail's slide moved `4S` off `5D` onto
-`5H`; `5D` now tops `p1`, `5H` is covered. -/
-def L_F : State := mkState [AH, H2, H3, H4] [S6, H5, S4] [C6, D5]
-
 /-! ### §4a. Well-formedness -/
 
 theorem not_canRaise_of_ssaturated {st : State} (h : SSaturated st) (c : Card) :

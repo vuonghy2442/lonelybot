@@ -233,13 +233,6 @@ def TwinAlone (F : State) (c : Card) : Prop :=
     (F.piles a).faceUp = [c.twin] ∧
       ((F.piles a).hidden ≠ [] ∨ c.twin.rank ≠ Rank.king)
 
-/-- **`SplitTwinAlone`** — no split's bottom realises the corner. -/
-def SplitTwinAlone : Prop :=
-  ∀ (u v : State) (ρ : List Move) (F : State)
-    (left right : List Move) (c d : Card) (b : Base)
-    (pre post tail : List Move),
-    SplitKit.SplitHyp u v ρ F left right c d b pre post tail → ¬ TwinAlone F c
-
 /-! ## §2. Kit -/
 
 /-- `below c l = []` plus `lastOf l = some c` plus `Nodup l` forces `l = [c]`. -/
@@ -413,19 +406,5 @@ theorem corner_split_raise_ne_twin {u v : State} {ρ : List Move} {F : State}
 #print axioms TwinAt.twinLive_iff_pin_and_sited
 #print axioms TwinAt.twinAlone_not_canRaise
 #print axioms TwinAt.corner_split_raise_ne_twin
-
-/-- **A CORNER SPLIT REFUTES THE CAMPAIGN'S LIVE PAIR.**  If any split's bottom
-realised the corner, `SplitKit.SplitLivePair` would be false: the live pair
-forces the raise card to be the twin (`splitTwin_of_livePair_block`), and at a
-corner that card is not raisable.  So the residual is exactly load-bearing for
-`SplitLivePair` — it is not a technicality. -/
-theorem not_splitLivePair_of_corner (hb : SplitKit.SplitBlock)
-    {u v : State} {ρ : List Move} {F : State} {left right : List Move}
-    {c d : Card} {b : Base} {pre post tail : List Move}
-    (hh : SplitKit.SplitHyp u v ρ F left right c d b pre post tail)
-    (halone : TwinAlone F c) : ¬ SplitKit.SplitLivePair := by
-  intro hl
-  exact corner_split_raise_ne_twin hh halone
-    (SplitKit.splitTwin_of_livePair_block hl hb u v ρ F left right c d b pre post tail hh)
 
 end TwinAt

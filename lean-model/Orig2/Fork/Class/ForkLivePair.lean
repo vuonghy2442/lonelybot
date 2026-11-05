@@ -65,19 +65,6 @@ theorem contained_at_F_of_landing
       intro e he
       exact hcont A' B hpre hstep e (live_iff_of_free_tail hpost hfree hBwf e |>.mp he)
 
-/-! ## §3. The local landing residual (route withdrawn) -/
-
-/-- **THE LOCAL LIVE-SET RESIDUAL** (the task's suggested missing lemma): at
-the pull's landing, every S-live card is the pull card or its twin. -/
-def SplitLiveAtLanding : Prop :=
-  ∀ (u v : State) (ρ : List Move) (F : State)
-    (left right : List Move) (c d : Card) (b : Base)
-    (pre post tail : List Move) (A' B : State),
-    SplitHyp u v ρ F left right c d b pre post tail →
-    ShufflePlayW u pre A' →
-    State.step A' (Move.foundToTab c b) = some B →
-    ∀ e, CanRaiseS B e → e = c ∨ e = c.twin
-
 /-! ## §4. `ValleyElimForkAtRaise` and the pinning step -/
 
 /-- **THE EXACT CONSUMED RESIDUAL** — the disjunctive valley-elimination form

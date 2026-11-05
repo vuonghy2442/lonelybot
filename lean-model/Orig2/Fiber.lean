@@ -8,10 +8,10 @@ import Orig2.Fiber.FiberHierarchy
 
 The cargo/fiber side of the macro class:
 
-* `ArmFiber` — `BareCargoEquiv` as a setoid, `SatArm`, `ForkLive`,
-  `ArmDichotomy` implications, the forkless campaign theorem.
-* `ArmSplit` — `ArmDichotomy ↔ SatDifferFork ∧ SatEqualFork`, the
-  forkless-normalization route, and the abstract draw obstruction.
+* `ArmFiber` — `BareCargoEquiv` invariants, `ForkLive`, and `forkLikePos`
+  (the cargo `ArmDichotomy` is refuted in `Orig2/Boundary.lean`).
+* `ArmSplit` — the generic `ArmDichotomyFor R` split and the cargo draw
+  obstruction (`ArmDichotomySW` is the live flat-fiber repair).
 * `SWDichotomy` — the flat-fiber repair (`BareFlatEquiv` = `FlatSpan`),
   `ArmDichotomySW`, `SatEqualCargoSW`, `forkless_found_unique_SW`.
 * `FiberHierarchy` — the generic `MoveFiber M` definition and the

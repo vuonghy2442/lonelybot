@@ -754,16 +754,6 @@ theorem fullJoinAtLeastOneColour_of_climbable {u s s' : State} {cap : Suit -> Na
 
 #print axioms fullJoinAtLeastOneColour_of_climbable
 
-/-- The cap certificate, bundled for the campaign-facing row. -/
-def CapCertificate : Prop :=
-  forall s s', s.WF -> s'.WF -> sameOrbitSetoid.r s s' ->
-    exists cap : Suit -> Nat, (forall σ, cap σ <= 13) /\
-      (forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= cap σ) /\
-      (forall v, sameOrbitSetoid.r s v ->
-        (forall σ, Nat.max (rungAt s σ) (rungAt s' σ) <= rungAt v σ) ->
-        forall σ, cap σ <= rungAt v σ)
-
-
 end PrefixClimb
 
 

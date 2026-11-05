@@ -222,14 +222,6 @@ def SplitLivePair : Prop :=
     (pre post tail : List Move),
     SplitHyp u v ρ F left right c d b pre post tail → TwinLivePair F d
 
-/-- **`SplitFork`** — the bottom is a fork on the raise card
-(`ForkWitness F d`, `Orig2/Substrate/Vocab.lean:592`). -/
-def SplitFork : Prop :=
-  ∀ (u v : State) (ρ : List Move) (F : State)
-    (left right : List Move) (c d : Card) (b : Base)
-    (pre post tail : List Move),
-    SplitHyp u v ρ F left right c d b pre post tail → ForkWitness F d
-
 /-- **`SplitNe`** — the pull card is not the raise card.  This is the only
 content of the same-card valley elimination across the free tail: it needs
 `raise` to commute past the slides of `post` (`Temp/Commute_Step_Report.md`

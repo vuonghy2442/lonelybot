@@ -306,24 +306,6 @@ theorem post_nil_no_fork
   obtain ⟨_, _, hrev⟩ := Bridge.first_letter_of_play (hrightShape ▸ hright)
   exact Bridge.no_forkWitness_at_pull_landing hA' hstep hrev hcd
 
-/-! ## §3b. The same-card (`c = d`) branch from one commutation premise -/
-
-/-- **THE SAME-CARD COMMUTATION PREMISE (minimality-free).**  This is
-`LiveKit.PostCommutesRaise` with the `SplitHyp` minimality conjunct removed, as
-needed by `ValleyElimNonfork` (which has no shortest-play hypothesis).  The
-commuted word moves `raise c` left across the free tail `post`. -/
-def TurnCommutes : Prop :=
-  ∀ (u v F : State) (ρ left right : List Move) (pre post tail : List Move)
-    (c d : Card) (b : Base),
-    ShufflePlayW u ρ v →
-    (∀ m ∈ post, FreeMove m) →
-    ρ = left ++ right →
-    left = pre ++ Move.foundToTab c b :: post →
-    right = Move.tabToFound d :: tail →
-    c = d →
-    ShufflePlayW u
-      (pre ++ Move.foundToTab c b :: Move.tabToFound c :: (post ++ tail)) v
-
 def NonforkBracketElim : Prop :=
   ∀ (u v : State) (ρ : List Move) (F : State),
     u.WF → SSaturated u → SSaturated v →
