@@ -71,7 +71,7 @@ theorem pair_rung_pin {u : State} {x y : Card} (hy : ForkWitness u y)
   · rw [h] at h1 h2
     rcases hσ with hσ | hσ
     · rw [hσ]
-      rw [tfc_card_twin_twin, Card.twin_rank] at h2
+      rw [card_twin_twin, Card.twin_rank] at h2
       exact h2
     · rw [hσ]
       rw [Card.twin_rank] at h1

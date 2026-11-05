@@ -523,10 +523,7 @@ def Card.twin (c : Card) : Card := ⟨c.suit.twin, c.rank⟩
 
 /-- The twin relabeling is an involution (the registry-owned one-line
 row, beside its def; rides the core `Suit.twin_twin`,
-`Orig/Basic.lean:39`).  HOISTED 2026-10-31 to one home — the former
-claims-layer (`TwinRelabel.lean` §1) and cargo-kit
-(`tfc_card_twin_twin`) copies are delegates/strikes per the shared-kit
-norm. -/
+`Orig/Basic.lean:39`). -/
 theorem card_twin_twin (c : Card) : c.twin.twin = c := by
   cases c with
   | mk s r => simp [Card.twin]

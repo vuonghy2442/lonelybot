@@ -143,7 +143,7 @@ theorem twinLivePair_twin {st : State} {x : Card} (h : TwinLivePair st x) :
     TwinLivePair st x.twin := by
   intro c
   have hc := h c
-  rw [tfc_card_twin_twin]
+  rw [card_twin_twin]
   exact ⟨fun hh => Or.symm (hc.mp hh), fun hh => hc.mpr (Or.symm hh)⟩
 
 theorem twinLivePair_of_forkWitness {st : State} {x y : Card}
@@ -153,7 +153,7 @@ theorem twinLivePair_of_forkWitness {st : State} {x y : Card}
   · subst h; exact (hy.1 c).symm
   · subst h
     have hc := hy.1 c
-    rw [tfc_card_twin_twin] at hc
+    rw [card_twin_twin] at hc
     exact ⟨fun hh => Or.symm (hc.mpr hh), fun hh => hc.mp (Or.symm hh)⟩
 
 theorem fork_rank_ge_two {st : State} (hwf : st.WF) {x : Card} (hx : ForkWitness st x) :
@@ -173,7 +173,7 @@ theorem seated_twin_stays {F Z : State} {x c : Card} {play : List Move}
     seatOf Z c = some (Sum.inr x) ∨ seatOf Z c = some (Sum.inr x.twin) := by
   rcases hc with hc | hc
   · have h2 := cover_token_invariant hF (x := x.twin) (y := x) (d := c)
-      (by rw [tfc_card_twin_twin]) (twinLivePair_twin hlive) hc hplay
+      (by rw [card_twin_twin]) (twinLivePair_twin hlive) hc hplay
     exact Or.symm h2
   · exact cover_token_invariant hF (x := x) (y := x.twin) (d := c) rfl hlive hc hplay
 
@@ -190,7 +190,7 @@ theorem seated_twin_rung_eq {F G : State} {x y c : Card}
   have h1 : rungAt G c.suit ≤ rungAt F c.suit := by
     rcases hc with hc | hc
     · exact (cover_rung_frozen hF (x := x.twin) (y := x) (d := c)
-        (by rw [tfc_card_twin_twin]) (twinLivePair_twin hliveF) hc hτ).1
+        (by rw [card_twin_twin]) (twinLivePair_twin hliveF) hc hτ).1
     · exact (cover_rung_frozen hF (x := x) (y := x.twin) (d := c)
         rfl hliveF hc hτ).1
   have hcG : seatOf G c = some (Sum.inr x) ∨ seatOf G c = some (Sum.inr x.twin) :=
@@ -198,7 +198,7 @@ theorem seated_twin_rung_eq {F G : State} {x y c : Card}
   have h2 : rungAt F c.suit ≤ rungAt G c.suit := by
     rcases hcG with hc' | hc'
     · exact (cover_rung_frozen hG (x := x.twin) (y := x) (d := c)
-        (by rw [tfc_card_twin_twin]) (twinLivePair_twin hliveG) hc' hρ).1
+        (by rw [card_twin_twin]) (twinLivePair_twin hliveG) hc' hρ).1
     · exact (cover_rung_frozen hG (x := x) (y := x.twin) (d := c)
         rfl hliveG hc' hρ).1
   omega
@@ -287,7 +287,7 @@ theorem noParent_transfer {F G : State} {x y : Card} {σ : Suit}
       · refine Or.inr ?_
         rw [h, h1]
       · refine Or.inl ?_
-        rw [h, h1, tfc_card_twin_twin]
+        rw [h, h1, card_twin_twin]
   have hliveG : TwinLivePair G x := twinLivePair_of_forkWitness hy hxy
   have hdisj : seatOf G (⟨σ, FoundKit.Rk (x.rank.toIdx - 1)⟩ : Card) = some (Sum.inr x)
       ∨ seatOf G (⟨σ, FoundKit.Rk (x.rank.toIdx - 1)⟩ : Card) = some (Sum.inr x.twin) := by

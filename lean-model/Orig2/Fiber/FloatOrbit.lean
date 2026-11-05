@@ -94,7 +94,7 @@ private theorem fli_belownil_head {m : Card} {tr : List Card} {c : Card}
 
 /-- Twin labeling is injective (the involution applied twice). -/
 private theorem fli_twin_inj (p q : Card) (hh : p.twin = q.twin) : p = q := by
-  rw [← tfc_card_twin_twin p, ← tfc_card_twin_twin q, hh]
+  rw [← card_twin_twin p, ← card_twin_twin q, hh]
 
 /-- `FloaterSpec` transports across a seat-preserving state map when the
 twin-target search and the empty-anchor existence are transported.  The
@@ -427,7 +427,7 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
           · rw [hcm]
             constructor
             · intro _
-              rw [← tfc_card_twin_twin z] at hlocVz
+              rw [← card_twin_twin z] at hlocVz
               exact Or.inl ⟨z.twin, k, tfc_seatOf_inr_intro hholdVm hbelowmV,
                 hholdVm, Or.inl ⟨a, hlocVz⟩⟩
             · intro _
@@ -472,7 +472,7 @@ theorem floater_leg_invariant {u v : State} (hwfu : u.WF)
                   rw [hh] at hseS
                   exact hsitZTV c hcm hseS
                 exact hT2 zp.twin k
-                  (fun hh => hzpne (by rw [← tfc_card_twin_twin zp, hh])) hloc
+                  (fun hh => hzpne (by rw [← card_twin_twin zp, hh])) hloc
               have hE : ∀ aeq, (v.piles aeq).isEmpty = true →
                   ∃ a', (u.piles a').isEmpty = true := by
                 intro aeq hemp
@@ -1081,7 +1081,7 @@ private theorem orbit_company_undo_license {st w u : State}
           have h3 : Sum.inr z'.twin = Sum.inr z := Option.some.inj hq
           injection h3
         have hz₀ : z' = z.twin := by
-          rw [← tfc_card_twin_twin z', hzz]
+          rw [← card_twin_twin z', hzz]
         rw [hz₀] at h1x
         obtain ⟨k₁, hmloc⟩ := orbit_spec_target hwfst hcst hlic
         exact orbit_no_sitter_on_top hwfst hmloc h1x

@@ -231,14 +231,6 @@ theorem tfc_runOK_append_fit : ∀ (l : List Card) (c z : Card) (r : List Card),
       exact tfc_runOK_append_fit (y :: t) c z r h2 hc
         (show lastOf (y :: t) = some z from hlast) hfit
 
-/-- PORT of `Orig2/Substrate/Classification.lean` (`runOK_append_right`,
-frozen home `Orig/Classify.lean:392`).  A one-line delegate since the
-2026-10-31 shared-kit strike (Classification's row is public, one home
-at the founding card). -/
-theorem tfc_runOK_prefix : ∀ (A B : List Card),
-    runOK (A ++ B) = true → runOK A = true :=
-  runOK_append_right
-
 /-- PORT verbatim from `Orig/Reach.lean:1118`. -/
 theorem tfc_runOK_tail_lt : ∀ (t : List Card) (x y : Card),
     runOK (x :: t) = true → y ∈ t → y.rank.toIdx < x.rank.toIdx := by
@@ -910,13 +902,6 @@ theorem tfc_seatOf_inl_intro {st : State} {c : Card} {a : Anchor}
 (the claim-side involution rows `Orig2/Substrate/Vocab.lean §4.5` anticipated:
 "The involution lemmas ride at the Claims layer when needed"). -/
 
-/-- The card-level twin involution.  A one-line delegate since the
-2026-10-31 shared-kit strike: the row is registry-owned at
-`Orig2/Substrate/Vocab.lean` §4.5 (`card_twin_twin`, beside `def Card.twin`);
-rides `Suit.twin_twin`, `Orig/Basic.lean:39`. -/
-theorem tfc_card_twin_twin (c : Card) : c.twin.twin = c :=
-  card_twin_twin c
-
 /-- Same-color suits are equal-or-twin (fresh 16-way kernel row at
 `Orig/Basic.lean:28-45`). -/
 theorem tfc_suit_same_color_or_twin {s s' : Suit} (h : s.color = s'.color) :
@@ -991,7 +976,7 @@ theorem tfc_seat_parent {st : State} {c z : Card} {a : Anchor}
     have hrokX : runOK ((below c ((st.piles a).faceUp) ++ [c]) ++ tr) = true := by
       rw [hE]
       exact hrok
-    exact tfc_runOK_prefix _ tr hrokX
+    exact runOK_append_right _ tr hrokX
   have hbne : below c ((st.piles a).faceUp) ≠ [] := by
     cases hc : below c ((st.piles a).faceUp) with
     | nil => rw [hc] at hz; exact absurd hz (by simp [lastOf])
@@ -1836,7 +1821,7 @@ theorem tfc_rel_trans {A M u : State}
         injection he with i1
         cases i1
         rfl
-      have hzz : z2.twin = z1 := by rw [hz2]; exact tfc_card_twin_twin z1
+      have hzz : z2.twin = z1 := by rw [hz2]; exact card_twin_twin z1
       refine Or.inl ?_
       have hu' : seatOf u c = some (Sum.inr z1) := by rw [hu2, hzz]
       rw [hu', hA1]
@@ -1980,7 +1965,7 @@ theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
 #print axioms tfc_runOK_below
 #print axioms tfc_runOK_fromCard
 #print axioms tfc_runOK_append_fit
-#print axioms tfc_runOK_prefix
+#print axioms runOK_append_right
 #print axioms tfc_runOK_tail_lt
 #print axioms tfc_lastOf_mem_fromCard
 #print axioms tfc_runOK_afterRunRemoved_nil
@@ -2001,7 +1986,7 @@ theorem run_split_disjoint {l : List Card} (hok : runOK l = true)
 #print axioms tfc_seatOf_of_inl
 #print axioms tfc_seatOf_inr_intro
 #print axioms tfc_seatOf_inl_intro
-#print axioms tfc_card_twin_twin
+#print axioms card_twin_twin
 #print axioms tfc_suit_same_color_or_twin
 #print axioms tfc_fitting_parent
 #print axioms tfc_seat_parent

@@ -271,7 +271,7 @@ theorem twinPair_founds_of_token_and_oneFounding
     rcases hpair with h | h
     · rw [h] at hv1; exact hv1
     · rw [h] at hv2
-      rw [tfc_card_twin_twin, Card.twin_rank] at hv2
+      rw [card_twin_twin, Card.twin_rank] at hv2
       exact hv2
   have hGt : rungAt G w.twin.suit = w.rank.toIdx := by
     rcases hpair with h | h

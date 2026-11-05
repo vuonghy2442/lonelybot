@@ -708,19 +708,13 @@ theorem stepDraw_stock_waste {u v a b : State}
 
 /-! ## 1. Pile-map congruence helpers -/
 
-/-- The top search reads only the piles. -/
-theorem pileOfTop_piles_eq {u v : State} (h : u.piles = v.piles) (z : Card) :
-    u.pileOfTop z = v.pileOfTop z := by
-  unfold State.pileOfTop State.topOf
-  rw [h]
-
 /-- `putCard`'s pile map reads only the input piles. -/
 theorem putCard_piles_congr {u v : State} (hp : u.piles = v.piles) (c : Card) (b : Base) :
     (u.putCard c b).piles = (v.putCard c b).piles := by
   cases b with
   | inl a => rw [putCard_piles_inl, putCard_piles_inl, hp]
   | inr z =>
-      have hpq : u.pileOfTop z = v.pileOfTop z := pileOfTop_piles_eq hp z
+      have hpq : u.pileOfTop z = v.pileOfTop z := pileOfTop_piles hp z
       cases hz : u.pileOfTop z with
       | none =>
           have hz' : v.pileOfTop z = none := by rw [← hpq]; exact hz
@@ -785,7 +779,7 @@ theorem step_comm_draw_raise {st s1 s2 s12 s21 : State} {c : Card}
   obtain ⟨-, a1, hda1, hs12⟩ := step_tabToFound_inv h12
   have h1f : s1.found = st.found := stepDraw_found h1
   have h1p : s1.piles = st.piles := stepDraw_piles h1
-  have hpq : s1.pileOfTop c = st.pileOfTop c := pileOfTop_piles_eq h1p c
+  have hpq : s1.pileOfTop c = st.pileOfTop c := pileOfTop_piles h1p c
   rw [hpq, hda] at hda1
   have ha1 : a1 = a := by injection hda1 with h; exact h.symm
   rw [ha1] at hs12

@@ -426,8 +426,7 @@ private theorem runOK_append_left : ∀ (A B : List Card),
       exact ih B (runOK_cons_tail h)
 
 /-- Every prefix of a legal run is legal.  PORTED verbatim from
-`Orig/Classify.lean:392`.  PUBLIC since the 2026-10-31 shared-kit
-strike (CargoKit's `tfc_runOK_prefix` port is a one-line delegate). -/
+`Orig/Classify.lean:392`. -/
 theorem runOK_append_right : ∀ (A B : List Card),
     runOK (A ++ B) = true → runOK A = true := by
   intro A

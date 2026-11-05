@@ -347,7 +347,7 @@ theorem no_raise_after_twin_raise {F A : State} {x y d : Card}
     exact fun h => hnotseat h.symm
   have hbce : BareCargoEquiv A Z := cargoPath_bareCargo hwfA hZ
   have hlic := bareCargo_cover_license hwfA hwfZ hbce hseatA hchg
-  have hyx : y.twin = x := by rw [hxy, tfc_card_twin_twin]
+  have hyx : y.twin = x := by rw [hxy, card_twin_twin]
   rw [hyx] at hlic
   exact hlic htopxA
 

@@ -2889,3 +2889,9 @@ def anchorOf (w : State) (c : Card) : Anchor :=
   match seatOf w c with
   | some (Sum.inl a) => a
   | _ => Anchor.p0
+
+/-- `pileOfTop` reads only the piles (the congruence). -/
+theorem pileOfTop_piles {u v : State} (h : u.piles = v.piles) (z : Card) :
+    u.pileOfTop z = v.pileOfTop z := by
+  unfold State.pileOfTop State.topOf
+  rw [h]

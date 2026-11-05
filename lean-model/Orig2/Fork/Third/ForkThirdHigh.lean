@@ -453,7 +453,7 @@ theorem forkThirdRigidHigh_of_not_king :
     have hxy' : x = y ∨ x = y.twin := by
       rcases hxy with h | h
       · exact Or.inl h.symm
-      · exact Or.inr (by rw [h, tfc_card_twin_twin])
+      · exact Or.inr (by rw [h, card_twin_twin])
     have hσ1' : σ ≠ y.suit := by
       rcases hxy with h | h
       · rw [h]; exact hσ1
@@ -461,7 +461,7 @@ theorem forkThirdRigidHigh_of_not_king :
     have hσ2' : σ ≠ y.twin.suit := by
       rcases hxy with h | h
       · rw [h]; exact hσ2
-      · rw [h, tfc_card_twin_twin]; exact hσ1
+      · rw [h, card_twin_twin]; exact hσ1
     have hyrank : y.rank.toIdx = x.rank.toIdx := by
       rcases hxy with h | h
       · rw [h]
@@ -518,7 +518,7 @@ theorem forkThirdRigidHigh_of_nonKing_and_king (hK : ForkThirdRigidHighKing) :
       have hxy' : x = y ∨ x = y.twin := by
         rcases hxy with h | h
         · exact Or.inl h.symm
-        · exact Or.inr (by rw [h, tfc_card_twin_twin])
+        · exact Or.inr (by rw [h, card_twin_twin])
       have hσ1' : σ ≠ y.suit := by
         rcases hxy with h | h
         · rw [h]; exact hσ1
@@ -526,7 +526,7 @@ theorem forkThirdRigidHigh_of_nonKing_and_king (hK : ForkThirdRigidHighKing) :
       have hσ2' : σ ≠ y.twin.suit := by
         rcases hxy with h | h
         · rw [h]; exact hσ2
-        · rw [h, tfc_card_twin_twin]; exact hσ1
+        · rw [h, card_twin_twin]; exact hσ1
       exact (hK G F y x hG hF (RevEqW_symm hcls) hy hx hxy' hyk
         σ hσ1' hσ2' h1 h2).elim
 

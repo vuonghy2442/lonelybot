@@ -554,16 +554,6 @@ theorem slide_position {u v : State} {c : Card} {b : Base} (hwf : u.WF)
 
 /-! ## par.6-bis. The round-trips and class-determinism -/
 
-/-- `pileOfTop` reads only the piles (the congruence). -/
-private theorem pileOfTop_piles {u v : State} (h : u.piles = v.piles) (z : Card) :
-    u.pileOfTop z = v.pileOfTop z := by
-  have htop : u.topOf = v.topOf := by
-    funext a'
-    show (u.piles a').top = (v.piles a').top
-    rw [h]
-  unfold State.pileOfTop
-  rw [htop]
-
 /- Lineage: Classification's `putCard_inr_eq_setPile` — PUBLIC there
 since the 2026-10-31 shared-kit strike; this copy struck (the cite
 re-points at the founding card's row). -/

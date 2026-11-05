@@ -203,7 +203,7 @@ theorem bareCargo_cover_from {st w : State} (hwfst : st.WF) (hw : w.WF)
     injection hy with hy'
     injection hy' with hy''
     have hz : z' = c.twin := by
-      rw [← tfc_card_twin_twin z', hy'']
+      rw [← card_twin_twin z', hy'']
     rw [hz] at hz1
     exact hz1
 
