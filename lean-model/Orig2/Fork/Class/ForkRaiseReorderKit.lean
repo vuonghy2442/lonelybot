@@ -581,8 +581,8 @@ theorem step_none_of_twin_covered {w v : State} (hwf : w.WF) {x t : Card}
   have htop : v.pileOfTop t = none := twin_covered_persists hwf hseat hfound hpath
   rw [step_tabToFound_eq]
   by_cases hnext : v.nextUp t = true
-  · rw [if_pos hnext, htop]
-  · rw [if_neg hnext]
+  · rw [ite_eq_left hnext, htop]
+  · rw [ite_eq_right hnext]
 
 /-! ## §9. A word splits at its first occurrence of a card -/
 

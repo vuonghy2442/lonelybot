@@ -539,7 +539,7 @@ theorem wf_of_sameOrbit {u v : State} (hcls : sameOrbitSetoid.r u v)
   exact run_wf hu (Walk_run _ hτ)
 
 /-- Two raises of the same suit cannot both fire in both orders. -/
-theorem raise_same_suit_contra {u s1 s2 s12 : State} (hwf : u.WF) {c1 c2 : Card}
+theorem raise_same_suit_contra {u s1 s2 s12 : State} (_hwf : u.WF) {c1 c2 : Card}
     (h1 : State.step u (Move.tabToFound c1) = some s1)
     (h2 : State.step u (Move.tabToFound c2) = some s2)
     (hsu : c1.suit = c2.suit)

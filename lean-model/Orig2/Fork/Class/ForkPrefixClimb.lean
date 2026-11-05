@@ -179,8 +179,8 @@ theorem Under.step {st v : State} {cap : Suit -> Nat} {c : Card}
   intro σ
   rw [rungAt_tabToFound hstep σ]
   by_cases hσ : σ = c.suit
-  · rw [if_pos hσ, hσ]; omega
-  · rw [if_neg hσ]; exact h σ
+  · rw [ite_eq_left hσ, hσ]; omega
+  · rw [ite_eq_right hσ]; exact h σ
 
 theorem rungs_eq_of_sum_eq {st : State} {cap : Suit -> Nat} (h : Under st cap)
     (hsum : Drain.rungSum st = capSum cap) : forall σ : Suit, rungAt st σ = cap σ := by
@@ -285,7 +285,7 @@ theorem InS_step {st w : State} {cap : Suit -> Nat} {c : Card}
   · subst hs
     have hnext' : c.rank.toIdx = rungAt st c.suit := hnext.symm
     have hrw : rungAt w c.suit = rungAt st c.suit + 1 := by
-      rw [rungAt_tabToFound hstep c.suit, if_pos rfl]
+      rw [rungAt_tabToFound hstep c.suit, ite_eq_left rfl]
     have hne : (Card.mk c.suit r ≠ c) ↔ r.toIdx ≠ rungAt st c.suit := by
       constructor
       · intro hne hk
@@ -304,7 +304,7 @@ theorem InS_step {st w : State} {cap : Suit -> Nat} {c : Card}
     · rintro ⟨⟨h1, h2⟩, h3⟩
       exact ⟨by omega, h2⟩
   · have hrw : rungAt w s = rungAt st s := by
-      rw [rungAt_tabToFound hstep s, if_neg hs]
+      rw [rungAt_tabToFound hstep s, ite_eq_right hs]
     have hne : Card.mk s r ≠ c := by
       intro h
       exact hs (congrArg Card.suit h)
@@ -359,7 +359,7 @@ theorem step_preserves {st w : State} {cap : Suit -> Nat} {c : Card}
   have hcmem : c ∈ (st.piles a).faceUp := by rw [hP]; simp
   have hpile_a : (w.piles a).faceUp = P := by
     rw [hw]
-    simp only [if_pos rfl]
+    simp only [ite_eq_left rfl]
     rw [harm]
     simp [hchop]
   have hpile_ne : ∀ b, b ≠ a → (w.piles b).faceUp = (st.piles b).faceUp := by
@@ -371,9 +371,9 @@ theorem step_preserves {st w : State} {cap : Suit -> Nat} {c : Card}
     intro b
     by_cases hb : b = a
     · subst b
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       exact hpile_a
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       exact hpile_ne b hb
   constructor
   · -- (i) every surplus card of w is face-up
@@ -384,9 +384,9 @@ theorem step_preserves {st w : State} {cap : Suit -> Nat} {c : Card}
     rw [hpile b]
     by_cases hba : b = a
     · subst b
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       exact mem_of_mem_snoc_ne (by rw [← hP]; exact hb) hne
-    · rw [if_neg hba]
+    · rw [ite_eq_right hba]
       exact hb
   · -- (ii) the prefix property transfers
     intro b card hcard_w hcard_S x habove
@@ -395,20 +395,20 @@ theorem step_preserves {st w : State} {cap : Suit -> Nat} {c : Card}
       rw [hpile b] at hcard_w
       by_cases hba : b = a
       · subst b
-        rw [if_pos rfl] at hcard_w
+        rw [ite_eq_left rfl] at hcard_w
         rw [hP]
         exact List.mem_append.mpr (Or.inl hcard_w)
-      · rw [if_neg hba] at hcard_w
+      · rw [ite_eq_right hba] at hcard_w
         exact hcard_w
     have habove_st : Above x card (st.piles b).faceUp := by
       have h := habove
       rw [hpile b] at h
       by_cases hba : b = a
       · subst b
-        rw [if_pos rfl] at h
+        rw [ite_eq_left rfl] at h
         rw [hP]
         exact Above.append_right (rest := [c]) h
-      · rw [if_neg hba] at h
+      · rw [ite_eq_right hba] at h
         exact h
     have hx_st : InS st cap x := hpre.2 b card hmem_st hcard_st x habove_st
     refine (InS_step hstep hnextR x).mpr ⟨hx_st, ?_⟩
@@ -416,7 +416,7 @@ theorem step_preserves {st w : State} {cap : Suit -> Nat} {c : Card}
     · subst b
       intro hxc
       have hxA : Above x card P := by
-        rw [hpile a, if_pos rfl] at habove
+        rw [hpile a, ite_eq_left rfl] at habove
         exact habove
       have hxP : x ∈ P := by
         obtain ⟨P0, Q, hPQ, hxQ⟩ := hxA
@@ -432,7 +432,7 @@ theorem step_preserves {st w : State} {cap : Suit -> Nat} {c : Card}
       exact hxcne hxc
     · intro hxc
       have hxmem : x ∈ (st.piles b).faceUp := by
-        rw [hpile b, if_neg hba] at habove
+        rw [hpile b, ite_eq_right hba] at habove
         obtain ⟨P0, Q, hPQ, hxQ⟩ := habove
         rw [hPQ]
         simp [hxQ]
@@ -668,7 +668,7 @@ theorem lone_hidden_blocks {st w0 : State} {a : Anchor} {z : Card} {s : Suit}
                 rw [show c = Card.mk c.suit c.rank from rfl,
                     show z = Card.mk z.suit z.rank from rfl, hcsz, hrk]
               exact hane (pileOfTop_inj (hcz ▸ hpodc) hpodu)
-            · rw [if_neg hcs]; exact hrungu
+            · rw [ite_eq_right hcs]; exact hrungu
           exact ⟨step_wf hwu hstep, hpodu', hfacew, hhidw, hrungw⟩
   exact (H w0 hreach).2.2.2.2
 

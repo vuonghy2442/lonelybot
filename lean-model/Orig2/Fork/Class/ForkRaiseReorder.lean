@@ -140,7 +140,7 @@ theorem nextUp_raise_ne {z z' : State} {c d : Card}
   unfold State.nextUp
   have hh : z'.foundHeight d.suit = z.foundHeight d.suit := by
     show rungAt z' d.suit = rungAt z d.suit
-    rw [rungAt_tabToFound h d.suit, if_neg hd]
+    rw [rungAt_tabToFound h d.suit, ite_eq_right hd]
   rw [hh]
 
 /-! ## §2b. Commits are exactly the irreversibles
