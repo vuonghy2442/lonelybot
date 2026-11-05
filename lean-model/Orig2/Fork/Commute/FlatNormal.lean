@@ -22,6 +22,9 @@ The flat-fiber normal form `ForklessFlatNormalWF` assembled from the rung-top
 seat analysis.  The capstone is
 `forklessFlatNormalWF_proved`; it uses `bareFlat_of_vk` for the two top-to-
 endpoint flat paths and the strong per-card clause `changed_card_both`.
+
+The stronger per-pair theorem, replacing the global rung top by a rung bound
+on one connecting play, is in `Orig2/Fork/Commute/BoundedFlatPath.lean`.
 -/
 
 set_option autoImplicit false

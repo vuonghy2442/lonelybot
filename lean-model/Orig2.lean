@@ -37,6 +37,7 @@ import Orig2.Fork.Commute.PullCommute
 import Orig2.Fork.Commute.Campaign
 import Orig2.Fork.Commute.FlatNormal
 import Orig2.Fork.Commute.FlatFailureFork
+import Orig2.Fork.Commute.BoundedFlatPath
 
 /-!
 # Orig2 — the proof root
