@@ -305,39 +305,10 @@ private theorem fromCard_cons_head {c : Card} :
         obtain ⟨r, hr⟩ := fromCard_cons_head hmem
         exact ⟨r, by rw [fromCard, ite_eq_right hxc]; exact hr⟩
 
-/-- The `.inr` seat read: a holding pile, a nonempty below-part, and
-its last card. -/
-private theorem seatOf_inr_data {st : State} {c z : Card}
-    (h : seatOf st c = some (Sum.inr z)) :
-    ∃ a, st.pileHolding c = some a ∧
-      below c (st.piles a).faceUp ≠ [] ∧
-      lastOf (below c (st.piles a).faceUp) = some z := by
-  unfold seatOf at h
-  cases hh : st.pileHolding c with
-  | none =>
-      rw [hh] at h
-      exact absurd h (by simp)
-  | some a =>
-      simp only [hh] at h
-      cases hg : List.getLast? (below c (st.piles a).faceUp) with
-      | none =>
-          rw [hg] at h
-          exact absurd h (by simp)
-      | some q =>
-          simp only [hg] at h
-          have hqz : q = z := Sum.inr.inj (Option.some.inj h)
-          subst hqz
-          refine ⟨a, rfl, ?_, ?_⟩
-          · intro hnil
-            rw [hnil] at hg
-            simp at hg
-          · rw [← getLast?_lastOf]
-            exact hg
-
 /-- A card's parent in an `.inr` seat has a different rank. -/
 private theorem parent_rank_ne_of_seat {st : State} (hwf : st.WF) {c z : Card}
     (hse : seatOf st c = some (Sum.inr z)) (hrank : z.rank = c.rank) : False := by
-  obtain ⟨a, hh, _, hlast⟩ := seatOf_inr_data hse
+  obtain ⟨a, hh, _, hlast⟩ := tfc_seatOf_of_inr hse
   have hmem : c ∈ (st.piles a).faceUp := pileHolding_mem hh
   obtain ⟨t, ht⟩ := fromCard_cons_head hmem
   have hsplit : (st.piles a).faceUp =

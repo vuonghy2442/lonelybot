@@ -1,5 +1,6 @@
 import Orig2.Substrate.Vocab
 import Orig2.Substrate.Kit
+import Orig2.Substrate.Classification
 
 /-!
 # Orig2.OrbitFactor — THE ORBIT-FACTOR MACHINERY CARD
@@ -340,26 +341,6 @@ witness's own return play without them).  Templates:
 `Orig/ForkStateUniqGate.lean:377-397` (fired-form there), the
 measures `Orig/Irreversible.lean:66` and `Orig/Phase.lean:497-512`. -/
 
-/-- **No waste raise ever rides** (restated at witness grade;
-template `Orig/ForkStateUniqGate.lean:377`): the mover strictly
-drops the cycle count while no play raises it, so the carrier's
-own return play cannot exist. -/
-private theorem journey_never_wasteToFound (st : State) (c : Card) :
-    ¬ reversibleAtW st (Move.wasteToFound c) := by
-  rintro ⟨s₁, play, hstep', hrun⟩
-  have hlt : cycleCount s₁ < cycleCount st := cycleCount_lt_wasteToFound hstep'
-  have hle := run_cycleCount_le hrun
-  omega
-
-/-- **No waste placement ever rides** (witness grade; template
-`Orig/ForkStateUniqGate.lean:389`). -/
-private theorem journey_never_wasteToTab (st : State) (c : Card) (b : Base) :
-    ¬ reversibleAtW st (Move.wasteToTab c b) := by
-  rintro ⟨s₁, play, hstep', hrun⟩
-  have hlt : cycleCount s₁ < cycleCount st := cycleCount_lt_wasteToTab hstep'
-  have hle := run_cycleCount_le hrun
-  omega
-
 /-! ## §1. THE GENERAL DISJOINT-FIELD COMMUTATION
 
 The frozen card carried three ~50-line squares, one per table
@@ -536,8 +517,8 @@ theorem board_draw_commute {st s₁ s₂ : State} {m : Move}
     ∃ t, st.step m = some t ∧ t.stepDraw = some s₂ := by
   cases m with
   | draw => exact ⟨s₁, hd, hm⟩
-  | wasteToFound c => exact absurd hw (journey_never_wasteToFound s₁ c)
-  | wasteToTab c b => exact absurd hw (journey_never_wasteToTab s₁ c b)
+  | wasteToFound c => exact absurd hw (wasteToFound_not_reversibleAtW s₁ c)
+  | wasteToTab c b => exact absurd hw (wasteToTab_not_reversibleAtW s₁ c b)
   | tabToFound c => exact board_square hd hm rfl
   | foundToTab c b => exact board_square hd hm rfl
   | tabToTab c b => exact board_square hd hm rfl
@@ -607,23 +588,6 @@ firing, so the frozen route's `Orig/Fate.lean` semantic pair and
 `Orig/Phase.lean:823` `draw_irreversible_offset` and `:853`
 `draw_irreversible_pristine`, bodies carried verbatim). -/
 
-/-- **Draws at pristine positions are commitments**, witness grade:
-no returning play exists (RESTATE of `Orig/Phase.lean:853`; a Kit
-delegation over `draw_notW_of_pristine`). -/
-private theorem draw_not_revW_pristine {st : State}
-    (hd : 0 < st.drawStep) (hs : st.stock ≠ []) (hw : st.waste = []) :
-    ¬ reversibleAtW st Move.draw :=
-  draw_notW_of_pristine hd hs hw
-
-/-- **Draws at offset positions are commitments**, witness grade
-(RESTATE of `Orig/Phase.lean:823`; a Kit delegation over
-`draw_notW_of_offset`). -/
-private theorem draw_not_revW_offset {st : State}
-    (hd : 0 < st.drawStep) (hs : st.stock ≠ [])
-    (hoff : st.waste.length % st.drawStep ≠ 0) :
-    ¬ reversibleAtW st Move.draw :=
-  draw_notW_of_offset hd hs hoff
-
 /-! ### §1.5.7 The draw census
 
 **A reversible draw stays reversible at any state sharing its draw
@@ -663,7 +627,7 @@ private theorem draw_revW_congr {x x' : State} (hpos : 0 < x.drawStep)
         rw [hst] at hc
         exact nomatch hc
       by_cases hpr : x.waste = []
-      · exact absurd h (draw_not_revW_pristine hpos
+      · exact absurd h (draw_notW_of_pristine hpos
           (by rw [hst]; exact fun hc => absurd hc (by simp)) hpr)
       · by_cases hres : x.waste.length % x.drawStep = 0
         · obtain ⟨c', t', hcon'⟩ := list_cons_of_ne_nil hst'
@@ -676,7 +640,7 @@ private theorem draw_revW_congr {x x' : State} (hpos : 0 < x.drawStep)
             (by
               intro hc
               exact hpr (hw.trans hc)) hph'
-        · exact absurd h (draw_not_revW_offset hpos
+        · exact absurd h (draw_notW_of_offset hpos
             (by rw [hst]; exact fun hc => absurd hc (by simp)) hres)
 
 /-! ## §2. THE DRAWS-LAST BUBBLING
@@ -717,8 +681,8 @@ private theorem leg_zone_keep {x y : State} {m : Move}
     y.stock = x.stock ∧ y.waste = x.waste ∧ y.drawStep = x.drawStep := by
   cases m with
   | draw => exact absurd rfl hnd
-  | wasteToFound c => exact absurd hw (journey_never_wasteToFound x c)
-  | wasteToTab c b => exact absurd hw (journey_never_wasteToTab x c b)
+  | wasteToFound c => exact absurd hw (wasteToFound_not_reversibleAtW x c)
+  | wasteToTab c b => exact absurd hw (wasteToTab_not_reversibleAtW x c b)
   | tabToFound c =>
       obtain ⟨-, a, -, hs⟩ := step_tabToFound_inv hstep
       rw [hs]
@@ -813,8 +777,8 @@ private theorem pull_one : ∀ (play : List Move) (x s₁ y : State),
             exact hpos
           obtain ⟨y', jlift, hstepD, hrevy⟩ := ih s₁ mid y hd' hw hposs hrest
           exact ⟨y', .cons hwfd hd jlift, hstepD, hrevy⟩
-      | wasteToFound c => exact absurd hw (journey_never_wasteToFound s₁ c)
-      | wasteToTab c b => exact absurd hw (journey_never_wasteToTab s₁ c b)
+      | wasteToFound c => exact absurd hw (wasteToFound_not_reversibleAtW s₁ c)
+      | wasteToTab c b => exact absurd hw (wasteToTab_not_reversibleAtW s₁ c b)
       | tabToFound c =>
           obtain ⟨q₀, Q, hq₀, hQ₀⟩ := hwfd
           have hq : q₀ = s₁ :=
@@ -944,8 +908,8 @@ theorem shuffle_drawsLast : ∀ (play : List Move) (x y : State),
             | inl heq => intro hcon; rw [heq] at hcon; exact nomatch hcon
             | inr htl => exact hBnd m' htl
           · exact .cons hw hfire hBz
-      | wasteToFound c => exact absurd hw (journey_never_wasteToFound _ c)
-      | wasteToTab c b => exact absurd hw (journey_never_wasteToTab _ c b)
+      | wasteToFound c => exact absurd hw (wasteToFound_not_reversibleAtW _ c)
+      | wasteToTab c b => exact absurd hw (wasteToTab_not_reversibleAtW _ c b)
 
 /-! ## §3. THE DRAW-BLOCK TRANSPLANT
 
@@ -1103,16 +1067,12 @@ Per proved head: `[propext]`/`[propext, Quot.sound]` only; zero
 #print axioms stepDraw_drawStep
 #print axioms cycleCount_lt_wasteToFound
 #print axioms cycleCount_lt_wasteToTab
-#print axioms journey_never_wasteToFound
-#print axioms journey_never_wasteToTab
 #print axioms board_fire_congr
 #print axioms board_fire_zone
 #print axioms board_square
 #print axioms board_draw_commute
 #print axioms draw_nil_inPhase
 #print axioms draw_keeps_inPhase
-#print axioms draw_not_revW_pristine
-#print axioms draw_not_revW_offset
 #print axioms drain_to_pass
 #print axioms draw_passBase_reversibleW
 #print axioms drain_positions_one
