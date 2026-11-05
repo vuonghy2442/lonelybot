@@ -1962,6 +1962,17 @@ private theorem frozen_king_play {u v : State} {c : Card} {a : Anchor} {play : L
       obtain ⟨hseat1, hhid1⟩ := frozen_king_step hwf hstep hrev hseat hhid
       exact ih (step_wf hwf hstep) hseat1 (fun h => hhid (hhid1.symm.trans h))
 
+/-- **A king bottomed over a nonempty hidden deck never moves.**  Public
+form of `frozen_king_play`: its anchor is fixed along the whole reversible
+play. -/
+theorem king_seat_fixed_of_hidden_ne {u v : State} {c : Card} {a : Anchor}
+    {play : List Move}
+    (hwf : u.WF) (hplay : ShufflePlayW u play v)
+    (hseat : seatOf u c = some (Sum.inl a)) (hhid : (u.piles a).hidden ≠ []) :
+    seatOf u c = seatOf v c := by
+  have h := frozen_king_play hwf hplay hseat hhid
+  exact hseat.trans h.symm
+
 /-- **The owner's frozen-king row (2026-10-25).**  A seated pair with
 either twin bottomed over a nonempty hidden deck is never strictly
 swappable — the king-grade parallel of the non-king `.inl` corner
@@ -3046,4 +3057,100 @@ theorem swappableIn_iff_raise_reachable {s : State} {x z : Card}
     exact fiber_transfer_twin_membership u s x hwfu hwf
       (shufflePlayW_revEqW hplay) hmemx hmemxt hswapu
 
+/-- **Weak-to-strict twin swap.**  A bare `twinPairSwap` witness between two
+states where the pair sits on twin parents at the source already yields a
+strict `SwappableIn`: the first-seat-change argument is the same one used in
+`swappableIn_iff_raise_reachable`, with `twinPairSwap` replacing the strict
+seat fields. -/
+theorem swappableIn_of_twinPairSwap
+    {s v : State} {x z : Card}
+    (hwf : s.WF)
+    (hx : seatOf s x = some (Sum.inr z))
+    (hxt : seatOf s x.twin = some (Sum.inr z.twin))
+    (hweak : twinPairSwap s v x)
+    (horb : sameOrbitSetoid.r s v) :
+    SwappableIn s x := by
+  have hrhs :
+      ∃ u w, sameOrbitSetoid.r s u ∧
+        seatOf u x = some (Sum.inr w) ∧
+        seatOf u x.twin = some (Sum.inr w.twin) ∧
+        (reversibleAtW u (Move.tabToFound x) ∨
+          reversibleAtW u (Move.tabToFound x.twin)) := by
+    obtain ⟨-, -, _, hback⟩ := horb
+    have hne : seatOf v x ≠ some (Sum.inr z) := by
+      rw [hweak.1, hxt]
+      intro hc
+      exact card_twin_ne z (Sum.inr.inj (Option.some.inj hc))
+    obtain ⟨pre, m, post, u, u', hspl, hpre, hrev, hstep, hpost, hu1, hu2, hch⟩ :=
+      exists_twinSeatChange_split x (some (Sum.inr z)) (some (Sum.inr z.twin))
+        hback hx hxt (Or.inl hne)
+    have hwfu : u.WF :=
+      run_wf hwf (Walk_run (P := fun st m => reversibleAtW st m) (st := s) (W := u) hpre)
+    have hru : sameOrbitSetoid.r s u := RevEqW_symm (shufflePlayW_revEqW hpre)
+    refine ⟨u, z, hru, hu1, hu2, ?_⟩
+    have hxne : seatOf u x ≠ none := by rw [hu1]; simp
+    have hxtne : seatOf u x.twin ≠ none := by rw [hu2]; simp
+    cases m with
+    | draw =>
+        have hse := (chart_draw hstep).1
+        rcases hch with h1 | h1
+        · rw [hse x] at h1; exact absurd hu1 h1
+        · rw [hse x.twin] at h1; exact absurd hu2 h1
+    | wasteToFound y => exact absurd hrev (wasteToFound_not_reversibleAtW u y)
+    | wasteToTab y b => exact absurd hrev (wasteToTab_not_reversibleAtW u y b)
+    | tabToFound d =>
+        by_cases hdx : d = x
+        · rw [hdx] at hrev; exact Or.inl hrev
+        · by_cases hdt : d = x.twin
+          · rw [hdt] at hrev; exact Or.inr hrev
+          · exfalso
+            have hxs : seatOf u' x = seatOf u x :=
+              raise_seat_change_of_seated hstep hrev hxne (fun h => hdx h.symm)
+            have hxts : seatOf u' x.twin = seatOf u x.twin :=
+              raise_seat_change_of_seated hstep hrev hxtne (fun h => hdt h.symm)
+            rcases hch with h1 | h1
+            · rw [hxs] at h1; exact absurd hu1 h1
+            · rw [hxts] at h1; exact absurd hu2 h1
+    | foundToTab y b =>
+        exfalso
+        have hxny : x ≠ y := by
+          intro hy
+          obtain ⟨c', htop, hc'c, -, -⟩ := step_foundToTab_inv hstep
+          rw [hc'c, ← hy] at htop
+          exact hxne (seatOf_none_of_mem_found hwfu
+            (by simpa [State.foundTop] using lastOf_mem htop))
+        have hxtny : x.twin ≠ y := by
+          intro hy
+          obtain ⟨c', htop, hc'c, -, -⟩ := step_foundToTab_inv hstep
+          rw [hc'c, ← hy] at htop
+          exact hxtne (seatOf_none_of_mem_found hwfu
+            (by simpa [State.foundTop] using lastOf_mem htop))
+        have hxs : seatOf u' x = seatOf u x := pull_seat_change hstep x hxny
+        have hxts : seatOf u' x.twin = seatOf u x.twin :=
+          pull_seat_change hstep x.twin hxtny
+        rcases hch with h1 | h1
+        · rw [hxs] at h1; exact absurd hu1 h1
+        · rw [hxts] at h1; exact absurd hu2 h1
+    | tabToTab c b =>
+        by_cases hcx : c = x
+        · exfalso
+          rw [hcx] at hstep
+          exact no_twin_slide hwfu hu1 hu2 hstep
+        · by_cases hct : c = x.twin
+          · exfalso
+            rw [hct] at hstep
+            exact no_twin_slide hwfu hu2
+              (show seatOf u x.twin.twin = some (Sum.inr z.twin.twin) from by
+                rw [card_twin_twin, card_twin_twin]; exact hu1)
+              hstep
+          · exfalso
+            have hedge := tfc_seat_point_edit hwfu hstep hrev
+            rcases hch with h1 | h1
+            · rw [hedge x, ite_eq_right (fun h => hcx h.symm)] at h1
+              exact absurd hu1 h1
+            · rw [hedge x.twin, ite_eq_right (fun h => hct h.symm)] at h1
+              exact absurd hu2 h1
+  exact (swappableIn_iff_raise_reachable hwf hx hxt).mpr hrhs
+
+#print axioms swappableIn_of_twinPairSwap
 #print axioms swappableIn_iff_raise_reachable

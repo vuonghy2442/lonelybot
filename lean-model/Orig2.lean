@@ -35,6 +35,7 @@ import Orig2.Fork.Class.ForkDecide
 import Orig2.Fork.Class.ForkPrefixClimb
 import Orig2.Fork.Commute.PullCommute
 import Orig2.Fork.Commute.Campaign
+import Orig2.Fork.Commute.FlatNormal
 
 /-!
 # Orig2 — the proof root
