@@ -57,10 +57,6 @@ theorem fromCard_append_stop {t : Card} {xs ys : List Card} (h : t ∉ xs) :
     fromCard t (xs ++ t :: ys) = t :: ys := by
   rw [fromCard_append_notmem h, fromCard_head_eq]
 
-/-- The run below/from split. -/
-theorem below_fromCard_split {c : Card} (l : List Card) :
-    below c l ++ fromCard c l = l := tfc_below_fromCard c l
-
 /-- `fromCard` cuts at the card, so a right extension is appended. -/
 theorem fromCard_append_of_mem {c : Card} {l m : List Card} (h : c ∈ l) :
     fromCard c (l ++ m) = fromCard c l ++ m := by
@@ -654,7 +650,7 @@ theorem slideSt_pileOfTop_source {st : State} {c : Card} {b : Base} {a k : Ancho
     (slideSt st c b a).pileOfTop z = some k := by
   have hfa : (st.piles a).faceUp =
       below c (st.piles a).faceUp ++ fromCard c (st.piles a).faceUp :=
-    (below_fromCard_split _).symm
+    (tfc_below_fromCard _ _).symm
   have hzlast : lastOf (st.piles a).faceUp = some z := (pileOfTop_eq_some_iff hwf).mp hz
   have hzmem : z ∈ (st.piles a).faceUp := lastOf_mem hzlast
   have hzrun_last : lastOf (fromCard c (st.piles a).faceUp) = some z := by
@@ -690,7 +686,7 @@ theorem slideSt_pileOfTop_target {st : State} {c : Card} {b : Base} {a k : Ancho
     (slideSt st c b a).pileOfTop z = none := by
   have hfa : (st.piles a).faceUp =
       below c (st.piles a).faceUp ++ fromCard c (st.piles a).faceUp :=
-    (below_fromCard_split _).symm
+    (tfc_below_fromCard _ _).symm
   have hzmemk : z ∈ (st.piles k).faceUp := lastOf_mem (pileOfTop_top hz).2
   have hno : ∀ j : Anchor, ((slideSt st c b a).piles j).top ≠ some z := by
     intro j ht

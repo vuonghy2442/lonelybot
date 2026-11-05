@@ -138,23 +138,15 @@ theorem cargoPath_waste {a b : State} (h : CargoPath a b) : a.waste = b.waste :=
   | refl _ => rfl
   | cons hleg _ ih => exact (cargoLeg_waste hleg).trans ih
 
-theorem bareCargo_stock {a b : State} (h : BareCargoEquiv a b) :
-    a.stock = b.stock :=
-  cargoPath_stock h.1
-
-theorem bareCargo_waste {a b : State} (h : BareCargoEquiv a b) :
-    a.waste = b.waste :=
-  cargoPath_waste h.1
-
 /-- A stock difference refutes the cargo fiber outright. -/
 theorem not_bareCargo_of_stock_ne {a b : State} (h : a.stock ≠ b.stock) :
     ¬ BareCargoEquiv a b :=
-  fun hbc => h (bareCargo_stock hbc)
+  fun hbc => h (cargoPath_stock hbc.1)
 
 /-- A waste difference refutes the cargo fiber outright. -/
 theorem not_bareCargo_of_waste_ne {a b : State} (h : a.waste ≠ b.waste) :
     ¬ BareCargoEquiv a b :=
-  fun hbc => h (bareCargo_waste hbc)
+  fun hbc => h (cargoPath_waste hbc.1)
 
 /-! ## §3. Audit battery -/
 
@@ -166,6 +158,4 @@ theorem not_bareCargo_of_waste_ne {a b : State} (h : a.waste ≠ b.waste) :
 #print axioms cargoLeg_waste
 #print axioms cargoPath_stock
 #print axioms cargoPath_waste
-#print axioms bareCargo_stock
-#print axioms bareCargo_waste
 #print axioms not_bareCargo_of_stock_ne
