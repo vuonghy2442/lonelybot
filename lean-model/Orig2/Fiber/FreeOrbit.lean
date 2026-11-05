@@ -867,21 +867,6 @@ theorem king_bare_orbit_rung {s s' : State} (hwf : s.WF)
 strike (the copy here struck, the cites re-point at the founding
 card's row). -/
 
-/-- No card is below itself. -/
-private theorem below_irrefl {c : Card} : ∀ {l : List Card}, c ∉ below c l := by
-  intro l
-  induction l with
-  | nil => intro h; cases h
-  | cons y t ih =>
-      intro h
-      rw [below_cons] at h
-      by_cases hyc : y = c
-      · rw [ite_eq_left hyc] at h; cases h
-      · rw [ite_eq_right hyc] at h
-        rcases List.mem_cons.mp h with rfl | h'
-        · exact hyc rfl
-        · exact ih h'
-
 /- A card strictly inside a nodup append is not in the front part.
 Lineage: CargoRaise §4's private row — PUBLIC there since the
 2026-10-31 shared-kit strike; this copy struck (the cites re-point at

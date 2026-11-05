@@ -217,12 +217,6 @@ theorem vk_putCard {u v : State} {x : Card} {b : Base}
               (pileHolding_eq_some_iff hwf).mpr hmem⟩
 
 
-theorem chop_cons_of_tail_ne_nil {c : Card} {t : List Card} (ht : t ≠ []) :
-    chop (c :: t) = c :: chop t := by
-  cases t with
-  | nil => exact absurd rfl ht
-  | cons y ys => rfl
-
 /- `chop` only removes cards — one home at the shared kit
 (`Orig2/Substrate/Kit.lean`'s `chop_mem`) since the 2026-10-31 shared-kit
 strike; this copy struck (the cite re-points there). -/

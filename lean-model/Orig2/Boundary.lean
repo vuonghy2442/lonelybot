@@ -175,11 +175,6 @@ private theorem vcS12_eq_vcT : vcS12 = vcT := by
   · cases s <;> rfl
   · cases a <;> rfl
 
-private theorem vc_forward_run :
-    vcS.run [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12] = some vcT := by
-  simp only [State.run, vc_step_1, vc_step_2, vc_step_3, vc_step_4, vc_step_5, vc_step_6, vc_step_7, vc_step_8, vc_step_9, vc_step_10, vc_step_11, vc_step_12, vcS12_eq_vcT]
-
-
 /-- Both endpoints are SSaturated: the flat S-license probe scans false. -/
 theorem vcS_sat : SSaturated vcS := by
   have h : rankSatB 12 vcS = true := by decide
@@ -465,8 +460,6 @@ private theorem run_d1 : drawD1.run [Move.draw, Move.draw, Move.draw] = some dra
 private theorem run_d2 : drawD2.run [Move.draw, Move.draw, Move.draw] = some drawD1 := rfl
 
 private theorem run_d3 : drawD3.run [Move.draw, Move.draw, Move.draw] = some drawD2 := rfl
-
-private theorem run_d0 : drawD0.run [Move.draw] = some drawD1 := rfl
 
 private theorem rev_d0 : reversibleAtW drawD0 Move.draw :=
   ⟨drawD1, [Move.draw, Move.draw, Move.draw], step_d0, run_d1⟩

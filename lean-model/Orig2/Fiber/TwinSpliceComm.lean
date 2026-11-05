@@ -383,38 +383,6 @@ theorem spliceTwinRuns_as_update {s : State} {x : Card} {a b : Anchor}
 
 /-! ## §5. One-card top edits -/
 
-theorem putCard_pileHolding_ne {st : State} (hwf : st.WF) {y v : Card} {k : Anchor}
-    (hk : st.pileOfTop v = some k) {c : Card} {c' : Anchor}
-    (hc : st.pileHolding c = some c') (hcy : c ≠ y) :
-    (st.putCard y (Sum.inr v)).pileHolding c = some c' := by
-  have hmem : c ∈ (st.piles c').faceUp := pileHolding_mem hc
-  have hother : ∀ j, j ≠ c' → c ∉ (st.piles j).faceUp :=
-    fun j hj => (mem_faceUp_unique hwf hmem j hj).1
-  refine tfc_pileHolding_pin ?_ ?_
-  · rw [putCard_inr_eq hk]
-    by_cases hck : c' = k
-    · rw [hck, setPile_piles_self]
-      exact List.mem_append_left _ (by rwa [hck] at hmem)
-    · rw [setPile_piles_ne hck]
-      exact hmem
-  · intro j hj
-    rw [putCard_inr_eq hk]
-    by_cases hjk : j = k
-    · rw [hjk, setPile_piles_self]
-      intro hmemj
-      rcases List.mem_append.mp hmemj with h | h
-      · exact hother k (by rwa [hjk] at hj) h
-      · exact hcy (List.mem_singleton.mp h)
-    · rw [setPile_piles_ne hjk]
-      exact hother j hj
-theorem below_append_singleton_mem {c y : Card} {l : List Card} (h : c ∈ l) :
-    below c (l ++ [y]) = below c l :=
-  tfc_below_mem_append_left l [y] h
-
-theorem fromCard_append_singleton_mem {c y : Card} {l : List Card} (h : c ∈ l) :
-    fromCard c (l ++ [y]) = fromCard c l ++ [y] :=
-  fromCard_append_of_mem l [y] h
-
 /- DEAD-CODE STRIKE (2026-10-31, the dedup residue sweep): the splice
 putCard commutation pair `splice_putCard_inr` / `splice_putCard_inl`
 had zero consumers at the last three commits (the merge residue of
