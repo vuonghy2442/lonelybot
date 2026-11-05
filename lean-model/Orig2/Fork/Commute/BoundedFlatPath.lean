@@ -1,6 +1,7 @@
 import Orig2.Fork.Commute.FlatNormal
 import Orig2.Boundary
 import Orig2.Fork.Split.ForkSplit
+import Orig2.Fork.Local.ForkBubble
 
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
@@ -914,6 +915,52 @@ theorem vcS_vcT_not_rungBounded : ¬ RungBoundedPath vcS vcT := by
   exact vc_not_bareFlat_local
     (bareFlatEquiv_of_rungBoundedPath vcS_wf vcT_wf h vc_rungs)
 
+/-- A state on a witness play is a class-mate of the play's start. -/
+theorem sameOrbit_of_onPlay {u v : State} {play : List Move}
+    (hplay : ShufflePlayW u play v) {z : State}
+    (hz : StateOnPlay u play z) : sameOrbitSetoid.r u z := by
+  obtain ⟨pre, post, hspl, hrun⟩ := hz
+  obtain ⟨mid, hpre, _hpost⟩ :=
+    Bubble.walk_split pre (st := u) (B := v) (rest := post)
+      (by simpa [hspl] using hplay)
+  have hmid : mid = z :=
+    Option.some.inj ((Walk_run _ hpre).symm.trans hrun)
+  subst mid
+  exact sameOrbitSetoid.iseqv.symm (shufflePlayW_revEqW hpre)
+
+/-- **The forkless flat normal form via the bounded-path theorem.** -/
+theorem forklessFlatNormalWF_proved : ForklessFlatNormalWF := by
+  intro u v hu hsu hsv horb hfrk
+  have huv : RungEq u v :=
+    forkless_rungs_agree_proved hu horb hfrk hsu hsv
+  have hmax : ∀ z, sameOrbitSetoid.r u z → RungLe z u := by
+    intro z huz σ
+    by_cases hle : rungAt z σ ≤ rungAt u σ
+    · exact hle
+    · exfalso
+      have hlt : rungAt u σ < rungAt z σ := Nat.lt_of_not_ge hle
+      have hzwf : z.WF := wf_of_sameOrbit huz hu
+      obtain ⟨w, hzw, _hwf, hwsat, hzle⟩ :=
+        ForklessTop.exists_saturated_above z hzwf
+      have huw : sameOrbitSetoid.r u w :=
+        sameOrbitSetoid.iseqv.trans huz hzw
+      have hruw : RungEq u w :=
+        forkless_rungs_agree_proved hu huw hfrk hsu hwsat
+      have hltw : rungAt u σ < rungAt w σ :=
+        Nat.lt_of_lt_of_le hlt (hzle σ)
+      have heq : rungAt u σ = rungAt w σ := hruw σ
+      omega
+  have horb_keep := horb
+  obtain ⟨-, -, play, hplay⟩ := horb
+  have hpath : RungBoundedPath u v := by
+    refine ⟨play, hplay, ?_⟩
+    intro z hz
+    exact hmax z (sameOrbit_of_onPlay hplay hz)
+  exact bareFlatEquiv_of_rungBoundedPath hu
+    (wf_of_sameOrbit horb_keep hu) hpath huv
+
+#print axioms sameOrbit_of_onPlay
+#print axioms forklessFlatNormalWF_proved
 #print axioms bareFlatEquiv_of_rungBoundedPath
 #print axioms changed_card_bounded
 #print axioms noVacancyFrom_of_bounded

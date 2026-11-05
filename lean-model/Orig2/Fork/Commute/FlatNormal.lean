@@ -18,13 +18,10 @@ import Orig2.Fork.Local.ForkCriticalPair
 /-!
 # Orig2.Fork.Commute.FlatNormal - the forkless flat normal form
 
-The flat-fiber normal form `ForklessFlatNormalWF` assembled from the rung-top
-seat analysis.  The capstone is
-`forklessFlatNormalWF_proved`; it uses `bareFlat_of_vk` for the two top-to-
-endpoint flat paths and the strong per-card clause `changed_card_both`.
-
-The stronger per-pair theorem, replacing the global rung top by a rung bound
-on one connecting play, is in `Orig2/Fork/Commute/BoundedFlatPath.lean`.
+The per-card seat analysis and the `bareFlat_of_vk` bridge for the flat-fiber
+normal form.  The capstone `forklessFlatNormalWF_proved` now lives in
+`Orig2/Fork/Commute/BoundedFlatPath.lean`, where it is derived from the
+stronger bounded-path theorem.
 -/
 
 set_option autoImplicit false
@@ -1542,16 +1539,9 @@ theorem changed_card_both
               h_wu hk hb
             exact absurd (hb.trans hfixed.symm) hchg
 
-/-- **THE FLAT NORMAL FORM.** -/
-theorem forklessFlatNormalWF_proved : ForklessFlatNormalWF :=
-  forklessFlatNormalWF_of_perCard
-    (fun {_w _u _x} hw hmax horb hrung hfounds hchg =>
-      changed_card_both hw hmax horb hrung hfounds hchg)
-
 
 /-! ## Audit battery -/
 
-#print axioms forklessFlatNormalWF_proved
 #print axioms forklessFlatNormalWF_of_perCard
 #print axioms changed_card_both
 #print axioms changed_card_clause
