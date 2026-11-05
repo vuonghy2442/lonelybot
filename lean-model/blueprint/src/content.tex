@@ -518,14 +518,14 @@ family.
 \end{definition}
 
 \begin{theorem}[The arm split]\label{thm:armSplit}
-\lean{armDichotomy_iff_split, armDichotomy_of_split, satEqualFork_of_armDichotomy, forklessCargoNormal_to_armDichotomy, forkless_found_unique_via_fiber}
+\lean{armDichotomy_iff_split, satEqualFork_of_armDichotomy}
 \leanok
 \uses{def:dichotomy, thm:satDifferFork}
-The cargo dichotomy splits exactly into the differing-rung target
-and the equal-rung fork claim, and it implies the equal-runk fork
-claim outright.  The forkless normalization route reads the
-dichotomy back from the normal form, and the fiber route derives
-forkless foundation uniqueness from the dichotomy directly.
+The generic arm dichotomy splits exactly into the differing-rung target
+and the equal-rung half.  The cargo-fiber form of the equal-rung half is
+refuted by the draw boundary, so only the generic split and its
+\texttt{SatDifferFork} projection remain; the SW flat-fiber repair is the
+live replacement.
 \end{theorem}
 
 \begin{proof}
@@ -856,7 +856,7 @@ Discharged in the Orig2 card (green, axiom battery [propext, Quot.sound]).
 \end{proof}
 
 \begin{theorem}[The minimality gate]\label{thm:minimalityGate}
-\lean{ExistKit.ReadBracketElimMin, ExistKit.ValleyForkAtMin, ExistKit.readBracketElimMin_of_readBracket, ExistKit.bracket_of_samecard_window, ExistKit.ReadWindowExists}
+\lean{ExistKit.ReadBracketElimMin, ExistKit.ValleyForkAtMin, ExistKit.readBracketElimMin_of_readBracket, ExistKit.bracket_of_samecard_window}
 \leanok
 \uses{thm:readInvariance, thm:normalizer}
 The ungated bracket residuals are refuted --- a four-letter

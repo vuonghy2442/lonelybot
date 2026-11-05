@@ -79,10 +79,7 @@ ArmDichotomyRung
 SatEqualFork
 SatEqualCargoSW
 armDichotomy_iff_split
-armDichotomy_of_split
 satEqualFork_of_armDichotomy
-forklessCargoNormal_to_armDichotomy
-forkless_found_unique_via_fiber
 armDichotomySW_iff_split
 armDichotomySW_to_satDifferFork
 forkless_found_unique_SW
@@ -146,7 +143,6 @@ ExistKit.ReadBracketElimMin
 ExistKit.ValleyForkAtMin
 ExistKit.readBracketElimMin_of_readBracket
 ExistKit.bracket_of_samecard_window
-ExistKit.ReadWindowExists
 ValleyElim.satDifferForkWF_of_valleyElimNonfork
 Drain.drain_to_fork
 Drain.drain_terminal_fork
