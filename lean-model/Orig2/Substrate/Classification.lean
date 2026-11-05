@@ -790,23 +790,11 @@ private theorem drop_map_min {α β : Type} (f : α → β) : ∀ (l : List α) 
       | 0 => rfl
       | i' + 1 => exact ih i'
 
-/-- The rank of a zero-based index, tabulated.  PORTED verbatim
-from `Orig/FoundKit.lean:371` (the frozen public home of the
-retired per-file makers — the macro tier, not importable here;
-lifted reading). -/
-private def Rk : Nat → Rank
-  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
-  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
-  | 12 => .king | _ => .ace
+/-- The rank tabulation and its index inverse live at the shared kit
+(`Orig2/Substrate/Kit.lean`, `FoundKit`). -/
+private abbrev Rk := FoundKit.Rk
 
-/-- The tabulation inverts the rank index.  PORTED from
-`Orig/FoundKit.lean:376`. -/
-private theorem Rk_toIdx : ∀ (k : Nat), k < 13 → (Rk k).toIdx = k := by
-  intro k hk
-  match k, hk with
-  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ | 6, _ | 7, _
-  | 8, _ | 9, _ | 10, _ | 11, _ | 12, _ => rfl
-  | j + 13, hj => exact absurd hj (by omega)
+private abbrev Rk_toIdx := FoundKit.Rk_toIdx
 
 /-- PORTED from `Orig/Classify.lean:558`. -/
 private theorem rank_all_drop_cons : ∀ (k : Nat), k < 13 →

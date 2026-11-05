@@ -57,18 +57,18 @@ theorem minPlay_length : minPlay.length = 12 := rfl
 /-! ## §2. The 13 states -/
 
 def N0 : State := s1
-def N1 : State := vstep N0 a1
-def N2 : State := vstep N1 a2
-def N3 : State := vstep N2 a3
-def N4 : State := vstep N3 a4
-def N5 : State := vstep N4 a5
-def N6 : State := vstep N5 a6
-def N7 : State := vstep N6 a7
-def N8 : State := vstep N7 a8
-def N9 : State := vstep N8 a9
-def N10 : State := vstep N9 a10
-def N11 : State := vstep N10 a11
-def N12 : State := vstep N11 a12
+def N1 : State := vcStep N0 a1
+def N2 : State := vcStep N1 a2
+def N3 : State := vcStep N2 a3
+def N4 : State := vcStep N3 a4
+def N5 : State := vcStep N4 a5
+def N6 : State := vcStep N5 a6
+def N7 : State := vcStep N6 a7
+def N8 : State := vcStep N7 a8
+def N9 : State := vcStep N8 a9
+def N10 : State := vcStep N9 a10
+def N11 : State := vcStep N10 a11
+def N12 : State := vcStep N11 a12
 
 theorem step_1 : State.step N0 a1 = some N1 := by rfl
 theorem step_2 : State.step N1 a2 = some N2 := by rfl

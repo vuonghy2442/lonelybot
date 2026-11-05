@@ -254,25 +254,6 @@ theorem mem_found_iff_height {st : State} (hwf : st.WF) {c : Card} :
     c ∈ st.found c.suit ↔ c.rank.toIdx < rungAt st c.suit :=
   ⟨mem_found_rank_lt hwf, mem_found_of_rung hwf⟩
 
-/-- The rank of a zero-based index, tabulated.  PORTED VERBATIM from
-`Orig/FoundKit.lean:371` (the frozen tier's public home of the
-rank tabulation; the in-tree private precedent is
-`Orig2/Substrate/Classification.lean:794`, which may retire to this public
-home in a later pass). -/
-def Rk : Nat → Rank
-  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
-  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
-  | 12 => .king | _ => .ace
-
-/-- The tabulation inverts the rank index.  PORTED from
-`Orig/FoundKit.lean:376`. -/
-theorem Rk_toIdx : ∀ (k : Nat), k < 13 → (Rk k).toIdx = k := by
-  intro k hk
-  match k, hk with
-  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ | 6, _ | 7, _
-  | 8, _ | 9, _ | 10, _ | 11, _ | 12, _ => rfl
-  | j + 13, hj => exact absurd hj (by omega)
-
 end FoundKit
 
 /-! ## §4. The rung pins -/

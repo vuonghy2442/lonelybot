@@ -98,26 +98,21 @@ theorem q7_decomp : q7 = m8 :: q8 := rfl
 
 /-! ## §3. The 15 concrete states along the play -/
 
-def vstep (st : State) (m : Move) : State :=
-  match st.step m with
-  | none => st
-  | some s' => s'
-
 def F0 : State := s1
-def F1 : State := vstep F0 m1
-def F2 : State := vstep F1 m2
-def F3 : State := vstep F2 m3
-def F4 : State := vstep F3 m4
-def F5 : State := vstep F4 m5
-def F6 : State := vstep F5 m6
-def F7 : State := vstep F6 m7
-def F8 : State := vstep F7 m8
-def F9 : State := vstep F8 m9
-def F10 : State := vstep F9 m10
-def F11 : State := vstep F10 m11
-def F12 : State := vstep F11 m12
-def F13 : State := vstep F12 m13
-def F14 : State := vstep F13 m14
+def F1 : State := vcStep F0 m1
+def F2 : State := vcStep F1 m2
+def F3 : State := vcStep F2 m3
+def F4 : State := vcStep F3 m4
+def F5 : State := vcStep F4 m5
+def F6 : State := vcStep F5 m6
+def F7 : State := vcStep F6 m7
+def F8 : State := vcStep F7 m8
+def F9 : State := vcStep F8 m9
+def F10 : State := vcStep F9 m10
+def F11 : State := vcStep F10 m11
+def F12 : State := vcStep F11 m12
+def F13 : State := vcStep F12 m13
+def F14 : State := vcStep F13 m14
 
 def states : List State := [F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14]
 
@@ -210,7 +205,7 @@ theorem t1_sat : SSaturated t1 := by
 
 /-! ## §7. A computable state-equality certificate
 
-The forward states are chained through `vstep`, so `State.step Fi mi = some
+The forward states are chained through `vcStep`, so `State.step Fi mi = some
 Fi+1` is definitional.  The reverse steps land on a *literal earlier*
 state, which the kernel would have to fully evaluate to see; instead we
 compare the two states componentwise and run the comparison by `decide`.

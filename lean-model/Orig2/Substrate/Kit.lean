@@ -2863,3 +2863,23 @@ Per promoted head, this kit.  Expected profile: `[propext]` or
 #print axioms below_cons_self
 #print axioms below_snoc_not_mem
 #print axioms universe_nodup
+
+/-! ## The rank tabulation (shared home) -/
+
+namespace FoundKit
+
+/-- The rank of a zero-based index, tabulated. -/
+def Rk : Nat → Rank
+  | 0 => .ace | 1 => .two | 2 => .three | 3 => .four | 4 => .five | 5 => .six
+  | 6 => .seven | 7 => .eight | 8 => .nine | 9 => .ten | 10 => .jack | 11 => .queen
+  | 12 => .king | _ => .ace
+
+/-- The tabulation inverts the rank index. -/
+theorem Rk_toIdx : ∀ (k : Nat), k < 13 → (Rk k).toIdx = k := by
+  intro k hk
+  match k, hk with
+  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ | 6, _ | 7, _
+  | 8, _ | 9, _ | 10, _ | 11, _ | 12, _ => rfl
+  | j + 13, hj => exact absurd hj (by omega)
+
+end FoundKit

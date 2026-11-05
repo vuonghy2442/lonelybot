@@ -139,7 +139,7 @@ private def m10 : Move := Move.foundToTab (vcC .club .four) (Sum.inr (vcC .diamo
 private def m11 : Move := Move.tabToTab (vcC .diamond .three) (Sum.inr (vcC .club .four))
 private def m12 : Move := Move.tabToFound (vcC .spade .four)
 
-private def vcStep (st : State) (m : Move) : State :=
+def vcStep (st : State) (m : Move) : State :=
   match st.step m with
   | none => st
   | some s' => s'
