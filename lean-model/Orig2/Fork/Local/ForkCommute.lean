@@ -661,27 +661,6 @@ theorem step_comm_raise_pull {st s1 s2 s12 s21 : State} {c d : Card} {b : Base}
 
 /-! ## 0. The draw's field determinism -/
 
-/-- `recycle` keeps the foundations. -/
-theorem recycle_found (u : State) : (State.recycle u).found = u.found := by
-  unfold State.recycle
-  split
-  · split <;> rfl
-  · rfl
-
-/-- `recycle` keeps the piles. -/
-theorem recycle_piles (u : State) : (State.recycle u).piles = u.piles := by
-  unfold State.recycle
-  split
-  · split <;> rfl
-  · rfl
-
-/-- `recycle` keeps the draw step. -/
-theorem recycle_drawStep (u : State) : (State.recycle u).drawStep = u.drawStep := by
-  unfold State.recycle
-  split
-  · split <;> rfl
-  · rfl
-
 /-- `recycle`'s stock, closed form. -/
 theorem recycle_stock (st : State) :
     (State.recycle st).stock =
