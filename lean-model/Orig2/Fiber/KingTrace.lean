@@ -1171,12 +1171,6 @@ private theorem nodup_map_anchor {l : List Card} {f : Card → Anchor}
           (fun x hx x' hx' =>
             hinj x (List.mem_cons_of_mem c hx) x' (List.mem_cons_of_mem c hx'))
 
-/-- The anchor of a bottomed king at `w` (default for non-bottomed cards). -/
-def anchorOf (w : State) (c : Card) : Anchor :=
-  match seatOf w c with
-  | some (Sum.inl a) => a
-  | _ => Anchor.p0
-
 set_option maxHeartbeats 1600000 in
 /-- The unconditional completeness half, via the conjugation route:
 extend the desired assignment to a VK permutation, realize it by a KingShuffle

@@ -2883,3 +2883,9 @@ theorem Rk_toIdx : ∀ (k : Nat), k < 13 → (Rk k).toIdx = k := by
   | j + 13, hj => exact absurd hj (by omega)
 
 end FoundKit
+
+/-- The anchor whose seat holds `c`, defaulting to `p0`. -/
+def anchorOf (w : State) (c : Card) : Anchor :=
+  match seatOf w c with
+  | some (Sum.inl a) => a
+  | _ => Anchor.p0

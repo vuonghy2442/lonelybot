@@ -3275,11 +3275,6 @@ private def allFixedB (st w : State) : Bool :=
   (kingsOf st).all (fun c => decide (seatOf w c = seatOf st c))
 
 /-- The seat of `w` read back as an anchor (junk off the king's inl-seat). -/
-private def wAnchor (w : State) (c : Card) : Anchor :=
-  match seatOf w c with
-  | some (Sum.inl a) => a
-  | _ => Anchor.p0
-
 private theorem all_eq_false' {l : List Card} {p : Card → Bool} (h : l.all p = false) :
     ∃ c, c ∈ l ∧ p c = false := by
   induction l with
@@ -3354,7 +3349,7 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
         · exact absurd hse_inr (fun h => king_seat_inr_absurd hwfst hkm h)
         · exact ⟨a', hiso⟩
       have hτ_eq : ∀ {c : Card} {a : Anchor},
-          seatOf w c = some (Sum.inl a) → wAnchor w c = a := by
+          seatOf w c = some (Sum.inl a) → anchorOf w c = a := by
         intro c a ha
         show (match seatOf w c with
               | some (Sum.inl a) => a
@@ -3373,12 +3368,12 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
         · obtain ⟨-, a, a', hse, hse_w, -⟩ := h3
           exact ⟨a', hse_w⟩
       have hagree : ∀ c ∈ kingsOf st,
-          seatOf w c = some (Sum.inl (wAnchor w c)) := by
+          seatOf w c = some (Sum.inl (anchorOf w c)) := by
         intro c hc
         obtain ⟨a, ha⟩ := hk_inl c hc
         rw [hτ_eq ha]
         exact ha
-      have ht : ∀ c ∈ kingsOf st, VKSet st (wAnchor w c) := by
+      have ht : ∀ c ∈ kingsOf st, VKSet st (anchorOf w c) := by
         intro c hc
         obtain ⟨a0, hkb0, hse0⟩ := (mem_kingsOf hwfst).mp hc
         obtain ⟨c0, hse_c0, hk_c0, hhid_c0⟩ := hkb0
@@ -3394,14 +3389,14 @@ theorem bareCargo_of_chartVK {st w : State} (hwfst : st.WF) (hw : w.WF)
           rw [hτ_eq hse_w]
           exact hvk
       have hinj : ∀ c ∈ kingsOf st, ∀ c' ∈ kingsOf st,
-          wAnchor w c = wAnchor w c' → c = c' := by
+          anchorOf w c = anchorOf w c' → c = c' := by
         intro c hc c' hc' heq
         have h1 := hagree c hc
         have h2 := hagree c' hc'
         rw [heq] at h1
         exact king_seat_injective h1 h2
       obtain ⟨u, hks, hkings⟩ :=
-        king_assignment_reachable hwfst hvac (wAnchor w) (kingsOf st)
+        king_assignment_reachable hwfst hvac (anchorOf w) (kingsOf st)
           (fun c hc => (mem_kingsOf hwfst).mp hc) ht (kingsOf_nodup st) hinj
       have hwfu : u.WF := king_shuffle_wf hks hwfst
       -- the residual chart, with full emptiness on the (vacuous) king arm
