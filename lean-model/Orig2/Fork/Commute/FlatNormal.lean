@@ -1545,26 +1545,9 @@ theorem forklessFlatNormalWF_proved : ForklessFlatNormalWF :=
     (fun {_w _u _x} hw hmax horb hrung hfounds hchg =>
       changed_card_both hw hmax horb hrung hfounds hchg)
 
-/-- **The choice-free negative form of the class-global flat-fiber
-dichotomy.**  A non-flat saturated class pair is not forkless.  This is the
-largest statement that does not need classical logic; turning it into an
-explicit `ForkWitness` is a separate classical contrapositive step. -/
-def FlatFiberNoFork : Prop :=
-  ∀ {u v : State},
-    u.WF →
-    SSaturated u →
-    SSaturated v →
-    sameOrbitSetoid.r u v →
-    ¬ BareFlatEquiv u v →
-    ¬ Forkless u
-
-theorem flatFiberNoFork_proved : FlatFiberNoFork := by
-  intro u v hu hsu hsv horb hnf hfork
-  exact hnf (forklessFlatNormalWF_proved u v hu hsu hsv horb hfork)
 
 /-! ## Audit battery -/
 
-#print axioms flatFiberNoFork_proved
 #print axioms forklessFlatNormalWF_proved
 #print axioms forklessFlatNormalWF_of_perCard
 #print axioms changed_card_both
