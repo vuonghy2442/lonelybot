@@ -121,6 +121,61 @@ theorem onPlay_bounded_or_witness {u : State} {s W : State} {play : List Move}
         refine ⟨st, ?_, hle⟩
         exact (stateOnPlay_cons hstep).mpr (Or.inl rfl)
 
+/-- An unbounded state on a witness play yields a class fork. -/
+theorem fork_of_unbounded_onPlay
+    {u v : State} {play : List Move}
+    (hu : u.WF) (hsu : SSaturated u)
+    (hplay : ShufflePlayW u play v) {z : State}
+    (hzOn : StateOnPlay u play z) (hzUnb : ¬ RungLe z u) :
+    ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x := by
+  obtain ⟨pre, post, hspl, hrun⟩ := hzOn
+  obtain ⟨z0, hpre, _hpost⟩ :=
+    ValleyElim.ShufflePlayW_split hplay pre post hspl
+  have hz0z : z0 = z :=
+    Option.some.inj ((Walk_run _ hpre).symm.trans hrun)
+  have huz0 : sameOrbitSetoid.r u z0 :=
+    RevEqW_symm (shufflePlayW_revEqW hpre)
+  have huz : sameOrbitSetoid.r u z := hz0z ▸ huz0
+  have hzwf : z.WF := wf_of_sameOrbit huz hu
+  obtain ⟨z', hzz', _hz'wf, hz'sat, hz'le⟩ :=
+    ForklessTop.exists_saturated_above z hzwf
+  have huz' : sameOrbitSetoid.r u z' :=
+    sameOrbitSetoid.iseqv.trans huz hzz'
+  obtain ⟨σ, hσ⟩ := exists_gt_of_not_rungLe hzUnb
+  have hlt : rungAt u σ < rungAt z' σ :=
+    Nat.lt_of_lt_of_le hσ (hz'le σ)
+  exact OneColourClosure.satDifferForkWF_proved u z' hu hsu hz'sat huz'
+    ⟨σ, Nat.ne_of_lt hlt⟩
+
+/-- **Constructive flat-or-fork dichotomy on a given play.** -/
+theorem flat_or_fork_on_play
+    {u v : State} {play : List Move}
+    (hu : u.WF) (hsu : SSaturated u) (hsv : SSaturated v)
+    (horb : sameOrbitSetoid.r u v)
+    (hplay : ShufflePlayW u play v) :
+    BareFlatEquiv u v ∨
+      ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x := by
+  by_cases hdiff : ∃ σ : Suit, rungAt u σ ≠ rungAt v σ
+  · exact Or.inr (OneColourClosure.satDifferForkWF_proved u v hu hsu hsv horb hdiff)
+  · have hrung : RungEq u v := rungEq_of_no_differing hdiff
+    have hv : v.WF := wf_of_sameOrbit horb hu
+    rcases onPlay_bounded_or_witness (u := u) hplay with hb | ⟨z, hzOn, hzUnb⟩
+    · exact Or.inl
+        (bareFlatEquiv_of_rungBoundedPath hu hv ⟨play, hplay, hb⟩ hrung)
+    · exact Or.inr (fork_of_unbounded_onPlay hu hsu hplay hzOn hzUnb)
+
+/-- **Constructive flat-or-fork dichotomy.**  No forkless hypothesis: the
+fork branch carries an explicit witness. -/
+theorem flat_or_fork
+    {u v : State}
+    (hu : u.WF) (hsu : SSaturated u) (hsv : SSaturated v)
+    (horb : sameOrbitSetoid.r u v) :
+    BareFlatEquiv u v ∨
+      ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x := by
+  obtain ⟨-, -, play, hplay⟩ := horb
+  have horb' : sameOrbitSetoid.r u v :=
+    sameOrbitSetoid.iseqv.symm (shufflePlayW_revEqW hplay)
+  exact flat_or_fork_on_play hu hsu hsv horb' hplay
 /-- **Choice-free explicit-witness fork.** -/
 theorem flat_failure_fork
     {u v : State}
@@ -128,33 +183,13 @@ theorem flat_failure_fork
     (horb : sameOrbitSetoid.r u v)
     (hnf : ¬ BareFlatEquiv u v) :
     ∃ F x, sameOrbitSetoid.r u F ∧ ForkWitness F x := by
-  by_cases hdiff : ∃ σ : Suit, rungAt u σ ≠ rungAt v σ
-  · exact OneColourClosure.satDifferForkWF_proved u v hu hsu hsv horb hdiff
-  · have hrung : RungEq u v := rungEq_of_no_differing hdiff
-    have hv : v.WF := wf_of_sameOrbit horb hu
-    obtain ⟨-, -, play, hplay⟩ := horb
-    rcases onPlay_bounded_or_witness (u := u) hplay with hb | ⟨z, hzOn, hzUnb⟩
-    · exfalso
-      apply hnf
-      exact bareFlatEquiv_of_rungBoundedPath hu hv ⟨play, hplay, hb⟩ hrung
-    · obtain ⟨pre, post, hspl, hrun⟩ := hzOn
-      obtain ⟨z0, hpre, _hpost⟩ :=
-        ValleyElim.ShufflePlayW_split hplay pre post hspl
-      have hz0z : z0 = z :=
-        Option.some.inj ((Walk_run _ hpre).symm.trans hrun)
-      have huz0 : sameOrbitSetoid.r u z0 :=
-        RevEqW_symm (shufflePlayW_revEqW hpre)
-      have huz : sameOrbitSetoid.r u z := hz0z ▸ huz0
-      have hzwf : z.WF := wf_of_sameOrbit huz hu
-      obtain ⟨z', hzz', _hz'wf, hz'sat, hz'le⟩ :=
-        ForklessTop.exists_saturated_above z hzwf
-      have huz' : sameOrbitSetoid.r u z' :=
-        sameOrbitSetoid.iseqv.trans huz hzz'
-      obtain ⟨σ, hσ⟩ := exists_gt_of_not_rungLe hzUnb
-      have hlt : rungAt u σ < rungAt z' σ :=
-        Nat.lt_of_lt_of_le hσ (hz'le σ)
-      exact OneColourClosure.satDifferForkWF_proved u z' hu hsu hz'sat huz'
-        ⟨σ, Nat.ne_of_lt hlt⟩
+  obtain ⟨-, -, play, hplay⟩ := horb
+  have horb' : sameOrbitSetoid.r u v :=
+    sameOrbitSetoid.iseqv.symm (shufflePlayW_revEqW hplay)
+  rcases flat_or_fork_on_play hu hsu hsv horb' hplay with hflat | hfork
+  · exact False.elim (hnf hflat)
+  · exact hfork
+
 
 /-- `ForklessFlatNormalWF` implies the class-global witness form. -/
 theorem satFlatFiberFork_of_forklessFlatNormalWF
@@ -169,6 +204,9 @@ theorem satFlatFiberFork_proved : SatFlatFiberFork := by
 
 /-! ## Audit battery -/
 
+#print axioms fork_of_unbounded_onPlay
+#print axioms flat_or_fork_on_play
+#print axioms flat_or_fork
 #print axioms flat_failure_fork
 #print axioms satFlatFiberFork_of_forklessFlatNormalWF
 #print axioms satFlatFiberFork_proved
